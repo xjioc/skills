@@ -626,7 +626,3 @@ ${#if($status != '')} AND status = '$status' ${#end}
 | `禁止 select *` | 如果系统开启了 disableSelectAll，需指定具体字段 |
 | 中文乱码 | 确认使用 Python urllib（不要用 curl） |
 
-## 参考资料
-
-- 后台模块源码：`E:\workspace-cc-jeecg\jeecg-boot-framework-2026\jeecg-boot-platform\jeecg-boot-module-online\src\main\java\org\jeecg\modules\online\cgreport\`
-- 前端 UI 源码：`E:\workspace-cc-jeecg\jeecgboot-vue3-2026\src\views\super\online\cgreport\`

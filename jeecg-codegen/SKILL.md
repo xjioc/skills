@@ -156,8 +156,8 @@ ORDER BY d.dict_code
 
 | 类别 | 路径 |
 |------|------|
-| 后端根 | `E:\workspace-cc-jeecg\jeecg-boot-framework-2026` |
-| 前端根 | `E:\workspace-cc-jeecg\jeecgboot-vue3-2026` |
+| 后端根 | 当前工作目录中的后端项目根目录 |
+| 前端根 | 当前工作目录中的前端项目根目录 |
 | 后端代码 | `{module}/src/main/java/org/jeecg/modules/{entityPackage}/` |
 | 前端代码 | `src/views/{viewDir}/` |
 | Flyway SQL | `jeecg-module-system/jeecg-system-start/src/main/resources/flyway/sql/mysql/` |

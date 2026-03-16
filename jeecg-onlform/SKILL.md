@@ -663,6 +663,3 @@ indexs = [
 ## 参考文档
 
 - 阅读同目录下的 `onlform-api-reference.md` 获取完整 JSON 数据结构和字段枚举
-- Online表单 Schema 文档：`E:\workspace-cc-jeecg\jeecg-boot-framework-2026\docs\api\onlform-schema-api.md`
-- 后台模块源码：`E:\workspace-cc-jeecg\jeecg-boot-framework-2026\jeecg-boot-platform\jeecg-boot-module-online`
-- 前端UI源码：`E:\workspace-cc-jeecg\jeecgboot-vue3-2026\src\views\super\online\cgform`

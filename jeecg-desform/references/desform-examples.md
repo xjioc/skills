@@ -709,7 +709,7 @@ def get_form_fields(form_code):
 ```python
 """CRM系统 - 4个关联表单"""
 import sys, time
-sys.path.insert(0, r'E:\workspace-cc-jeecg\jeecg-boot-framework-2026')
+sys.path.insert(0, r'后端项目根目录')
 from desform_utils import *
 
 init_api('https://boot3.jeecg.com/jeecgboot', 'your-token')

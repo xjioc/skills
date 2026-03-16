@@ -278,7 +278,3 @@ print(f'\\nProcess Key: {process_key}')
 ## 参考文档
 
 - 阅读 `references/bpmn-templates.md` 获取参考文件索引（已拆分为 8 个子文件）
-- 阅读 `E:\workspace-cc-jeecg\jeecg-boot-framework-2026\docs\bpm-process-api.md` 获取完整 API 文档
-- 流程后台模块源码 `E:\workspace-cc-jeecg\jeecg-boot-framework-2026\jeecg-boot-platform\jeecg-boot-module-bpm-flowable`
-- 流程设计前端源码 `E:\workspace-cc-jeecg\jeecgboot-vue3-2026\src\views\super\bpm\process\processDesign`
-- 设计器源码 `E:\workspace-cc-jeecg\vue-bpmn-designer` — 基于 bpmn.js 扩展的 Flowable 流程设计器（只关注 Flowable，Activiti 已废弃）

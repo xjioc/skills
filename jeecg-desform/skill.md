@@ -235,24 +235,22 @@ if dict_code:
 
 #### 3.3 使用 Python 调用 API（必须用 Python，不要用 curl）
 
-**优先使用共通工具库 `desform_utils.py`**（两个位置均有副本）：
-- Skills 目录（权威副本）：`C:\Users\zhang\.claude\skills\jeecg-desform\references\desform_utils.py`
-- 后端项目根目录（运行副本）：`E:\workspace-cc-jeecg\jeecg-boot-framework-2026\desform_utils.py`
+**优先使用共通工具库 `desform_utils.py`**（位于 `references/desform_utils.py`）：
 
-> 如果后端项目根目录没有 `desform_utils.py`，先从 skills 目录复制过去再使用。
+> 使用前先将 `desform_utils.py` 复制到后端项目根目录。
 
 **使用共通工具库的执行步骤：**
 ```
-1. 确认后端项目根目录有 desform_utils.py（没有则从 skills 复制）
+1. 确认后端项目根目录有 desform_utils.py（没有则从 references 复制）
 2. Write 工具 → 写入业务脚本 create_xxx.py（项目根目录，import desform_utils）
-3. Bash 工具 → cd E:/workspace-cc-jeecg/jeecg-boot-framework-2026 && python create_xxx.py
+3. Bash 工具 → cd 后端项目根目录 && python create_xxx.py
 4. Bash 工具 → rm create_xxx.py（清理临时脚本，保留 desform_utils.py）
 ```
 
 **共通工具库使用示例：**
 ```python
 import sys
-sys.path.insert(0, r'E:\workspace-cc-jeecg\jeecg-boot-framework-2026')
+sys.path.insert(0, r'后端项目根目录')
 from desform_utils import *
 
 init_api('https://boot3.jeecg.com/jeecgboot', 'your-token')
@@ -543,7 +541,3 @@ delete_form('2032994312457920514')
 - 阅读 `references/desform-widget-options.md` 获取所有控件 options 配置
 - 阅读 `references/desform-examples.md` 获取常见表单模式和完整 Python 脚本
 - 阅读 `references/desform-real-samples.md` 获取真实业务表单案例（字典、半行、分区、公式、关联）
-- 阅读 `E:\workspace-cc-jeecg\jeecg-boot-framework-2026\desform-api.md` 获取完整 API 和 Schema 文档
-- 表单设计器后台模块源码 `E:\workspace-cc-jeecg\jeecg-boot-framework-2026\jeecg-boot-platform\jeecg-boot-module-desform`
-- 表单设计器 UI 源码 `E:\workspace-cc-jeecg\vue-form-making-jeecg-new2024`
-- 表单设计器管理界面前端源码 `E:\workspace-cc-jeecg\jeecgboot-vue3-2026\src\views\super\online\desform`
