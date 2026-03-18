@@ -1,6 +1,11 @@
 # JeecgBoot AI Skills — Claude Code 技能清单
 
-> JeecgBoot 平台 Claude Code 技能集合，通过自然语言驱动，AI 自动生成代码、表单、流程、报表、图表等，覆盖低代码开发全场景。
+> JeecgBoot 平台 Claude Code 技能集合，通过自然语言驱动，**支持一句话生成完整系统** AI 自动生成代码、表单、流程、报表、图表等，覆盖低代码开发全场景。
+
+## 视频文档
+
+- **视频教程：** [Skills+Jeecg自然语言编程实战](https://www.bilibili.com/video/BV1KKwTzJEbX/)
+- **在线文档** [Skills使用文档](https://help.jeecg.com/java/ai/skills/skill-comparison)
 
 ---
 
@@ -146,7 +151,3 @@ xcopy jeecg-codegen %USERPROFILE%\.claude\skills\jeecg-codegen\ /E /I
 - **JeecgBoot** 3.x（Spring Boot 3 + Jakarta + MyBatis-Plus）
 - **前端** Vue3 + TypeScript + Vite + Ant Design Vue 4
 - **Claude Code** 最新版本
-
-## License
-
-MIT
