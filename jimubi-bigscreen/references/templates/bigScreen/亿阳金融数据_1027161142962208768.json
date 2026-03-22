@@ -1,0 +1,1583 @@
+{
+  "id": "1027161142962208768",
+  "name": "亿阳金融数据",
+  "path": "/drag/page/view/1027161142962208768",
+  "desJson": "{\"width\":1920,\"height\":2500,\"waterMark\":{\"show\":false,\"content\":\"\",\"fontSize\":12,\"color\":\"#ffffff\",\"angle\":45},\"sysDefColor\":[{\"color\":\"#1e90ff\"},{\"color\":\"#90ee90\"},{\"color\":\"#00ced1\"},{\"color\":\"#e2bd84\"},{\"color\":\"#7a90e0\"},{\"color\":\"#3ba272\"},{\"color\":\"#2be7ff\"},{\"color\":\"#0a8ada\"},{\"color\":\"#ffd700\"}]}",
+  "template": [
+    {
+      "component": "JWeatherForecast",
+      "visible": true,
+      "w": 387,
+      "x": 1461,
+      "h": 130,
+      "i": "44384477-9f4b-4713-a6a3-379a38864700",
+      "y": 2362,
+      "orderNum": 0,
+      "componentName": "横线版",
+      "pageCompId": "1029247956485193728",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "size": {
+          "width": 387,
+          "height": 130.83453237410072
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 300,
+        "dataType": 1,
+        "h": 30,
+        "option": {
+          "template": 34,
+          "bgColor": "",
+          "city": "",
+          "num": 2,
+          "fontSize": 20,
+          "fontColor": "#FFFFFF",
+          "url": ""
+        }
+      }
+    },
+    {
+      "component": "JCurrentTime",
+      "visible": true,
+      "w": 329,
+      "x": 69,
+      "h": 111,
+      "i": "5556cc50-37cd-4960-8d3a-98e1a06cf032",
+      "y": 2364,
+      "orderNum": 0,
+      "componentName": "当前时间",
+      "pageCompId": "1029247956514553856",
+      "config": {
+        "chartData": "",
+        "borderColor": "#FFFFFF00",
+        "size": {
+          "width": 329.72661870503595,
+          "height": 111.73381294964028
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 280,
+        "dataType": 1,
+        "h": 33,
+        "url": "http://api.jeecg.com/mock/42/nav",
+        "timeOut": 0,
+        "option": {
+          "format": "YYYY-MM-DD hh:mm:ss",
+          "body": {
+            "color": "#FFFFFF",
+            "textAlign": "left",
+            "fontSize": 24,
+            "text": "",
+            "fontWeight": "normal",
+            "marginTop": 0,
+            "marginLeft": 0
+          },
+          "showWeek": "hide",
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          }
+        }
+      }
+    },
+    {
+      "component": "JScrollBoard",
+      "visible": true,
+      "w": 1761,
+      "x": 99,
+      "h": 467,
+      "i": "9da142d4-10d4-4424-9166-6f9c6f3afbca",
+      "y": 1778,
+      "orderNum": 0,
+      "componentName": "轮播表",
+      "pageCompId": "1029247956527136768",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "维度"
+          },
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 300,
+        "url": "http://api.jeecg.com/mock/33/chart",
+        "timeOut": 0,
+        "chartData": "[    [        \"委托贷款\",        \"朝阳2.7亿重组债务提前2.5年结清\"    ],    [        \"融资租赁\",        \"向建设公司投放8700万元融资租赁款\"    ],    [        \"小额贷款\",        \"实现了近1.2亿元抵押债权的风险信息核验\"    ],    [        \"产业基金\",        \"金额7000万元，投资入粮食产业\"    ],    [        \"保险经纪\",        \"集团统保业务，内部企业出单完成率120%，保费金额完成率118%，保障金额完成率126%\"    ],    [        \"委托贷款\",        \"朝阳2.7亿重组债务提前2.5年结清\"    ],    [        \"融资租赁\",        \"向建设公司投放8700万元融资租赁款\"    ],    [        \"小额贷款\",        \"实现了近1.2亿元抵押债权的风险信息核验\"    ],    [        \"产业基金\",        \"金额7000万元，投资入粮食产业\"    ],    [        \"保险经纪\",        \"集团统保业务，内部企业出单完成率120%，保费金额完成率118%，保障金额完成率126%\"    ]]",
+        "size": {
+          "width": 1761,
+          "height": 467.136690647482
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 450,
+        "turnConfig": {
+          "type": "_blank",
+          "url": ""
+        },
+        "linkType": "url",
+        "linkageConfig": [],
+        "option": {
+          "oddRowBGC": "#003B51",
+          "headShow": true,
+          "hoverPause": true,
+          "indexWidth": 80,
+          "index": false,
+          "carousel": "single",
+          "title": {
+            "show": true,
+            "text": "",
+            "textStyle": {
+              "color": "#464646",
+              "fontWeight": "normal"
+            }
+          },
+          "evenRowBGC": "#0A2732",
+          "header": [
+            {
+              "width": 200,
+              "label": "板块",
+              "key": ""
+            },
+            {
+              "width": 800,
+              "label": "动态",
+              "key": ""
+            }
+          ],
+          "headerBGC": "#1E90FF",
+          "headerHeight": 35,
+          "waitTime": 2000,
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          }
+        }
+      }
+    },
+    {
+      "component": "JAreaMap",
+      "visible": true,
+      "w": 1719,
+      "x": 117,
+      "h": 721,
+      "i": "d60211da-2464-48ce-81c3-64240b1c485e",
+      "y": 881,
+      "orderNum": 0,
+      "componentName": "区域地图",
+      "pageCompId": "1029247956543913984",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "commonOption": {
+          "barSize": 10,
+          "gradientColor": false,
+          "breadcrumb": {
+            "drillDown": false,
+            "textColor": "#FFFFFF"
+          },
+          "areaColor": {
+            "color1": "#132937",
+            "color2": "#fcc02e"
+          },
+          "barColor": "#fff176",
+          "barColor2": "#fcc02e",
+          "inRange": {
+            "color": [
+              "#04387b",
+              "#467bc0"
+            ]
+          }
+        },
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "区域"
+          },
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "jsConfig": "",
+        "dataType": 1,
+        "h": 300,
+        "activeKey": 1,
+        "url": "http://api.jeecg.com/mock/33/radar",
+        "timeOut": 0,
+        "chartData": "[{\"name\":\"北京\",\"value\":199},{\"name\":\"天津\",\"value\":42},{\"name\":\"河北\",\"value\":102},{\"name\":\"山西\",\"value\":81},{\"name\":\"内蒙古\",\"value\":47},{\"name\":\"辽宁\",\"value\":67},{\"name\":\"吉林\",\"value\":82},{\"name\":\"黑龙江\",\"value\":123},{\"name\":\"上海\",\"value\":24},{\"name\":\"江苏\",\"value\":92},{\"name\":\"浙江\",\"value\":114},{\"name\":\"安徽\",\"value\":109},{\"name\":\"福建\",\"value\":116},{\"name\":\"江西\",\"value\":91},{\"name\":\"山东\",\"value\":119},{\"name\":\"河南\",\"value\":137},{\"name\":\"湖北\",\"value\":116},{\"name\":\"湖南\",\"value\":114},{\"name\":\"重庆\",\"value\":91},{\"name\":\"四川\",\"value\":125},{\"name\":\"贵州\",\"value\":62},{\"name\":\"云南\",\"value\":83},{\"name\":\"西藏\",\"value\":9},{\"name\":\"陕西\",\"value\":80},{\"name\":\"甘肃\",\"value\":56},{\"name\":\"青海\",\"value\":10},{\"name\":\"宁夏\",\"value\":18},{\"name\":\"新疆\",\"value\":180},{\"name\":\"广东\",\"value\":123},{\"name\":\"广西\",\"value\":59},{\"name\":\"海南\",\"value\":14}]",
+        "size": {
+          "width": 1719,
+          "height": 721.9208633093525
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 450,
+        "turnConfig": {
+          "type": "_blank",
+          "url": ""
+        },
+        "linkType": "url",
+        "linkageConfig": [],
+        "option": {
+          "drillDown": false,
+          "area": {
+            "markerColor": "#DDE330",
+            "shadowBlur": 10,
+            "markerCount": 5,
+            "markerOpacity": 1,
+            "name": [
+              "北京市"
+            ],
+            "scatterLabelShow": false,
+            "shadowColor": "#DDE330",
+            "value": [
+              "11"
+            ],
+            "markerType": "effectScatter"
+          },
+          "geo": {
+            "top": 71,
+            "aspectScale": 0.92,
+            "itemStyle": {
+              "normal": {
+                "shadowOffsetX": 0,
+                "borderColor": "#0692A4",
+                "shadowOffsetY": 0,
+                "areaColor": "",
+                "shadowBlur": 0,
+                "borderWidth": 1,
+                "shadowColor": "#80D9F8"
+              },
+              "emphasis": {
+                "areaColor": "#FFF59C",
+                "borderWidth": 0
+              }
+            },
+            "zoom": 1.2,
+            "label": {
+              "normal": {
+                "color": "#EEF1FA",
+                "show": true
+              },
+              "emphasis": {
+                "color": "#fff",
+                "show": false
+              }
+            },
+            "roam": false
+          },
+          "grid": {
+            "bottom": 115,
+            "show": false
+          },
+          "legend": {
+            "data": []
+          },
+          "title": {
+            "left": 10,
+            "show": true,
+            "text": "",
+            "textStyle": {
+              "color": "#EEF1FA",
+              "fontWeight": "normal"
+            }
+          },
+          "graphic": [],
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          },
+          "visualMap": {
+            "min": 0,
+            "top": "bottom",
+            "max": 200,
+            "left": "5%",
+            "calculable": true,
+            "show": false,
+            "type": "continuous",
+            "seriesIndex": [
+              0
+            ]
+          }
+        }
+      }
+    },
+    {
+      "component": "JDragBorder",
+      "visible": true,
+      "w": 1760,
+      "x": 100,
+      "h": 763,
+      "i": "acf6e8ec-ba16-49c4-9079-b7be333a1bae",
+      "y": 861,
+      "orderNum": 0,
+      "componentName": "边框11",
+      "pageCompId": "1029247956556496896",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "size": {
+          "width": 1760.9064748201438,
+          "height": 763
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 450,
+        "dataType": 1,
+        "h": 300,
+        "option": {
+          "dur": 3,
+          "backgroundColor": "#ffffff00",
+          "mainColor": "#83BFF6",
+          "titleWidth": 250,
+          "type": "10",
+          "title": "",
+          "subColor": "#00CED1",
+          "reverse": false
+        }
+      },
+      "key": "c2b5fa4d-031c-4192-88af-8da453f32eb7"
+    },
+    {
+      "component": "JDragDecoration",
+      "visible": true,
+      "w": 50,
+      "x": 948,
+      "h": 363,
+      "i": "2a0ffc09-08d5-4d4f-8068-83a0cdc3f5a5",
+      "y": 338,
+      "orderNum": 0,
+      "componentName": "装饰4",
+      "pageCompId": "1029247956569079808",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "size": {
+          "width": 50,
+          "height": 363.53956834532374
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 50,
+        "dataType": 1,
+        "h": 300,
+        "option": {
+          "dur": 0,
+          "mainColor": "#00CED1",
+          "fontSize": 15,
+          "type": "4",
+          "title": "装饰4",
+          "subColor": "#FAD400",
+          "reverse": false
+        }
+      },
+      "key": "60605c26-a6e4-45ae-836f-0ac7b47af47c"
+    },
+    {
+      "component": "JPie",
+      "visible": true,
+      "w": 730,
+      "x": 1054,
+      "h": 298,
+      "i": "90d6dae7-6968-4569-8d81-0f2d8cd06032",
+      "y": 366,
+      "orderNum": 0,
+      "componentName": "饼图",
+      "pageCompId": "1029247956581662720",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "维度"
+          },
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 300,
+        "url": "http://api.jeecg.com/mock/33/chart",
+        "timeOut": -1,
+        "chartData": "[    {        \"name\": \"融资租赁\",        \"value\": 20.07    },    {        \"name\": \"委托贷款\",        \"value\": 25.19    },    {        \"name\": \"小额贷款\",        \"value\": 10.96    },    {        \"name\": \"产业基金\",        \"value\": 7.62    },    {        \"name\": \"保险经纪\",        \"value\": 12.98    }]",
+        "size": {
+          "width": 730.9208633093525,
+          "height": 298
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 450,
+        "turnConfig": {
+          "type": "_blank",
+          "url": ""
+        },
+        "linkType": "url",
+        "linkageConfig": [],
+        "option": {
+          "isRose": false,
+          "customColor": [
+            {
+              "color": "#929FFF"
+            },
+            {
+              "color": "#9DE0FF"
+            },
+            {
+              "color": "#FFA897"
+            },
+            {
+              "color": "#AF87FE"
+            },
+            {
+              "color": "#7DC3FE"
+            },
+            {
+              "color": "#BB60B2"
+            },
+            {
+              "color": "#433E7C"
+            },
+            {
+              "color": "#F47A75"
+            },
+            {
+              "color": "#009DB2"
+            }
+          ],
+          "grid": {
+            "top": 44,
+            "left": 43,
+            "show": false
+          },
+          "legend": {
+            "orient": "vertical",
+            "t": 5,
+            "show": true,
+            "textStyle": {
+              "fontSize": 20
+            }
+          },
+          "series": [
+            {
+              "data": [],
+              "name": "",
+              "emphasis": {
+                "itemStyle": {
+                  "shadowOffsetX": 0,
+                  "shadowBlur": 10,
+                  "shadowColor": "rgba(0, 0, 0, 0.5)"
+                }
+              },
+              "label": {
+                "color": "#EEF1FA",
+                "show": true
+              },
+              "type": "pie",
+              "radius": "50%"
+            }
+          ],
+          "pieLabelPosition": "outside",
+          "isRadius": false,
+          "tooltip": {
+            "trigger": "item",
+            "textStyle": {
+              "color": "#EEF1FA"
+            }
+          },
+          "title": {
+            "subtext": "",
+            "left": "left",
+            "show": true,
+            "text": "",
+            "textStyle": {
+              "color": "#EEF1FA",
+              "fontWeight": "normal"
+            },
+            "subtextStyle": {
+              "color": "#EEF1FA"
+            }
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          }
+        }
+      },
+      "key": "d8826b4d-0294-412a-896b-546ac36a698e"
+    },
+    {
+      "component": "JCountTo",
+      "visible": true,
+      "w": 247,
+      "x": 479,
+      "h": 80,
+      "i": "es-drager-1734006833823-4",
+      "y": 582,
+      "orderNum": 33,
+      "componentName": "翻牌器",
+      "pageCompId": "1029247956594245632",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 80,
+        "url": "http://api.jeecg.com/mock/42/nav",
+        "timeOut": 0,
+        "chartData": "{  \"value\": 420}",
+        "size": {
+          "width": 247.0431654676259,
+          "height": 80
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 300,
+        "turnConfig": {
+          "type": "_blank",
+          "url": ""
+        },
+        "linkType": "url",
+        "linkageConfig": [],
+        "option": {
+          "borderColor": "#284A73",
+          "color": "#EAC910",
+          "prefix": "",
+          "whole": false,
+          "boxHeight": 50,
+          "suffix": "人",
+          "type": "border",
+          "body": {
+            "color": "#FFFFFF",
+            "text": "",
+            "fontWeight": "bold",
+            "marginTop": 0,
+            "marginLeft": 0
+          },
+          "prefixFontSize": 16,
+          "prefixFontWeight": "normal",
+          "backgroundImg": "",
+          "suffixGridY": 0,
+          "suffixGridX": 10,
+          "fontWeight": "normal",
+          "suffixFontSize": 32,
+          "prefixColor": "#FFFFFF",
+          "textAlign": "center",
+          "suffixFontWeight": "normal",
+          "prefixGridX": 0,
+          "prefixGridY": 0,
+          "suffixColor": "#1E90FF",
+          "borderImg": "",
+          "fontSize": 32,
+          "boxWidth": 50,
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          }
+        }
+      },
+      "key": "c3ef6f07-9db1-4741-8fb6-b2b42c833b41"
+    },
+    {
+      "component": "JCountTo",
+      "visible": true,
+      "w": 330,
+      "x": 422,
+      "h": 80,
+      "i": "es-drager-1734006739068-3",
+      "y": 371,
+      "orderNum": 33,
+      "componentName": "翻牌器",
+      "pageCompId": "1029247956602634240",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 80,
+        "url": "http://api.jeecg.com/mock/42/nav",
+        "timeOut": 0,
+        "chartData": "{  \"value\": 85.75}",
+        "size": {
+          "width": 330.62589928057554,
+          "height": 80
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 300,
+        "turnConfig": {
+          "type": "_blank",
+          "url": ""
+        },
+        "linkType": "url",
+        "linkageConfig": [],
+        "option": {
+          "borderColor": "#284A73",
+          "color": "#EAC910",
+          "prefix": "",
+          "whole": false,
+          "boxHeight": 50,
+          "suffix": "亿元",
+          "type": "border",
+          "body": {
+            "color": "#FFFFFF",
+            "text": "",
+            "fontWeight": "bold",
+            "marginTop": 0,
+            "marginLeft": 0
+          },
+          "prefixFontSize": 16,
+          "prefixFontWeight": "normal",
+          "backgroundImg": "",
+          "suffixGridY": 18,
+          "suffixGridX": 10,
+          "fontWeight": "normal",
+          "suffixFontSize": 32,
+          "prefixColor": "#FFFFFF",
+          "textAlign": "center",
+          "suffixFontWeight": "normal",
+          "prefixGridX": 0,
+          "prefixGridY": 0,
+          "suffixColor": "#1E90FF",
+          "borderImg": "",
+          "fontSize": 32,
+          "boxWidth": 50,
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          }
+        }
+      },
+      "key": "78f821aa-7a12-4619-9f78-8d607a9bef91"
+    },
+    {
+      "component": "JCountTo",
+      "visible": true,
+      "w": 327,
+      "x": 421,
+      "h": 80,
+      "i": "b8103a49-cc8a-4933-811c-26046396fb89",
+      "y": 476,
+      "orderNum": 33,
+      "componentName": "翻牌器",
+      "pageCompId": "1029247956615217152",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 80,
+        "url": "http://api.jeecg.com/mock/42/nav",
+        "timeOut": 0,
+        "chartData": "{  \"value\": 50.67}",
+        "size": {
+          "width": 327.66187050359713,
+          "height": 80
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 300,
+        "turnConfig": {
+          "type": "_blank",
+          "url": ""
+        },
+        "linkType": "url",
+        "linkageConfig": [],
+        "option": {
+          "borderColor": "#284A73",
+          "color": "#EAC910",
+          "prefix": "",
+          "whole": false,
+          "boxHeight": 50,
+          "suffix": "亿元",
+          "type": "border",
+          "body": {
+            "color": "#FFFFFF",
+            "text": "",
+            "fontWeight": "bold",
+            "marginTop": 0,
+            "marginLeft": 0
+          },
+          "prefixFontSize": 16,
+          "prefixFontWeight": "normal",
+          "backgroundImg": "",
+          "suffixGridY": 1,
+          "suffixGridX": 10,
+          "fontWeight": "normal",
+          "suffixFontSize": 32,
+          "prefixColor": "#FFFFFF",
+          "textAlign": "center",
+          "suffixFontWeight": "normal",
+          "prefixGridX": 0,
+          "prefixGridY": 0,
+          "suffixColor": "#1E90FF",
+          "borderImg": "",
+          "fontSize": 32,
+          "boxWidth": 50,
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          }
+        }
+      },
+      "key": "0182b1d5-8687-4ced-82e8-5d9bf5b7e189"
+    },
+    {
+      "component": "JText",
+      "visible": true,
+      "w": 170,
+      "x": 896,
+      "h": 60,
+      "i": "es-drager-1734056377758-4",
+      "y": 763,
+      "orderNum": 33,
+      "componentName": "辐射范围",
+      "pageCompId": "1029247956627800064",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 60,
+        "url": "http://api.jeecg.com/mock/42/nav",
+        "timeOut": 0,
+        "chartData": "{  \"value\": \"辐射范围\"}",
+        "size": {
+          "height": 60
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 170,
+        "turnConfig": {
+          "type": "_blank",
+          "url": ""
+        },
+        "linkType": "url",
+        "linkageConfig": [],
+        "option": {
+          "openUrl": "",
+          "isLink": false,
+          "body": {
+            "color": "#FAD400",
+            "fontSize": 32,
+            "text": "",
+            "fontWeight": "normal",
+            "marginTop": 0,
+            "marginLeft": 0
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          },
+          "openType": "_blank"
+        }
+      },
+      "key": "a07face5-4773-4a97-90fd-738520342817"
+    },
+    {
+      "component": "JText",
+      "visible": true,
+      "w": 196,
+      "x": 259,
+      "h": 60,
+      "i": "es-drager-1734006489806-2",
+      "y": 586,
+      "orderNum": 33,
+      "componentName": "服务主体超",
+      "pageCompId": "1029247956648771584",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 60,
+        "url": "http://api.jeecg.com/mock/42/nav",
+        "timeOut": 0,
+        "chartData": "{  \"value\": \"服务主体超\"}",
+        "size": {
+          "width": 196.02877697841728,
+          "height": 60
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 170,
+        "turnConfig": {
+          "type": "_blank",
+          "url": ""
+        },
+        "linkType": "url",
+        "linkageConfig": [],
+        "option": {
+          "openUrl": "",
+          "isLink": false,
+          "body": {
+            "color": "#1E90FF",
+            "fontSize": 24,
+            "text": "",
+            "fontWeight": "normal",
+            "marginTop": 0,
+            "marginLeft": 0
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          },
+          "openType": "_blank"
+        }
+      },
+      "key": "0d4781c3-91fe-426b-a734-ebe9ddb22707"
+    },
+    {
+      "component": "JText",
+      "visible": true,
+      "w": 196,
+      "x": 228,
+      "h": 60,
+      "i": "es-drager-1734006489541-1",
+      "y": 479,
+      "orderNum": 33,
+      "componentName": "股权类资金总规模",
+      "pageCompId": "1029247956661354496",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 60,
+        "url": "http://api.jeecg.com/mock/42/nav",
+        "timeOut": 0,
+        "chartData": "{  \"value\": \"股权类资金总规模\"}",
+        "size": {
+          "width": 196.02877697841728,
+          "height": 60
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 170,
+        "turnConfig": {
+          "type": "_blank",
+          "url": ""
+        },
+        "linkType": "url",
+        "linkageConfig": [],
+        "option": {
+          "openUrl": "",
+          "isLink": false,
+          "body": {
+            "color": "#1E90FF",
+            "fontSize": 24,
+            "text": "",
+            "fontWeight": "normal",
+            "marginTop": 0,
+            "marginLeft": 0
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          },
+          "openType": "_blank"
+        }
+      },
+      "key": "cdfbb6b1-1728-4802-8b1f-cc1f9f818ff2"
+    },
+    {
+      "component": "JText",
+      "visible": true,
+      "w": 196,
+      "x": 228,
+      "h": 60,
+      "i": "826529c0-6ed5-4b4b-8a6f-1a438beeb349",
+      "y": 376,
+      "orderNum": 33,
+      "componentName": "债券类资金总规模",
+      "pageCompId": "1029247956673937408",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 60,
+        "url": "http://api.jeecg.com/mock/42/nav",
+        "timeOut": 0,
+        "chartData": "{  \"value\": \"债券类资金总规模\"}",
+        "size": {
+          "width": 196.02877697841728,
+          "height": 60
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 170,
+        "turnConfig": {
+          "type": "_blank",
+          "url": ""
+        },
+        "linkType": "url",
+        "linkageConfig": [],
+        "option": {
+          "openUrl": "",
+          "isLink": false,
+          "body": {
+            "color": "#1E90FF",
+            "fontSize": 24,
+            "text": "",
+            "fontWeight": "normal",
+            "marginTop": 0,
+            "marginLeft": 0
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          },
+          "openType": "_blank"
+        }
+      },
+      "key": "a1383702-3bb9-4afe-8b15-322db52e6f5e"
+    },
+    {
+      "component": "JDragBorder",
+      "visible": true,
+      "w": 783,
+      "x": 151,
+      "h": 327,
+      "i": "09e66c05-d8b8-4572-87fe-291135a7b751",
+      "y": 352,
+      "orderNum": 33,
+      "componentName": "边框8",
+      "pageCompId": "1029247956686520320",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "size": {
+          "width": 783.5251798561151,
+          "height": 327
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 450,
+        "dataType": 1,
+        "h": 300,
+        "option": {
+          "dur": 3,
+          "backgroundColor": "#ffffff00",
+          "mainColor": "#83BFF6",
+          "titleWidth": 250,
+          "type": "8",
+          "title": "边框",
+          "subColor": "#00CED1",
+          "reverse": false
+        }
+      },
+      "key": "951c566e-3c91-4e3a-92a8-0b2ea2f0af1d"
+    },
+    {
+      "component": "JText",
+      "visible": true,
+      "w": 170,
+      "x": 889,
+      "h": 60,
+      "i": "9cb7d254-bda7-47cc-8b20-d9e3b5b0fff9",
+      "y": 233,
+      "orderNum": 33,
+      "componentName": "经营一览",
+      "pageCompId": "1029247956703297536",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 60,
+        "url": "http://api.jeecg.com/mock/42/nav",
+        "timeOut": 0,
+        "chartData": "{  \"value\": \"经营一览\"}",
+        "size": {
+          "height": 60
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 170,
+        "turnConfig": {
+          "type": "_blank",
+          "url": ""
+        },
+        "linkType": "url",
+        "linkageConfig": [],
+        "option": {
+          "openUrl": "",
+          "isLink": false,
+          "body": {
+            "color": "#FAD400",
+            "fontSize": 32,
+            "text": "",
+            "fontWeight": "normal",
+            "marginTop": 0,
+            "marginLeft": 0
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          },
+          "openType": "_blank"
+        }
+      },
+      "key": "a8818987-f162-45a7-b10d-7b88d51982bf"
+    },
+    {
+      "component": "JText",
+      "visible": true,
+      "w": 170,
+      "x": 898,
+      "h": 60,
+      "i": "es-drager-1734055893678-2",
+      "y": 1673,
+      "orderNum": 33,
+      "componentName": "实时动态",
+      "pageCompId": "1029247956715880448",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 60,
+        "url": "http://api.jeecg.com/mock/42/nav",
+        "timeOut": 0,
+        "chartData": "{  \"value\": \"实时动态\"}",
+        "size": {
+          "height": 60
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 170,
+        "turnConfig": {
+          "type": "_blank",
+          "url": ""
+        },
+        "linkType": "url",
+        "linkageConfig": [],
+        "option": {
+          "openUrl": "",
+          "isLink": false,
+          "body": {
+            "color": "#FAD400",
+            "fontSize": 32,
+            "text": "",
+            "fontWeight": "normal",
+            "marginTop": 0,
+            "marginLeft": 0
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          },
+          "openType": "_blank"
+        }
+      },
+      "key": "a07face5-4773-4a97-90fd-738520342817"
+    },
+    {
+      "component": "JDragDecoration",
+      "visible": true,
+      "w": 371,
+      "x": 800,
+      "h": 100,
+      "i": "es-drager-1734056261438-3",
+      "y": 1657,
+      "orderNum": 0,
+      "componentName": "装饰11",
+      "pageCompId": "1029247956728463360",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "size": {
+          "width": 371,
+          "height": 100
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 300,
+        "dataType": 1,
+        "h": 100,
+        "option": {
+          "dur": 3,
+          "mainColor": "#00CED1",
+          "fontSize": 25,
+          "type": "11",
+          "title": "",
+          "subColor": "#FAD400",
+          "reverse": false
+        }
+      },
+      "key": "d6c724a5-0734-433e-b170-1652f226b546"
+    },
+    {
+      "component": "JDragDecoration",
+      "visible": true,
+      "w": 371,
+      "x": 797,
+      "h": 100,
+      "i": "4531e1d0-4561-4a8a-9dfb-b7e02d83e585",
+      "y": 743,
+      "orderNum": 0,
+      "componentName": "装饰11",
+      "pageCompId": "1029247956741046272",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "size": {
+          "width": 371.8273381294964,
+          "height": 100
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 300,
+        "dataType": 1,
+        "h": 100,
+        "option": {
+          "dur": 3,
+          "mainColor": "#00CED1",
+          "fontSize": 25,
+          "type": "11",
+          "title": "",
+          "subColor": "#FAD400",
+          "reverse": false
+        }
+      },
+      "key": "d6c724a5-0734-433e-b170-1652f226b546"
+    },
+    {
+      "component": "JDragDecoration",
+      "visible": true,
+      "w": 983,
+      "x": 491,
+      "h": 100,
+      "i": "f13135d6-b57f-4284-8b20-3cbbab700eb2",
+      "y": 105,
+      "orderNum": 0,
+      "componentName": "装饰5",
+      "pageCompId": "1029247956749434880",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "size": {
+          "width": 983.6402877697842,
+          "height": 100
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 300,
+        "dataType": 1,
+        "h": 100,
+        "option": {
+          "dur": 3,
+          "mainColor": "#00CED1",
+          "fontSize": 15,
+          "type": "5",
+          "title": "装饰",
+          "subColor": "#FAD400",
+          "reverse": false
+        }
+      },
+      "key": "9d6608a9-4b5b-42f5-8f13-e9aa23ece5b4"
+    },
+    {
+      "component": "JDragBorder",
+      "visible": true,
+      "w": 783,
+      "x": 1021,
+      "h": 327,
+      "i": "es-drager-1734008209551-7",
+      "y": 351,
+      "orderNum": 33,
+      "componentName": "边框8",
+      "pageCompId": "1029247956762017792",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "size": {
+          "width": 783.6330935251799,
+          "height": 327
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 450,
+        "dataType": 1,
+        "h": 300,
+        "option": {
+          "dur": 3,
+          "backgroundColor": "#ffffff00",
+          "mainColor": "#83BFF6",
+          "titleWidth": 250,
+          "type": "8",
+          "title": "边框",
+          "subColor": "#00CED1",
+          "reverse": false
+        }
+      },
+      "key": "ba52178c-80de-4f9f-a2e2-f9c5c1c4e81d"
+    },
+    {
+      "component": "JText",
+      "visible": true,
+      "w": 1204,
+      "x": 354,
+      "h": 76,
+      "i": "e7ebc03f-d9c1-4499-959d-019f368bf4f9",
+      "y": 62,
+      "orderNum": 0,
+      "componentName": "亿阳金融",
+      "pageCompId": "1029247956774600704",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 60,
+        "url": "http://api.jeecg.com/mock/42/nav",
+        "timeOut": 0,
+        "chartData": "{  \"value\": \"亿阳金融\"}",
+        "size": {
+          "width": 1204.5899280575538,
+          "height": 76.57553956834532
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 170,
+        "turnConfig": {
+          "type": "_blank",
+          "url": ""
+        },
+        "linkType": "url",
+        "linkageConfig": [],
+        "option": {
+          "openUrl": "",
+          "isLink": false,
+          "body": {
+            "color": "#FAD400",
+            "fontSize": 64,
+            "text": "",
+            "fontWeight": "normal",
+            "marginTop": 0,
+            "marginLeft": 0
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          },
+          "openType": "_blank"
+        }
+      },
+      "key": "69e62a50-d4c8-4926-89d5-e95d7310bec2"
+    },
+    {
+      "component": "JDragBorder",
+      "visible": true,
+      "w": 1760,
+      "x": 95,
+      "h": 374,
+      "i": "762c0da7-2333-4970-9d5e-784d186776a2",
+      "y": 330,
+      "orderNum": 33,
+      "componentName": "边框",
+      "pageCompId": "1029247956787183616",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "size": {
+          "width": 1760.9856115107914,
+          "height": 374
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 450,
+        "dataType": 1,
+        "h": 300,
+        "option": {
+          "dur": 3,
+          "backgroundColor": "#ffffff00",
+          "mainColor": "#83BFF6",
+          "titleWidth": 250,
+          "type": "10",
+          "title": "",
+          "subColor": "#00CED1",
+          "reverse": false
+        }
+      },
+      "key": "26da69f0-3968-4a57-879a-3bd2d6c68f1e"
+    },
+    {
+      "component": "JDragDecoration",
+      "visible": true,
+      "w": 371,
+      "x": 802,
+      "h": 100,
+      "i": "es-drager-1734055885576-1",
+      "y": 215,
+      "orderNum": 0,
+      "componentName": "装饰11",
+      "pageCompId": "1029247956799766528",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "size": {
+          "width": 371.8273381294964,
+          "height": 100
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 300,
+        "dataType": 1,
+        "h": 100,
+        "option": {
+          "dur": 3,
+          "mainColor": "#00CED1",
+          "fontSize": 25,
+          "type": "11",
+          "title": "",
+          "subColor": "#FAD400",
+          "reverse": false
+        }
+      },
+      "key": "a9dfffa9-93bc-4596-aa50-fcd40270fe05"
+    },
+    {
+      "component": "JText",
+      "visible": true,
+      "w": 283,
+      "x": 734,
+      "h": 35,
+      "i": "es-drager-1734056947998-5",
+      "y": 2364,
+      "orderNum": 0,
+      "componentName": "数据截至2021.6.20",
+      "pageCompId": "1029247956812349440",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 60,
+        "url": "http://api.jeecg.com/mock/42/nav",
+        "timeOut": 0,
+        "chartData": "{  \"value\": \"数据截至2021.6.20\"}",
+        "size": {
+          "width": 283.64028776978415,
+          "height": 35
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 170,
+        "turnConfig": {
+          "type": "_blank",
+          "url": ""
+        },
+        "linkType": "url",
+        "linkageConfig": [],
+        "option": {
+          "openUrl": "",
+          "isLink": false,
+          "body": {
+            "color": "#B1B0A7",
+            "fontSize": 22,
+            "text": "",
+            "fontWeight": "normal",
+            "marginTop": 0,
+            "marginLeft": 0
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          },
+          "openType": "_blank"
+        }
+      }
+    }
+  ],
+  "coverUrl": "https://jeecgdev.oss-cn-beijing.aliyuncs.com/jimureport/images/亿阳_1734591639125.jpg",
+  "backgroundColor": "#1E0047",
+  "backgroundImage": "/img/bg/bg3.png",
+  "theme": "dark",
+  "style": "bigScreen",
+  "designType": 100,
+  "protectionCode": "",
+  "type": "0",
+  "izTemplate": "1",
+  "createBy": "admin",
+  "lowAppId": null,
+  "tenantId": 1,
+  "appMenuGroupId": null,
+  "createTime": "2024-12-12 20:18:30",
+  "updateBy": "admin",
+  "updateTime": "2024-12-19 15:01:00",
+  "updateCount": 2,
+  "visitsNum": 10,
+  "delFlag": 0
+}

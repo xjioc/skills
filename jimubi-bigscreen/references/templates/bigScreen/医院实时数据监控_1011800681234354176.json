@@ -1,0 +1,2277 @@
+{
+  "id": "1011800681234354176",
+  "name": "医院实时数据监控",
+  "path": "/drag/page/view/1011800681234354176",
+  "desJson": "{\"width\":1920,\"height\":1080}",
+  "template": [
+    {
+      "component": "JText",
+      "w": 119,
+      "x": 53,
+      "h": 92.00000000000006,
+      "i": "ab90426f-3d27-4321-98ab-6fa901c590a7",
+      "y": 165,
+      "orderNum": 0,
+      "pageCompId": "1023815689401061376",
+      "componentName": "文本",
+      "key": "db8981ac-9e5b-464c-a184-793178df46f6"
+    },
+    {
+      "component": "JText",
+      "w": 161,
+      "x": 254,
+      "h": 121.99999999999991,
+      "i": "d0c51e1d-ebd7-482f-8df4-ecc556b21050",
+      "y": 151,
+      "orderNum": 0,
+      "pageCompId": "1023815689434615808",
+      "componentName": "文本",
+      "key": "a9c1e4e0-3647-4f4c-89b0-920a728eceff"
+    },
+    {
+      "component": "JText",
+      "w": 171.99999999999983,
+      "x": 871,
+      "h": 89.00000000000011,
+      "i": "2bc4359f-2033-43a9-ad56-eaac0952f845",
+      "y": 173,
+      "orderNum": 0,
+      "pageCompId": "1023815689451393024",
+      "componentName": "文本",
+      "key": "0c1082d3-8762-41f5-a44b-90f2cb3438d2"
+    },
+    {
+      "component": "JText",
+      "w": 186,
+      "x": 528,
+      "h": 96.00000000000011,
+      "i": "6f873e82-c961-46e0-8dc2-38f0f4e04eb1",
+      "y": 169,
+      "orderNum": 0,
+      "pageCompId": "1023815689459781632",
+      "componentName": "文本",
+      "key": "4e908f5d-a9e0-4916-8a0c-145295ea4ccb"
+    },
+    {
+      "component": "JText",
+      "w": 210.99999999999994,
+      "x": 1188,
+      "h": 96.99999999999999,
+      "i": "1493c911-276d-4eaa-8dbe-f03c15b0de37",
+      "y": 177,
+      "orderNum": 0,
+      "pageCompId": "1023815689468170240",
+      "componentName": "文本",
+      "key": "085a93eb-7833-4180-8734-0c4363b3083d"
+    },
+    {
+      "component": "JText",
+      "w": 94.99999999999989,
+      "x": 488,
+      "h": 44.999999999999886,
+      "i": "6f889970-99fb-498a-8fe0-297ac57eda2e",
+      "y": 295,
+      "orderNum": 0,
+      "pageCompId": "1023815689476558848",
+      "componentName": "文本",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 30,
+        "url": "http://api.jeecg.com/mock/42/nav",
+        "timeOut": 0,
+        "chartData": "853652",
+        "size": {
+          "width": 94.99999999999989,
+          "height": 44.999999999999886
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 12,
+        "turnConfig": {
+          "url": ""
+        },
+        "linkageConfig": [],
+        "option": {
+          "body": {
+            "color": "#05D6E9",
+            "text": "",
+            "fontWeight": "normal",
+            "marginTop": 0,
+            "marginLeft": 0
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          }
+        }
+      },
+      "key": "9ef95676-a1bb-45bc-8f0d-6441b261b98e"
+    },
+    {
+      "component": "JText",
+      "w": 84,
+      "x": 826,
+      "h": 31,
+      "i": "23ea496a-d7a5-4831-a685-d4c7c2adae08",
+      "y": 300,
+      "orderNum": 0,
+      "pageCompId": "1023815689484947456",
+      "componentName": "文本",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 30,
+        "url": "http://api.jeecg.com/mock/42/nav",
+        "timeOut": 0,
+        "chartData": "3652",
+        "size": {
+          "width": 84,
+          "height": 31.280575539568332
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 12,
+        "turnConfig": {
+          "url": ""
+        },
+        "linkageConfig": [],
+        "option": {
+          "body": {
+            "color": "#05D6E9",
+            "text": "",
+            "fontWeight": "normal",
+            "marginTop": 0,
+            "marginLeft": 0
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          }
+        }
+      },
+      "key": "fb1302ca-ce44-4e3c-817a-588064bf10a6"
+    },
+    {
+      "component": "JText",
+      "w": 77,
+      "x": 591,
+      "h": 40.99999999999987,
+      "i": "9a8177f4-f3d6-4727-80f2-893f9cbba466",
+      "y": 299,
+      "orderNum": 300,
+      "pageCompId": "1023815689501724672",
+      "componentName": "文本",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 30,
+        "url": "http://api.jeecg.com/mock/42/nav",
+        "timeOut": 0,
+        "chartData": "1353652",
+        "size": {
+          "width": 77,
+          "height": 40.99999999999987
+        },
+        "background": "#FFFFFF00",
+        "w": 12,
+        "turnConfig": {
+          "url": ""
+        },
+        "linkageConfig": [],
+        "option": {
+          "body": {
+            "color": "#05D6E9",
+            "text": "",
+            "fontWeight": "normal",
+            "marginTop": 0,
+            "marginLeft": 0
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          }
+        }
+      },
+      "key": "1fc1308d-f00c-49dd-83fd-202e1ab622ad"
+    },
+    {
+      "component": "JText",
+      "w": 96,
+      "x": 671,
+      "h": 41.99999999999983,
+      "i": "54e8548b-7e1c-4e6d-961d-8dfe2d482e8d",
+      "y": 300,
+      "orderNum": 300,
+      "pageCompId": "1023815689514307584",
+      "componentName": "文本",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 30,
+        "url": "http://api.jeecg.com/mock/42/nav",
+        "timeOut": 0,
+        "chartData": "1753652",
+        "size": {
+          "width": 96,
+          "height": 41.99999999999983
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 12,
+        "turnConfig": {
+          "url": ""
+        },
+        "linkageConfig": [],
+        "option": {
+          "body": {
+            "color": "#05D6E9",
+            "text": "",
+            "fontWeight": "normal",
+            "marginTop": 0,
+            "marginLeft": 0
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          }
+        }
+      },
+      "key": "f8f8b3c1-ced3-4da2-b9b6-1da3ea95599a"
+    },
+    {
+      "component": "JText",
+      "w": 100,
+      "x": 907,
+      "h": 37.99999999999994,
+      "i": "40da445c-ceda-481f-81a0-cf5708b4c017",
+      "y": 300,
+      "orderNum": 0,
+      "pageCompId": "1023815689522696192",
+      "componentName": "文本",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 30,
+        "url": "http://api.jeecg.com/mock/42/nav",
+        "timeOut": 0,
+        "chartData": "26023",
+        "size": {
+          "width": 100,
+          "height": 37.99999999999994
+        },
+        "background": "#FFFFFF00",
+        "w": 12,
+        "turnConfig": {
+          "url": ""
+        },
+        "linkageConfig": [],
+        "option": {
+          "body": {
+            "color": "#05D6E9",
+            "text": "",
+            "fontWeight": "normal",
+            "marginTop": 0,
+            "marginLeft": 0
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          }
+        }
+      },
+      "key": "ee593903-f28a-4679-aa7a-84da7bce394d"
+    },
+    {
+      "component": "JText",
+      "w": 100,
+      "x": 1008,
+      "h": 33,
+      "i": "c7992cee-df3b-4fc7-b6cc-8b52e7b2ec9c",
+      "y": 300,
+      "orderNum": 0,
+      "pageCompId": "1023815689531084800",
+      "componentName": "文本",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 30,
+        "url": "http://api.jeecg.com/mock/42/nav",
+        "timeOut": 0,
+        "chartData": "60230",
+        "size": {
+          "width": 100.00000000000011,
+          "height": 33.33093525179855
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 12,
+        "turnConfig": {
+          "url": ""
+        },
+        "linkageConfig": [],
+        "option": {
+          "body": {
+            "color": "#05D6E9",
+            "text": "",
+            "fontWeight": "normal",
+            "marginTop": 0,
+            "marginLeft": 0
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          }
+        }
+      },
+      "key": "fdd0f02a-555c-4633-8c80-0e71290e0ae7"
+    },
+    {
+      "component": "JText",
+      "w": 82,
+      "x": 1160,
+      "h": 39.00000000000006,
+      "i": "937d7716-e61f-4631-8bcb-973f651b63f5",
+      "y": 300,
+      "orderNum": 0,
+      "pageCompId": "1023815689543667712",
+      "componentName": "文本",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 30,
+        "url": "http://api.jeecg.com/mock/42/nav",
+        "timeOut": 0,
+        "chartData": "8023",
+        "size": {
+          "width": 82,
+          "height": 39.00000000000006
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 12,
+        "turnConfig": {
+          "url": ""
+        },
+        "linkageConfig": [],
+        "option": {
+          "body": {
+            "color": "#05D6E9",
+            "text": "",
+            "fontWeight": "normal",
+            "marginTop": 0,
+            "marginLeft": 0
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          }
+        }
+      },
+      "key": "e6c0c471-ef79-4d59-8819-422e420ae8f5"
+    },
+    {
+      "component": "JText",
+      "w": 59.000000000000114,
+      "x": 1268,
+      "h": 45.99999999999993,
+      "i": "eedf5469-0915-4d50-8e71-a172d6db3745",
+      "y": 299,
+      "orderNum": 300,
+      "pageCompId": "1023815689552056320",
+      "componentName": "文本",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 30,
+        "url": "http://api.jeecg.com/mock/42/nav",
+        "timeOut": 0,
+        "chartData": "12023",
+        "size": {
+          "width": 59.000000000000114,
+          "height": 45.99999999999993
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 12,
+        "turnConfig": {
+          "url": ""
+        },
+        "linkageConfig": [],
+        "option": {
+          "body": {
+            "color": "#05D6E9",
+            "text": "",
+            "fontWeight": "normal",
+            "marginTop": 0,
+            "marginLeft": 0
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          }
+        }
+      },
+      "key": "5b197f2a-63f9-4a7c-8483-0e23eb55a688"
+    },
+    {
+      "component": "JText",
+      "w": 79.99999999999989,
+      "x": 1354,
+      "h": 44.000000000000014,
+      "i": "539ed1da-ad37-45ae-8226-97beedb3b375",
+      "y": 300,
+      "orderNum": 600,
+      "pageCompId": "1023815689560444928",
+      "componentName": "文本",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 30,
+        "url": "http://api.jeecg.com/mock/42/nav",
+        "timeOut": 0,
+        "chartData": "26023",
+        "size": {
+          "width": 79.99999999999989,
+          "height": 44.000000000000014
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 12,
+        "turnConfig": {
+          "url": ""
+        },
+        "linkageConfig": [],
+        "option": {
+          "body": {
+            "color": "#05D6E9",
+            "text": "",
+            "fontWeight": "normal",
+            "marginTop": 0,
+            "marginLeft": 0
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          }
+        }
+      },
+      "key": "a895372a-5dc4-41bb-aeec-e08a1e257005"
+    },
+    {
+      "component": "JText",
+      "w": 85,
+      "x": 1543,
+      "h": 53,
+      "i": "f04165b9-f514-4179-8e6b-7e67a5d6daa5",
+      "y": 207,
+      "orderNum": 0,
+      "pageCompId": "1023815689577222144",
+      "componentName": "文本",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 30,
+        "url": "http://api.jeecg.com/mock/42/nav",
+        "timeOut": 0,
+        "chartData": "8012",
+        "size": {
+          "width": 85,
+          "height": 53
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 12,
+        "turnConfig": {
+          "url": ""
+        },
+        "linkageConfig": [],
+        "option": {
+          "body": {
+            "color": "#05D6E9",
+            "text": "",
+            "fontWeight": "bold",
+            "marginTop": 0,
+            "marginLeft": 0
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          }
+        }
+      },
+      "key": "743e46b9-df9b-41cc-b63b-71f3e0cd10f9"
+    },
+    {
+      "component": "JText",
+      "w": 78,
+      "x": 1808,
+      "h": 49.99999999999982,
+      "i": "df422e72-7ce7-4ef5-bdd3-97a259cb89a4",
+      "y": 206,
+      "orderNum": 300,
+      "pageCompId": "1023815689589805056",
+      "componentName": "文本",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 30,
+        "url": "http://api.jeecg.com/mock/42/nav",
+        "timeOut": 0,
+        "chartData": "26023",
+        "size": {
+          "width": 78,
+          "height": 49.99999999999982
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 12,
+        "turnConfig": {
+          "url": ""
+        },
+        "linkageConfig": [],
+        "option": {
+          "body": {
+            "color": "#05D6E9",
+            "text": "",
+            "fontWeight": "bold",
+            "marginTop": 0,
+            "marginLeft": 0
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          }
+        }
+      },
+      "key": "5d6087bd-cbe5-4d3d-8ee8-76367aba23bd"
+    },
+    {
+      "component": "JPie",
+      "w": 314,
+      "x": 65,
+      "h": 243.99999999999994,
+      "i": "6e13ccec-1d9c-49a8-8413-f57685b077f2",
+      "y": 267,
+      "orderNum": 0,
+      "pageCompId": "1023815689598193664",
+      "componentName": "饼图",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "维度"
+          },
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 30,
+        "url": "http://api.jeecg.com/mock/33/chart",
+        "timeOut": -1,
+        "chartData": "[    {        \"name\": \"0-15岁\",        \"value\": 1000879,        \"url\": \"http://www.baidu.com\"    },    {        \"name\": \"16-40岁\",        \"value\": 3400879,        \"url\": \"http://www.baidu.com\"    },    {        \"name\": \"41-55岁\",        \"value\": 2300879,        \"url\": \"http://www.baidu.com\"    },    {        \"name\": \"56-70岁\",        \"value\": 5400879,        \"url\": \"http://www.baidu.com\"    },    {        \"name\": \"71+\",        \"value\": 3000,        \"url\": \"http://www.baidu.com\"    }]",
+        "size": {
+          "width": 314,
+          "height": 243.99999999999994
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 12,
+        "turnConfig": {
+          "url": ""
+        },
+        "linkageConfig": [],
+        "option": {
+          "customColor": [
+            {
+              "color": "#83BFF6"
+            },
+            {
+              "color": "#23B7E5"
+            },
+            {
+              "color": "#9AA8D4"
+            },
+            {
+              "color": "#188DF0"
+            },
+            {
+              "color": "#564AA3"
+            }
+          ],
+          "grid": {
+            "bottom": 115,
+            "show": false
+          },
+          "legend": {
+            "orient": "vertical",
+            "show": false
+          },
+          "series": [
+            {
+              "data": [],
+              "name": "",
+              "emphasis": {
+                "itemStyle": {
+                  "shadowOffsetX": 0,
+                  "shadowBlur": 10,
+                  "shadowColor": "rgba(0, 0, 0, 0.5)"
+                }
+              },
+              "label": {
+                "color": "#EEF1FA"
+              },
+              "type": "pie",
+              "radius": "50%"
+            }
+          ],
+          "tooltip": {
+            "trigger": "item"
+          },
+          "title": {
+            "subtext": "",
+            "left": "left",
+            "show": false,
+            "text": "基础饼图",
+            "textStyle": {
+              "fontWeight": "normal"
+            }
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          }
+        }
+      },
+      "key": "4a5a4539-278f-48c3-819f-06a82ba8d3af"
+    },
+    {
+      "component": "JMultipleLine",
+      "w": 517,
+      "x": 486,
+      "h": 332,
+      "i": "b4749e4f-2319-4ceb-9a03-826cac8c805f",
+      "y": 364,
+      "orderNum": 0,
+      "pageCompId": "1023815689606582272",
+      "componentName": "对比折线图",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "分组"
+          },
+          {
+            "mapping": "",
+            "filed": "维度"
+          },
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 30,
+        "url": "http://api.jeecg.com/mock/26/stackedBar",
+        "timeOut": 0,
+        "chartData": "[  {    \"name\": \"1\",    \"value\": 2879,    \"type\": \"问诊订单总数\"  },  {    \"name\": \"2\",    \"value\": 3879,    \"type\": \"问诊订单总数\"  },  {    \"name\": \"3\",    \"value\": 1879,    \"type\": \"问诊订单总数\"  },  {    \"name\": \"4\",    \"value\": 879,    \"type\": \"问诊订单总数\"  },  {    \"name\": \"5\",    \"value\": 1879,    \"type\": \"问诊订单总数\"  },  {    \"name\": \"6\",    \"value\": 779,    \"type\": \"问诊订单总数\"  },  {    \"name\": \"7\",    \"value\": 279,    \"type\": \"问诊订单总数\"  },  {    \"name\": \"8\",    \"value\": 339,    \"type\": \"问诊订单总数\"  },  {    \"name\": \"1\",    \"value\": 1879,    \"type\": \"问诊已支付\"  },  {    \"name\": \"2\",    \"value\": 5879,    \"type\": \"问诊已支付\"  },  {    \"name\": \"3\",    \"value\": 4579,    \"type\": \"问诊已支付\"  },  {    \"name\": \"4\",    \"value\": 3879,    \"type\": \"问诊已支付\"  },  {    \"name\": \"5\",    \"value\": 179,    \"type\": \"问诊已支付\"  },  {    \"name\": \"6\",    \"value\": 979,    \"type\": \"问诊已支付\"  },  {    \"name\": \"7\",    \"value\": 179,    \"type\": \"问诊已支付\"  },  {    \"name\": \"8\",    \"value\": 2879,    \"type\": \"问诊已支付\"  },  {    \"name\": \"1\",    \"value\": 879,    \"type\": \"问诊未支付\"  },  {    \"name\": \"2\",    \"value\": 1879,    \"type\": \"问诊未支付\"  },  {    \"name\": \"3\",    \"value\": 979,    \"type\": \"问诊未支付\"  },  {    \"name\": \"4\",    \"value\": 3879,    \"type\": \"问诊未支付\"  },  {    \"name\": \"5\",    \"value\": 5179,    \"type\": \"问诊未支付\"  },  {    \"name\": \"6\",    \"value\": 3379,    \"type\": \"问诊未支付\"  },  {    \"name\": \"7\",    \"value\": 879,    \"type\": \"问诊未支付\"  },  {    \"name\": \"8\",    \"value\": 879,    \"type\": \"问诊未支付\"  }]",
+        "size": {
+          "width": 517,
+          "height": 332
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 12,
+        "turnConfig": {
+          "url": ""
+        },
+        "linkageConfig": [],
+        "option": {
+          "yAxis": {
+            "axisLabel": {
+              "color": "#EEF1FA"
+            },
+            "splitLine": {
+              "lineStyle": {
+                "color": "#F3F3F3"
+              }
+            },
+            "nameTextStyle": {
+              "color": "#EEF1FA"
+            }
+          },
+          "xAxis": {
+            "axisLabel": {
+              "color": "#EEF1FA"
+            },
+            "axisLine": {
+              "lineStyle": {
+                "color": "#EEF1FA"
+              }
+            },
+            "nameTextStyle": {
+              "color": "#EEF1FA"
+            }
+          },
+          "grid": {
+            "top": 90,
+            "bottom": 115
+          },
+          "series": [
+            {
+              "lineType": "smooth",
+              "label": {
+                "color": "#EEF1FA"
+              }
+            }
+          ],
+          "legend": {
+            "show": false
+          },
+          "tooltip": {
+            "axisPointer": {
+              "label": {
+                "backgroundColor": "#333",
+                "show": true
+              },
+              "type": "shadow"
+            },
+            "trigger": "axis",
+            "textStyle": {
+              "color": "#EEF1FA"
+            }
+          },
+          "title": {
+            "show": false,
+            "text": "多数据对比折线图",
+            "textStyle": {
+              "color": "#EEF1FA",
+              "fontWeight": "normal"
+            }
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "headColor": "#1D1F26",
+            "textStyle": {
+              "color": "#FFFFFF"
+            },
+            "title": ""
+          }
+        }
+      },
+      "key": "c880dda6-05a4-41bc-8b60-e97ebf96db8b"
+    },
+    {
+      "component": "JBar",
+      "w": 754,
+      "x": 406,
+      "h": 392,
+      "i": "c2682077-7f2a-40e2-92ac-9ee50e8183f6",
+      "y": 757,
+      "orderNum": 0,
+      "pageCompId": "1023815689619165184",
+      "componentName": "基础柱形图",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "维度"
+          },
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 30,
+        "url": "http://api.jeecg.com/mock/33/chart",
+        "timeOut": 0,
+        "chartData": "[  {    \"name\": \"图文\",    \"value\": 120879,    \"type\": \"手机品牌\"  },  {    \"name\": \"视频\",    \"value\": 232879,    \"type\": \"手机品牌\"  },  {    \"name\": \"面询\",    \"value\": 340879,    \"type\": \"手机品牌\"  },  {    \"name\": \"电话\",    \"value\": 534790,    \"type\": \"手机品牌\"  },  {    \"name\": \"量表\",    \"value\": 560879,    \"type\": \"手机品牌\"  },  {    \"name\": \"随访\",    \"value\": 670879,    \"type\": \"手机品牌\"  },  {    \"name\": \"提醒包\",    \"value\": 400879,    \"type\": \"手机品牌\"  },  {    \"name\": \"药品\",    \"value\": 540879,    \"type\": \"手机品牌\"  },  {    \"name\": \"复诊\",    \"value\": 200879,    \"type\": \"手机品牌\"  }]",
+        "size": {
+          "width": 754,
+          "height": 392
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 12,
+        "turnConfig": {
+          "url": ""
+        },
+        "linkageConfig": [],
+        "option": {
+          "yAxis": {
+            "lineStyle": {
+              "color": "#f3f3f3"
+            },
+            "splitLine": {
+              "interval": 2
+            }
+          },
+          "grid": {
+            "top": 90,
+            "left": 82,
+            "bottom": 115,
+            "show": false,
+            "right": 101,
+            "containLabel": true
+          },
+          "series": [
+            {
+              "barWidth": 22,
+              "data": [],
+              "itemStyle": {
+                "color": "#64B5F6",
+                "borderRadius": 0
+              },
+              "label": {
+                "color": "#EEF1FA",
+                "show": true,
+                "position": "top"
+              },
+              "type": "bar"
+            }
+          ],
+          "tooltip": {
+            "axisPointer": {
+              "label": {
+                "backgroundColor": "#333",
+                "show": true
+              },
+              "type": "shadow"
+            },
+            "trigger": "axis",
+            "textStyle": {
+              "color": "#EEF1FA"
+            }
+          },
+          "title": {
+            "show": false,
+            "text": "基础柱形图",
+            "textStyle": {
+              "fontWeight": "normal"
+            }
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "headColor": "#1D1F26",
+            "textStyle": {
+              "color": "#FFFFFF"
+            },
+            "title": ""
+          }
+        }
+      },
+      "key": "3b98fac0-1163-4894-8c0f-a5960bc5bc03"
+    },
+    {
+      "component": "JRose",
+      "w": 400,
+      "x": 1034,
+      "h": 222.99999999999994,
+      "i": "847f44b6-33d1-495d-8240-e28f132ae6e0",
+      "y": 840,
+      "orderNum": 0,
+      "pageCompId": "1023815689627553792",
+      "componentName": "南丁格尔玫瑰图",
+      "config": {
+        "chartData": "[    {        \"name\": \"康宁\",        \"value\": 1000879,        \"url\": \"http://www.baidu.com\"    },    {        \"name\": \"安肯\",        \"value\": 3400879,        \"url\": \"http://www.baidu.com\"    },    {        \"name\": \"怡宁\",        \"value\": 2300879,        \"url\": \"http://www.baidu.com\"    },    {        \"name\": \"淳安\",        \"value\": 5400879,        \"url\": \"http://www.baidu.com\"    },    {        \"name\": \"医院\",        \"value\": 3000,        \"url\": \"http://www.baidu.com\"    },    {        \"name\": \"其他\",        \"value\": 2000,        \"url\": \"http://www.baidu.com\"    }]",
+        "size": {
+          "width": 400,
+          "height": 222.99999999999994
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "维度"
+          },
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "w": 12,
+        "dataType": 1,
+        "h": 30,
+        "turnConfig": {
+          "url": ""
+        },
+        "linkageConfig": [],
+        "url": "http://api.jeecg.com/mock/33/chart",
+        "timeOut": -1,
+        "option": {
+          "customColor": [
+            {
+              "color": "#83BFF6"
+            },
+            {
+              "color": "#23B7E5"
+            },
+            {
+              "color": "#9AA8D4"
+            },
+            {
+              "color": "#188DF0"
+            },
+            {
+              "color": "#564AA3"
+            }
+          ],
+          "grid": {
+            "bottom": 115,
+            "show": false
+          },
+          "legend": {
+            "orient": "vertical"
+          },
+          "series": [
+            {
+              "data": [],
+              "roseType": "radius",
+              "name": "南丁格尔玫瑰",
+              "emphasis": {
+                "itemStyle": {
+                  "shadowOffsetX": 0,
+                  "shadowBlur": 10,
+                  "shadowColor": "rgba(0, 0, 0, 0.5)"
+                }
+              },
+              "type": "pie",
+              "radius": "50%"
+            }
+          ],
+          "tooltip": {
+            "trigger": "item"
+          },
+          "title": {
+            "subtext": "",
+            "left": "left",
+            "show": false,
+            "text": "基础饼图",
+            "textStyle": {
+              "color": "#EEF1FA",
+              "fontWeight": "normal"
+            }
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          }
+        }
+      },
+      "key": "87e6c042-8fb2-4dca-b904-93fc32b8a9bb"
+    },
+    {
+      "component": "JMultipleLine",
+      "w": 566,
+      "x": 478,
+      "h": 313.00000000000006,
+      "i": "6a6ba5f6-32ef-486c-8280-720a57e5b482",
+      "y": 550,
+      "orderNum": 0,
+      "pageCompId": "1023815689644331008",
+      "componentName": "对比折线图",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "分组"
+          },
+          {
+            "mapping": "",
+            "filed": "维度"
+          },
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 30,
+        "url": "http://api.jeecg.com/mock/26/stackedBar",
+        "timeOut": 0,
+        "chartData": "[  {    \"name\": \"1\",    \"value\": 879,    \"type\": \"问诊订单总数\"  },  {    \"name\": \"2\",    \"value\": 1879,    \"type\": \"问诊订单总数\"  },  {    \"name\": \"3\",    \"value\": 779,    \"type\": \"问诊订单总数\"  },  {    \"name\": \"4\",    \"value\": 879,    \"type\": \"问诊订单总数\"  },  {    \"name\": \"5\",    \"value\": 3879,    \"type\": \"问诊订单总数\"  },  {    \"name\": \"6\",    \"value\": 779,    \"type\": \"问诊订单总数\"  },  {    \"name\": \"7\",    \"value\": 279,    \"type\": \"问诊订单总数\"  },  {    \"name\": \"8\",    \"value\": 339,    \"type\": \"问诊订单总数\"  },  {    \"name\": \"1\",    \"value\": 1879,    \"type\": \"问诊已支付\"  },  {    \"name\": \"2\",    \"value\": 3879,    \"type\": \"问诊已支付\"  },  {    \"name\": \"3\",    \"value\": 4579,    \"type\": \"问诊已支付\"  },  {    \"name\": \"4\",    \"value\": 3879,    \"type\": \"问诊已支付\"  },  {    \"name\": \"5\",    \"value\": 179,    \"type\": \"问诊已支付\"  },  {    \"name\": \"6\",    \"value\": 979,    \"type\": \"问诊已支付\"  },  {    \"name\": \"7\",    \"value\": 179,    \"type\": \"问诊已支付\"  },  {    \"name\": \"8\",    \"value\": 2879,    \"type\": \"问诊已支付\"  },  {    \"name\": \"1\",    \"value\": 879,    \"type\": \"问诊未支付\"  },  {    \"name\": \"2\",    \"value\": 1879,    \"type\": \"问诊未支付\"  },  {    \"name\": \"3\",    \"value\": 979,    \"type\": \"问诊未支付\"  },  {    \"name\": \"4\",    \"value\": 3879,    \"type\": \"问诊未支付\"  },  {    \"name\": \"5\",    \"value\": 5179,    \"type\": \"问诊未支付\"  },  {    \"name\": \"6\",    \"value\": 3379,    \"type\": \"问诊未支付\"  },  {    \"name\": \"7\",    \"value\": 879,    \"type\": \"问诊未支付\"  },  {    \"name\": \"8\",    \"value\": 879,    \"type\": \"问诊未支付\"  }]",
+        "size": {
+          "width": 566,
+          "height": 313.00000000000006
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 12,
+        "turnConfig": {
+          "url": ""
+        },
+        "linkageConfig": [],
+        "option": {
+          "grid": {
+            "top": 90,
+            "bottom": 115
+          },
+          "series": [
+            {
+              "lineType": "smooth"
+            }
+          ],
+          "legend": {
+            "show": false
+          },
+          "tooltip": {
+            "axisPointer": {
+              "label": {
+                "backgroundColor": "#333",
+                "show": true
+              },
+              "type": "shadow"
+            },
+            "trigger": "axis"
+          },
+          "title": {
+            "show": false,
+            "text": "多数据对比折线图",
+            "textStyle": {
+              "fontWeight": "normal"
+            }
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          }
+        }
+      },
+      "key": "a20281a8-8ab0-4325-9030-30577e05483a"
+    },
+    {
+      "component": "JDynamicBar",
+      "w": 221,
+      "x": 982,
+      "h": 510,
+      "i": "44c310d1-5bfc-4bc6-9713-b3c95e7b07cf",
+      "y": 317,
+      "orderNum": 0,
+      "pageCompId": "1023815689656913920",
+      "componentName": "动态柱形图",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "分组"
+          },
+          {
+            "mapping": "",
+            "filed": "维度"
+          },
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 30,
+        "url": "http://api.jeecg.com/mock/26/stackedBar",
+        "timeOut": 0,
+        "chartData": "[  {    \"name\": \"妇科\",    \"value\": 160879,    \"type\": \"Lon\"  },  {    \"name\": \"儿科\",    \"value\": 348879,    \"type\": \"Lon\"  },  {    \"name\": \"儿科中医\",    \"value\": 288879,    \"type\": \"Lon\"  },  {    \"name\": \"内分泌科\",    \"value\": 120879,    \"type\": \"Lon\"  },  {    \"name\": \"耳鼻喉科\",    \"value\": 570879,    \"type\": \"Lon\"  },  {    \"name\": \"肩颈科\",    \"value\": 290849,    \"type\": \"Lon\"  },  {    \"name\": \"产科\",    \"value\": 120079,    \"type\": \"Lon\"  },  {    \"name\": \"过敏科\",    \"value\": 240079,    \"type\": \"Lon\"  },  {    \"name\": \"中医科\",    \"value\": 440555,    \"type\": \"Lon\"  },  {    \"name\": \"营养科\",    \"value\": 124079,    \"type\": \"Lon\"  }]",
+        "size": {
+          "width": 221,
+          "height": 510
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 12,
+        "turnConfig": {
+          "url": ""
+        },
+        "linkageConfig": [],
+        "option": {
+          "xAxis": {
+            "axisLabel": {
+              "color": "#EEF1FA"
+            },
+            "axisLine": {
+              "lineStyle": {
+                "color": "#EEF1FA"
+              }
+            },
+            "show": false,
+            "nameTextStyle": {
+              "color": "#EEF1FA"
+            }
+          },
+          "grid": {
+            "top": 82,
+            "left": 65,
+            "bottom": 67
+          },
+          "series": [
+            {
+              "barWidth": 13,
+              "showBackground": false,
+              "backgroundStyle": {
+                "color": "#51626E"
+              },
+              "itemStyle": {
+                "color": "#64B5F6"
+              }
+            }
+          ],
+          "legend": {
+            "show": false
+          },
+          "tooltip": {
+            "show": false,
+            "axisPointer": {
+              "label": {
+                "backgroundColor": "#333",
+                "show": true
+              },
+              "type": "shadow"
+            },
+            "trigger": "axis",
+            "textStyle": {
+              "color": "#EEF1FA"
+            }
+          },
+          "title": {
+            "show": false,
+            "text": "动态柱形图",
+            "textStyle": {
+              "color": "#EEF1FA",
+              "fontWeight": "normal"
+            }
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "headColor": "#1D1F26",
+            "textStyle": {
+              "color": "#FFFFFF"
+            },
+            "title": ""
+          }
+        }
+      },
+      "key": "ce2f34bf-d6bf-443d-8c0d-fc215f5977df"
+    },
+    {
+      "component": "JDynamicBar",
+      "w": 228.00000000000003,
+      "x": 1230,
+      "h": 424,
+      "i": "3ed7b3d0-b620-4612-a3ef-397063203669",
+      "y": 341,
+      "orderNum": 0,
+      "pageCompId": "1023815689665302528",
+      "componentName": "动态柱形图",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "分组"
+          },
+          {
+            "mapping": "",
+            "filed": "维度"
+          },
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 30,
+        "url": "http://api.jeecg.com/mock/26/stackedBar",
+        "timeOut": 0,
+        "chartData": "[  {    \"name\": \"医生\",    \"value\": 1000879,    \"type\": \"Lon\"  },  {    \"name\": \"患者\",    \"value\": 3400879,    \"type\": \"Lon\"  },  {    \"name\": \"咨询师\",    \"value\": 2300879,    \"type\": \"Lon\"  },  {    \"name\": \"导医\",    \"value\": 5400879,    \"type\": \"Lon\"  },  {    \"name\": \"患者\",    \"value\": 3400879,    \"type\": \"Lon\"  },  {    \"name\": \"咨询师\",    \"value\": 7400879,    \"type\": \"Lon\"  },  {    \"name\": \"咨询师\",    \"value\": 2400879,    \"type\": \"Lon\"  }]",
+        "size": {
+          "width": 228.00000000000003,
+          "height": 424
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 12,
+        "turnConfig": {
+          "url": ""
+        },
+        "linkageConfig": [],
+        "option": {
+          "yAxis": {
+            "axisLabel": {
+              "color": "#EEF1FA"
+            },
+            "splitLine": {
+              "lineStyle": {
+                "color": "#F3F3F3"
+              }
+            },
+            "nameTextStyle": {
+              "color": "#EEF1FA"
+            }
+          },
+          "xAxis": {
+            "show": false
+          },
+          "grid": {
+            "top": 90,
+            "left": 46,
+            "bottom": 81,
+            "right": 57
+          },
+          "series": [
+            {
+              "barWidth": 17,
+              "itemStyle": {
+                "color": "#A83240"
+              }
+            }
+          ],
+          "legend": {
+            "show": false
+          },
+          "tooltip": {
+            "show": false,
+            "axisPointer": {
+              "label": {
+                "backgroundColor": "#333",
+                "show": true
+              },
+              "type": "shadow"
+            },
+            "trigger": "axis"
+          },
+          "title": {
+            "show": false,
+            "text": "动态柱形图",
+            "textStyle": {
+              "fontWeight": "normal"
+            }
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          }
+        }
+      },
+      "key": "78979e31-7e17-4967-88b5-66391930b627"
+    },
+    {
+      "component": "JRose",
+      "w": 221,
+      "x": 1485,
+      "h": 180,
+      "i": "ebaa226d-75b4-4416-8fd6-2288e24a1735",
+      "y": 251,
+      "orderNum": 0,
+      "pageCompId": "1023815689677885440",
+      "componentName": "南丁格尔玫瑰图",
+      "config": {
+        "chartData": "[  {    \"name\": \"医生\",    \"value\": 1000879,    \"url\": \"http://jeecg.com\"  },  {    \"name\": \"医生\",    \"value\": 3400879,    \"url\": \"http://jeecg.com\"  },  {    \"name\": \"医生\",    \"value\": 2300879,    \"url\": \"http://jeecg.com\"  },  {    \"name\": \"医生\",    \"value\": 5400879,    \"url\": \"http://jeecg.com\"  },  {    \"name\": \"医生\",    \"value\": 3000,    \"url\": \"http://jeecg.com\"  },  {    \"name\": \"医生\",    \"value\": 2000,    \"url\": \"http://jeecg.com\"  }]",
+        "size": {
+          "width": 221,
+          "height": 180.46043165467626
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "维度"
+          },
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "w": 12,
+        "dataType": 1,
+        "h": 30,
+        "turnConfig": {
+          "url": ""
+        },
+        "linkageConfig": [],
+        "url": "http://api.jeecg.com/mock/33/chart",
+        "timeOut": -1,
+        "option": {
+          "customColor": [
+            {
+              "color": "#83BFF6"
+            },
+            {
+              "color": "#23B7E5"
+            },
+            {
+              "color": "#9AA8D4"
+            },
+            {
+              "color": "#188DF0"
+            },
+            {
+              "color": "#564AA3"
+            }
+          ],
+          "grid": {
+            "bottom": 115,
+            "show": false
+          },
+          "legend": {
+            "orient": "vertical",
+            "show": false
+          },
+          "series": [
+            {
+              "data": [],
+              "roseType": "radius",
+              "name": "南丁格尔玫瑰",
+              "emphasis": {
+                "itemStyle": {
+                  "shadowOffsetX": 0,
+                  "shadowBlur": 10,
+                  "shadowColor": "rgba(0, 0, 0, 0.5)"
+                }
+              },
+              "type": "pie",
+              "radius": "50%"
+            }
+          ],
+          "tooltip": {
+            "trigger": "item"
+          },
+          "title": {
+            "subtext": "",
+            "left": "left",
+            "show": false,
+            "text": "基础饼图",
+            "textStyle": {
+              "color": "#EEF1FA",
+              "fontWeight": "normal"
+            }
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          }
+        }
+      },
+      "key": "a6adb5a2-a7c9-41c1-8bc0-26d4db8eb0cb"
+    },
+    {
+      "component": "JRose",
+      "w": 215,
+      "x": 1662,
+      "h": 264.0000000000001,
+      "i": "e87986e7-b5ae-4fbd-ac9d-d791e75441eb",
+      "y": 200,
+      "orderNum": 0,
+      "pageCompId": "1023815689686274048",
+      "componentName": "南丁格尔玫瑰图",
+      "config": {
+        "chartData": "[  {    \"value\": 1048,    \"name\": \"vivo\"  },  {    \"value\": 735,    \"name\": \"oppo\"  },  {    \"value\": 580,    \"name\": \"苹果\"  },  {    \"value\": 484,    \"name\": \"小米\"  },  {    \"value\": 300,    \"name\": \"三星\"  }]",
+        "size": {
+          "width": 215,
+          "height": 264.0000000000001
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "维度"
+          },
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "w": 12,
+        "dataType": 1,
+        "h": 30,
+        "turnConfig": {
+          "url": ""
+        },
+        "linkageConfig": [],
+        "url": "http://api.jeecg.com/mock/33/chart",
+        "timeOut": -1,
+        "option": {
+          "customColor": [
+            {
+              "color": "#83BFF6"
+            },
+            {
+              "color": "#23B7E5"
+            },
+            {
+              "color": "#9AA8D4"
+            },
+            {
+              "color": "#188DF0"
+            },
+            {
+              "color": "#564AA3"
+            }
+          ],
+          "grid": {
+            "bottom": 115,
+            "show": false
+          },
+          "legend": {
+            "orient": "vertical",
+            "show": false
+          },
+          "series": [
+            {
+              "data": [],
+              "roseType": "radius",
+              "name": "南丁格尔玫瑰",
+              "emphasis": {
+                "itemStyle": {
+                  "shadowOffsetX": 0,
+                  "shadowBlur": 10,
+                  "shadowColor": "rgba(0, 0, 0, 0.5)"
+                }
+              },
+              "type": "pie",
+              "radius": "50%"
+            }
+          ],
+          "tooltip": {
+            "trigger": "item"
+          },
+          "title": {
+            "subtext": "",
+            "left": "left",
+            "show": false,
+            "text": "基础饼图",
+            "textStyle": {
+              "color": "#EEF1FA",
+              "fontWeight": "normal"
+            }
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          }
+        }
+      },
+      "key": "eef35e45-d1d0-4d64-9fa7-f79cf9495ecd"
+    },
+    {
+      "component": "JBar",
+      "w": 471.00000000000006,
+      "x": 1409,
+      "h": 387.00000000000006,
+      "i": "714c0b6f-b0fc-45e0-b0f8-9585076a8895",
+      "y": 365,
+      "orderNum": 0,
+      "pageCompId": "1023815689694662656",
+      "componentName": "基础柱形图",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "维度"
+          },
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 30,
+        "url": "http://api.jeecg.com/mock/33/chart",
+        "timeOut": 0,
+        "chartData": "[  {    \"name\": \"医生\",    \"value\": 1079,    \"type\": \"手机品牌\"  },  {    \"name\": \"咨询师\",    \"value\": 3479,    \"type\": \"手机品牌\"  },  {    \"name\": \"小程序\",    \"value\": 2709,    \"type\": \"手机品牌\"  },  {    \"name\": \"后台系统\",    \"value\": 5856,    \"type\": \"手机品牌\"  },  {    \"name\": \"APP\",    \"value\": 3823,    \"type\": \"手机品牌\"  }]",
+        "size": {
+          "width": 471.00000000000006,
+          "height": 387.00000000000006
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 12,
+        "turnConfig": {
+          "url": ""
+        },
+        "linkageConfig": [],
+        "option": {
+          "yAxis": {
+            "lineStyle": {
+              "color": "#f3f3f3"
+            },
+            "splitLine": {
+              "interval": 2
+            }
+          },
+          "grid": {
+            "top": 90,
+            "left": 57,
+            "bottom": 130,
+            "show": false,
+            "right": 1,
+            "containLabel": true
+          },
+          "series": [
+            {
+              "barWidth": 20,
+              "data": [],
+              "itemStyle": {
+                "color": "#64B5F6",
+                "borderRadius": 0
+              },
+              "label": {
+                "color": "#EEF1FA",
+                "show": true,
+                "position": "top"
+              },
+              "type": "bar"
+            }
+          ],
+          "tooltip": {
+            "axisPointer": {
+              "label": {
+                "backgroundColor": "#333",
+                "show": true
+              },
+              "type": "shadow"
+            },
+            "trigger": "axis",
+            "textStyle": {
+              "color": "#EEF1FA"
+            }
+          },
+          "title": {
+            "show": false,
+            "text": "基础柱形图",
+            "textStyle": {
+              "color": "#EEF1FA",
+              "fontWeight": "normal"
+            }
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          }
+        }
+      },
+      "key": "30b44812-618e-4ecc-bccc-9fd5b9218285"
+    },
+    {
+      "component": "JPie",
+      "w": 328,
+      "x": 1497,
+      "h": 300,
+      "i": "daa3d01f-ef70-43f4-a6cd-f4ff92537ce3",
+      "y": 601,
+      "orderNum": 0,
+      "pageCompId": "1023815689707245568",
+      "componentName": "饼图",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "维度"
+          },
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 30,
+        "url": "http://api.jeecg.com/mock/33/chart",
+        "timeOut": -1,
+        "chartData": "[    {        \"name\": \"1-15岁\",        \"value\": 1000879,        \"url\": \"http://www.baidu.com\"    },    {        \"name\": \"16-40\",        \"value\": 3400879,        \"url\": \"http://www.baidu.com\"    },    {        \"name\": \"41-55\",        \"value\": 2300879,        \"url\": \"http://www.baidu.com\"    },    {        \"name\": \"56-70\",        \"value\": 5400879,        \"url\": \"http://www.baidu.com\"    },    {        \"name\": \"71+\",        \"value\": 3000,        \"url\": \"http://www.baidu.com\"    }]",
+        "size": {
+          "width": 328,
+          "height": 300
+        },
+        "background": "#FFFFFF00",
+        "w": 12,
+        "turnConfig": {
+          "url": ""
+        },
+        "linkageConfig": [],
+        "option": {
+          "customColor": [
+            {
+              "color": "#83BFF6"
+            },
+            {
+              "color": "#23B7E5"
+            },
+            {
+              "color": "#9AA8D4"
+            },
+            {
+              "color": "#188DF0"
+            },
+            {
+              "color": "#564AA3"
+            }
+          ],
+          "grid": {
+            "bottom": 115,
+            "show": false
+          },
+          "legend": {
+            "orient": "vertical",
+            "show": false
+          },
+          "series": [
+            {
+              "data": [],
+              "name": "",
+              "emphasis": {
+                "itemStyle": {
+                  "shadowOffsetX": 0,
+                  "shadowBlur": 10,
+                  "shadowColor": "rgba(0, 0, 0, 0.5)"
+                }
+              },
+              "label": {
+                "color": "#EEF1FA"
+              },
+              "type": "pie",
+              "radius": "50%"
+            }
+          ],
+          "tooltip": {
+            "trigger": "item"
+          },
+          "title": {
+            "subtext": "",
+            "left": "left",
+            "show": false,
+            "text": "基础饼图",
+            "textStyle": {
+              "fontWeight": "normal"
+            }
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          }
+        }
+      },
+      "key": "7bb6691d-2fc3-403e-9c5d-d1b3733ba7e9"
+    },
+    {
+      "component": "JBar",
+      "w": 269.9999999999999,
+      "x": 1450,
+      "h": 297,
+      "i": "2880db1f-a5a1-492e-8d78-975c958cea96",
+      "y": 825,
+      "orderNum": 0,
+      "pageCompId": "1023815689719828480",
+      "componentName": "基础柱形图",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "维度"
+          },
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 30,
+        "url": "http://api.jeecg.com/mock/33/chart",
+        "timeOut": 0,
+        "chartData": "[  {    \"name\": \"app\",    \"value\": 1879,    \"type\": \"手机品牌\"  },  {    \"name\": \"小程序\",    \"value\": 3879,    \"type\": \"手机品牌\"  },  {    \"name\": \"医生端\",    \"value\": 2879,    \"type\": \"手机品牌\"  }]",
+        "size": {
+          "width": 269.9999999999999,
+          "height": 297
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 12,
+        "turnConfig": {
+          "url": ""
+        },
+        "linkageConfig": [],
+        "option": {
+          "yAxis": {
+            "lineStyle": {
+              "color": "#f3f3f3"
+            },
+            "splitLine": {
+              "interval": 2
+            }
+          },
+          "grid": {
+            "top": 90,
+            "bottom": 115,
+            "show": false,
+            "containLabel": true
+          },
+          "series": [
+            {
+              "barWidth": 16,
+              "data": [],
+              "itemStyle": {
+                "color": "#64B5F6",
+                "borderRadius": 0
+              },
+              "label": {
+                "color": "#EEF1FA",
+                "show": true,
+                "position": "top"
+              },
+              "type": "bar"
+            }
+          ],
+          "tooltip": {
+            "axisPointer": {
+              "label": {
+                "backgroundColor": "#333",
+                "show": true
+              },
+              "type": "shadow"
+            },
+            "trigger": "axis",
+            "textStyle": {
+              "color": "#EEF1FA"
+            }
+          },
+          "title": {
+            "show": false,
+            "text": "基础柱形图",
+            "textStyle": {
+              "fontWeight": "normal"
+            }
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          },
+          "showUnit": {
+            "numberLevel": "0",
+            "show": true
+          }
+        }
+      },
+      "key": "5df76f0a-159f-41b4-80fb-375e2898cdc6"
+    },
+    {
+      "component": "JScatter",
+      "w": 212,
+      "x": 1688,
+      "h": 269,
+      "i": "534ae97f-fc40-497d-8ecb-854af3664b1c",
+      "y": 846,
+      "orderNum": 0,
+      "pageCompId": "1023815689732411392",
+      "componentName": "普通散点图",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "维度"
+          },
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 30,
+        "url": "http://api.jeecg.com/mock/33/chart",
+        "timeOut": 0,
+        "chartData": "[  {    \"name\": 1,    \"value\": 8.04  },  {    \"name\": 2,    \"value\": 6.95  },  {    \"name\": 1,    \"value\": 4.04  },  {    \"name\": 2,    \"value\": 3.95  }]",
+        "size": {
+          "width": 212,
+          "height": 269
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 12,
+        "turnConfig": {
+          "url": ""
+        },
+        "linkageConfig": [],
+        "option": {
+          "yAxis": {
+            "lineStyle": {
+              "color": "#f3f3f3"
+            },
+            "splitLine": {
+              "interval": 2
+            }
+          },
+          "grid": {
+            "bottom": 115,
+            "show": false
+          },
+          "series": [
+            {
+              "data": [],
+              "symbolSize": 20,
+              "itemStyle": {
+                "color": "#64b5f6"
+              },
+              "type": "scatter"
+            }
+          ],
+          "tooltip": {
+            "formatter": "x:{b}<br/>y:{c}",
+            "axisPointer": {
+              "label": {
+                "backgroundColor": "#333",
+                "show": true
+              },
+              "type": "shadow"
+            },
+            "trigger": "item"
+          },
+          "title": {
+            "show": false,
+            "text": "基础散点图",
+            "textStyle": {
+              "fontWeight": "normal"
+            }
+          },
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          }
+        }
+      },
+      "key": "f3680c48-713e-499f-8904-cdf459f5b561"
+    },
+    {
+      "component": "JScrollBoard",
+      "visible": true,
+      "w": 417,
+      "x": 23,
+      "h": 214,
+      "i": "20384464-b32d-4dad-8660-76370062042a",
+      "y": 568,
+      "orderNum": 0,
+      "componentName": "轮播表",
+      "pageCompId": "1023815689744994304",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "维度"
+          },
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 300,
+        "url": "http://api.jeecg.com/mock/33/chart",
+        "timeOut": 0,
+        "chartData": "[  {    \"key1\": \"01-18\",    \"key2\": \"张图\",    \"key3\": \"李木木\",    \"key4\": \"图文问诊\",    \"key5\": \"专家问诊\",    \"key6\": \"100\",    \"key7\": \"已支付\",    \"key8\": \"01-10\"  },  {    \"key1\": \"01-18\",    \"key2\": \"张图\",    \"key3\": \"李木木\",    \"key4\": \"图文问诊\",    \"key5\": \"专家问诊\",    \"key6\": \"100\",    \"key7\": \"已支付\",    \"key8\": \"01-10\"  },  {    \"key1\": \"01-18\",    \"key2\": \"张图\",    \"key3\": \"李木木\",    \"key4\": \"图文问诊\",    \"key5\": \"专家问诊\",    \"key6\": \"100\",    \"key7\": \"已支付\",    \"key8\": \"01-10\"  },  {    \"key1\": \"01-18\",    \"key2\": \"张图\",    \"key3\": \"李木木\",    \"key4\": \"图文问诊\",    \"key5\": \"专家问诊\",    \"key6\": \"100\",    \"key7\": \"已支付\",    \"key8\": \"01-10\"  },  {    \"key1\": \"01-18\",    \"key2\": \"张图\",    \"key3\": \"李木木\",    \"key4\": \"图文问诊\",    \"key5\": \"专家问诊\",    \"key6\": \"100\",    \"key7\": \"已支付\",    \"key8\": \"01-10\"  },  {    \"key1\": \"01-18\",    \"key2\": \"张图\",    \"key3\": \"李木木\",    \"key4\": \"图文问诊\",    \"key5\": \"专家问诊\",    \"key6\": \"100\",    \"key7\": \"已支付\",    \"key8\": \"01-10\"  },  {    \"key1\": \"01-18\",    \"key2\": \"张图\",    \"key3\": \"李木木\",    \"key4\": \"图文问诊\",    \"key5\": \"专家问诊\",    \"key6\": \"100\",    \"key7\": \"已支付\",    \"key8\": \"01-10\"  },  {    \"key1\": \"01-18\",    \"key2\": \"张图\",    \"key3\": \"李木木\",    \"key4\": \"图文问诊\",    \"key5\": \"专家问诊\",    \"key6\": \"100\",    \"key7\": \"已支付\",    \"key8\": \"01-10\"  }]",
+        "size": {
+          "width": 417,
+          "height": 214
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 450,
+        "turnConfig": {
+          "url": ""
+        },
+        "linkageConfig": [],
+        "option": {
+          "oddRowBGC": "#07284B",
+          "headShow": true,
+          "hoverPause": true,
+          "indexWidth": 80,
+          "index": false,
+          "carousel": "single",
+          "title": {
+            "show": true,
+            "text": "",
+            "textStyle": {
+              "color": "#464646",
+              "fontWeight": "normal"
+            }
+          },
+          "evenRowBGC": "#06243D",
+          "header": [
+            {
+              "width": 100,
+              "label": "创建时间"
+            },
+            {
+              "width": 100,
+              "label": "患者姓名"
+            },
+            {
+              "width": 100,
+              "label": "接诊医生"
+            },
+            {
+              "width": 100,
+              "label": "服务类型"
+            },
+            {
+              "width": 100,
+              "label": "订单类型"
+            },
+            {
+              "width": 100,
+              "label": "支付金额"
+            },
+            {
+              "width": 100,
+              "label": "支付状态"
+            },
+            {
+              "width": 100,
+              "label": "预约时间"
+            }
+          ],
+          "headerBGC": "#072F48",
+          "headerHeight": 45,
+          "waitTime": 2000,
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          }
+        }
+      }
+    },
+    {
+      "component": "JScrollBoard",
+      "visible": true,
+      "w": 417,
+      "x": 23,
+      "h": 214,
+      "i": "es-drager-1732187641762-1",
+      "y": 840,
+      "orderNum": 0,
+      "componentName": "轮播表",
+      "pageCompId": "1023815689757577216",
+      "config": {
+        "borderColor": "#FFFFFF00",
+        "dataMapping": [
+          {
+            "mapping": "",
+            "filed": "维度"
+          },
+          {
+            "mapping": "",
+            "filed": "数值"
+          }
+        ],
+        "dataType": 1,
+        "h": 300,
+        "url": "http://api.jeecg.com/mock/33/chart",
+        "timeOut": 0,
+        "chartData": "[    {        \"key1\": \"2022-01-18 15:11:55\",        \"key2\": \"张图\",        \"key3\": \"李木木\",        \"key4\": \"图文问诊\",        \"key5\": \"专家问诊\",        \"key6\": \"100\",        \"key7\": \"已支付\",        \"key8\": \"2022-01-10\"    },    {        \"key1\": \"2022-01-18 15:11:55\",        \"key2\": \"张图\",        \"key3\": \"李木木\",        \"key4\": \"图文问诊\",        \"key5\": \"专家问诊\",        \"key6\": \"100\",        \"key7\": \"已支付\",        \"key8\": \"2022-01-10\"    },    {        \"key1\": \"2022-01-18 15:11:55\",        \"key2\": \"张图\",        \"key3\": \"李木木\",        \"key4\": \"图文问诊\",        \"key5\": \"专家问诊\",        \"key6\": \"100\",        \"key7\": \"已支付\",        \"key8\": \"2022-01-10\"    },    {        \"key1\": \"2022-01-18 15:11:55\",        \"key2\": \"张图\",        \"key3\": \"李木木\",        \"key4\": \"图文问诊\",        \"key5\": \"专家问诊\",        \"key6\": \"100\",        \"key7\": \"已支付\",        \"key8\": \"2022-01-10\"    },    {        \"key1\": \"2022-01-18 15:11:55\",        \"key2\": \"张图\",        \"key3\": \"李木木\",        \"key4\": \"图文问诊\",        \"key5\": \"专家问诊\",        \"key6\": \"100\",        \"key7\": \"已支付\",        \"key8\": \"2022-01-10\"    },    {        \"key1\": \"2022-01-18 15:11:55\",        \"key2\": \"张图\",        \"key3\": \"李木木\",        \"key4\": \"图文问诊\",        \"key5\": \"专家问诊\",        \"key6\": \"100\",        \"key7\": \"已支付\",        \"key8\": \"2022-01-10\"    },    {        \"key1\": \"2022-01-18 15:11:55\",        \"key2\": \"张图\",        \"key3\": \"李木木\",        \"key4\": \"图文问诊\",        \"key5\": \"专家问诊\",        \"key6\": \"100\",        \"key7\": \"已支付\",        \"key8\": \"2022-01-10\"    },    {        \"key1\": \"2022-01-18 15:11:55\",        \"key2\": \"张图\",        \"key3\": \"李木木\",        \"key4\": \"图文问诊\",        \"key5\": \"专家问诊\",        \"key6\": \"100\",        \"key7\": \"已支付\",        \"key8\": \"2022-01-10\"    },    {        \"key1\": \"2022-01-18 15:11:55\",        \"key2\": \"张图\",        \"key3\": \"李木木\",        \"key4\": \"图文问诊\",        \"key5\": \"专家问诊\",        \"key6\": \"100\",        \"key7\": \"已支付\",        \"key8\": \"2022-01-10\"    }]",
+        "size": {
+          "width": 417,
+          "height": 214
+        },
+        "actionConfig": {
+          "operateType": "modal",
+          "modalName": "",
+          "url": ""
+        },
+        "background": "#FFFFFF00",
+        "w": 450,
+        "turnConfig": {
+          "url": ""
+        },
+        "linkageConfig": [],
+        "option": {
+          "oddRowBGC": "#07284B",
+          "headShow": true,
+          "hoverPause": true,
+          "indexWidth": 80,
+          "index": false,
+          "carousel": "single",
+          "title": {
+            "show": true,
+            "text": "",
+            "textStyle": {
+              "color": "#464646",
+              "fontWeight": "normal"
+            }
+          },
+          "evenRowBGC": "#06243D",
+          "header": [
+            {
+              "width": "50",
+              "label": "创建时间"
+            },
+            {
+              "width": 100,
+              "label": "患者姓名"
+            },
+            {
+              "width": 100,
+              "label": "接诊医生"
+            },
+            {
+              "width": 100,
+              "label": "服务类型"
+            },
+            {
+              "width": 100,
+              "label": "订单类型"
+            },
+            {
+              "width": 100,
+              "label": "支付金额"
+            },
+            {
+              "width": 100,
+              "label": "支付状态"
+            },
+            {
+              "width": 100,
+              "label": "预约时间"
+            }
+          ],
+          "headerBGC": "#072F48",
+          "headerHeight": 45,
+          "waitTime": 2000,
+          "card": {
+            "rightHref": "",
+            "size": "default",
+            "extra": "",
+            "title": ""
+          }
+        }
+      }
+    }
+  ],
+  "coverUrl": "https://static.jeecg.com/bigscreen/医院封面_1657191164592.png",
+  "backgroundColor": "#1E0047",
+  "backgroundImage": "https://jeecgdev.oss-cn-beijing.aliyuncs.com/jimureport/images/医院大屏_1733208287062.png",
+  "theme": "dark",
+  "style": "bigScreen",
+  "designType": 100,
+  "protectionCode": "",
+  "type": "0",
+  "izTemplate": "1",
+  "createBy": "admin",
+  "lowAppId": null,
+  "tenantId": 3,
+  "appMenuGroupId": null,
+  "createTime": "2024-10-31 11:01:31",
+  "updateBy": "admin",
+  "updateTime": "2024-12-03 14:44:52",
+  "updateCount": 2,
+  "visitsNum": 0,
+  "delFlag": 0
+}

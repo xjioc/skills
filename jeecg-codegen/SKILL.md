@@ -35,9 +35,9 @@ description: Use when user asks to generate JeecgBoot CRUD code, create a new mo
 2. **扫描已有代码文件**：在后端和前端目录中搜索已生成的文件
    ```bash
    # 搜索后端 Entity 文件
-   find E:/workspace-cc-jeecg/jeecg-boot-framework-2026 -name "{EntityName}.java" -path "*/entity/*"
+   find {后端项目根目录} -name "{EntityName}.java" -path "*/entity/*"
    # 搜索前端 data.ts 文件
-   find E:/workspace-cc-jeecg/jeecgboot-vue3-2026/src/views -name "{EntityName}.data.ts"
+   find {前端项目根目录}/src/views -name "{EntityName}.data.ts"
    ```
 3. **读取全部已有文件**：Entity.java、*.data.ts、*List.vue、*Modal.vue（如有 Form.vue 也读取）
 4. **解析当前字段列表**：从 Entity.java 解析已有字段
@@ -72,6 +72,25 @@ description: Use when user asks to generate JeecgBoot CRUD code, create a new mo
 ### Step 5: 输出清单
 列出所有生成/修改的文件路径 + 后续操作说明（执行SQL、重启后端等）。
 
+### 本地环境自动执行菜单 SQL 规则
+
+**判断条件：** 数据库连接地址为 `127.0.0.1` 或 `localhost`（即本地开发环境）。
+
+**自动执行方式：** 生成 Flyway SQL 文件后，同时通过 Bash 工具直接执行菜单权限 SQL：
+
+```bash
+# 先检查菜单是否已存在，避免重复插入
+mysql -h127.0.0.1 -P3306 -uroot -proot jeecgboot3 -e "SELECT id FROM sys_permission WHERE id='{timestamp}01'"
+# 不存在则执行全部菜单 + 角色授权 SQL
+mysql -h127.0.0.1 -P3306 -uroot -proot jeecgboot3 < {flyway_sql_file_path}
+```
+
+**注意事项：**
+- 仅在本地环境（127.0.0.1/localhost）自动执行，远程环境只生成 Flyway 文件
+- 执行前先检查主菜单 ID 是否已存在，避免重复插入
+- 如果 MySQL 执行失败，提示用户手动执行 Flyway SQL，不中断整体流程
+- 输出结果中标注 `菜单 SQL：已自动执行 ✓`
+
 ## 数据库连接
 
 **已有表场景必须先查数据库！** 通过以下方式获取精确 DDL：
@@ -96,7 +115,7 @@ mysql -h127.0.0.1 -P3306 -uroot -proot jeecgboot3 -e "SELECT COLUMN_NAME, COLUMN
 
 ```bash
 # Flyway SQL 目录
-ls E:/workspace-cc-jeecg/jeecg-boot-framework-2026/jeecg-module-system/jeecg-system-start/src/main/resources/flyway/sql/mysql/ | sort -V | tail -5
+ls {后端项目根目录}/jeecg-module-system/jeecg-system-start/src/main/resources/flyway/sql/mysql/ | sort -V | tail -5
 ```
 
 版本命名规则：`V{YYYYMMDD}_{序号}__{描述}.sql`
@@ -156,8 +175,8 @@ ORDER BY d.dict_code
 
 | 类别 | 路径 |
 |------|------|
-| 后端根 | 当前工作目录中的后端项目根目录 |
-| 前端根 | 当前工作目录中的前端项目根目录 |
+| 后端根 | `{后端项目根目录}` |
+| 前端根 | `{前端项目根目录}` |
 | 后端代码 | `{module}/src/main/java/org/jeecg/modules/{entityPackage}/` |
 | 前端代码 | `src/views/{viewDir}/` |
 | Flyway SQL | `jeecg-module-system/jeecg-system-start/src/main/resources/flyway/sql/mysql/` |

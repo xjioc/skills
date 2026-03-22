@@ -186,9 +186,200 @@ if dict_code:
 确认以上信息正确？(y/n)
 ```
 
+### Step 2.5: 检查表单编码是否已存在（防覆盖规则）
+
+> **重要安全规则：** 在执行创建/保存操作之前，**必须**先通过 `get_form_id(code)` 检查表单编码是否已存在。
+
+**检查方式：** 在临时脚本中调用 `get_form_id(code)` 或在创建脚本中加入检查逻辑。
+
+**如果表单已存在：**
+1. **不允许默认覆盖**（不要直接执行 `create_form` 或 `update_form`）
+2. 必须明确告知用户：`表单 {code} 已存在 (ID={id})，是否要覆盖更新？`
+3. **只有用户明确确认后**才可以执行覆盖操作（调用 `update_form` 更新设计）
+4. 如果用户拒绝覆盖，基于原编码生成 3~5 个新编码供用户选择（如原编码 `oa_leave_apply`，可提供 `oa_leave_apply_v2`、`oa_leave_request`、`oa_leave_form`、`oa_staff_leave` 等），用户选定后再重新生成
+
+**预置脚本的防覆盖：** 所有 `scripts/` 目录下的脚本都内置了 `--force` 参数检查，不加 `--force` 时检测到已存在会自动退出。
+
+**动态脚本的防覆盖：** 手动编写的临时脚本中，在调用 `create_form` 之前加入检查：
+```python
+existing_id, _ = get_form_id(code)
+if existing_id:
+    print(f'表单 {code} 已存在 (ID={existing_id})，需要用户确认后才能覆盖')
+    sys.exit(1)
+```
+
 ### Step 3: 生成 desformDesignJson 并调用 API
 
 用户确认后，执行以下步骤：
+
+#### 3.0 优先使用通用脚本 + JSON 配置（推荐方式）
+
+> **重要：优先使用 `scripts/desform_creator.py` 通用脚本 + JSON 配置文件的方式，只需生成少量 JSON 数据即可创建表单，避免每次编写大量 Python 代码。只有当通用脚本无法满足特殊需求时，才编写自定义临时脚本。**
+
+**脚本位置：** `scripts/desform_creator.py`
+
+**使用步骤：**
+1. 根据用户需求生成 JSON 配置文件（Write 到工作目录的临时 `.json` 文件）
+3. 用 Bash 执行脚本：`python "<skill目录>/scripts/desform_creator.py" --api-base <URL> --token <TOKEN> --config <config.json>`
+4. 删除临时 JSON 配置文件
+
+**脚本自动完成：**
+- 防覆盖检查（不加 `--force` 时检测到已存在自动退出）
+- 根据 JSON 配置构建所有控件
+- 调用 `create_form` 创建/保存表单设计
+- 输出菜单 SQL（如果 JSON 中配置了 `menuParent`）
+
+**JSON 配置格式：**
+```json
+{
+  "formName": "表单中文名称",
+  "formCode": "module_form_code",
+  "layout": "word",
+  "titleIndex": 0,
+  "fields": [
+    {"name": "字段名", "type": "控件类型", ...控件参数}
+  ],
+  "menuParent": "父菜单名称",
+  "menuIcon": "ant-design:appstore-outlined"
+}
+```
+
+| JSON 字段 | 必填 | 默认值 | 说明 |
+|-----------|------|--------|------|
+| `formName` | 是 | - | 表单中文名称 |
+| `formCode` | 是 | - | 表单编码（英文，模块名前缀） |
+| `layout` | 否 | `"auto"` | 布局模式：`auto`/`half`/`full`/`word` |
+| `titleIndex` | 否 | `0` | 标题字段在 fields 中的索引 |
+| `fields` | 是 | - | 字段定义数组 |
+| `menuParent` | 否 | - | 生成菜单 SQL 的父菜单名称 |
+| `menuIcon` | 否 | `ant-design:appstore-outlined` | 父菜单图标 |
+
+**字段定义（fields 数组中每个对象）：**
+
+每个字段只需 `name` + `type`，其余参数可选：
+
+```json
+{"name": "工程名称", "type": "input", "required": true}
+{"name": "工程类别", "type": "radio", "options": ["土建", "安装", "装饰"]}
+{"name": "验收日期", "type": "date"}
+{"name": "金额", "type": "money", "unit": "万元"}
+{"name": "自动编号", "type": "auto-number", "prefix": "GCYS"}
+{"name": "条码", "type": "barcode"}
+{"name": "定位", "type": "location"}
+{"name": "签字", "type": "hand-sign", "required": true}
+{"name": "---", "type": "divider", "text": "分隔标题"}
+{"name": "性别", "type": "radio", "dictCode": "sex",
+ "options": [{"value": "1", "label": "男"}, {"value": "2", "label": "女"}]}
+```
+
+**支持的 type 及可选参数：**
+
+| type | 可选参数 | 说明 |
+|------|---------|------|
+| `input` | `required`, `placeholder`, `unique` | 单行文本 |
+| `textarea` | `required` | 多行文本 |
+| `number` | `required`, `unit`, `precision` | 数字 |
+| `integer` | `required`, `unit` | 整数 |
+| `money` | `required`, `unit` | 金额 |
+| `date` | `required`, `fmt` | 日期（fmt 默认 `yyyy-MM-dd`） |
+| `time` | `required` | 时间 |
+| `switch` | - | 开关 |
+| `slider` | - | 滑块 |
+| `rate` | - | 评分 |
+| `color` | - | 颜色 |
+| `radio` | `options`(必填), `required`, `dictCode` | 单选 |
+| `select` | `options`(必填), `required`, `multiple`, `dictCode` | 下拉 |
+| `checkbox` | `options`(必填), `required`, `dictCode` | 多选 |
+| `select-user` | `required`, `multiple` | 选人 |
+| `select-depart` | `required`, `multiple` | 选部门 |
+| `phone` | `required` | 手机 |
+| `email` | `required` | 邮箱 |
+| `area-linkage` | `required` | 省市级联 |
+| `file-upload` | `required` | 文件上传 |
+| `imgupload` | `required` | 图片上传 |
+| `hand-sign` | `required` | 手写签名 |
+| `auto-number` | `prefix` | 自动编号 |
+| `barcode` | `codeType`(`barcode`/`qrcode`) | 条码 |
+| `location` | `required` | 定位 |
+| `formula` | `mode`, `expression`, `decimal`, `unit` | 公式 |
+| `divider` | `text` | 分隔符（name 会被忽略，用 text） |
+| `editor` | `required` | 富文本 |
+| `markdown` | `required` | Markdown |
+| `link-record` | `sourceCode`, `titleField`, `showFields`, `showMode`, `showType` | 关联记录 |
+| `link-field` | `linkRecordKey`, `showField`, `fieldType`, `fieldOptions` | 他表字段 |
+
+**完整示例（工程竣工验收申请表）：**
+```json
+{
+  "formName": "工程竣工验收申请表",
+  "formCode": "eng_completion_acceptance",
+  "layout": "word",
+  "fields": [
+    {"name": "自动编号", "type": "auto-number", "prefix": "GCYS"},
+    {"name": "条码", "type": "barcode"},
+    {"name": "工程名称", "type": "input", "required": true},
+    {"name": "工程编号", "type": "input"},
+    {"name": "工程类别", "type": "radio", "options": ["土建工程", "安装工程", "装饰工程", "市政工程"]},
+    {"name": "建设单位", "type": "input"},
+    {"name": "工程地址", "type": "input"},
+    {"name": "施工单位", "type": "input"},
+    {"name": "开工时间", "type": "date"},
+    {"name": "完工时间", "type": "date"},
+    {"name": "工程量清单", "type": "textarea"},
+    {"name": "图片上传", "type": "imgupload"},
+    {"name": "定位", "type": "location"},
+    {"name": "验收类别", "type": "radio", "options": ["竣工验收", "分部验收", "专项验收"]},
+    {"name": "施工单位项目经理签字", "type": "hand-sign"},
+    {"name": "---", "type": "divider", "text": "广电工程完工验收报告"},
+    {"name": "工程名称(报告)", "type": "input"},
+    {"name": "工程编号(报告)", "type": "input"},
+    {"name": "建设单位(报告)", "type": "input"},
+    {"name": "施工单位(报告)", "type": "input"},
+    {"name": "开工时间(报告)", "type": "date"},
+    {"name": "完工时间(报告)", "type": "date"},
+    {"name": "验收时间", "type": "time"},
+    {"name": "验收类别(报告)", "type": "radio", "options": ["竣工验收", "分部验收", "专项验收"]},
+    {"name": "---", "type": "divider", "text": "竣工项目分项审查情况"},
+    {"name": "立项手续完整性", "type": "radio", "options": ["合格", "不合格", "整改后合格"]},
+    {"name": "项目主体组签字(立项)", "type": "hand-sign"},
+    {"name": "竣工资料完整性", "type": "radio", "options": ["合格", "不合格", "整改后合格"]},
+    {"name": "项目主体组签字(资料)", "type": "hand-sign"},
+    {"name": "施工工艺合规性", "type": "radio", "options": ["合格", "不合格", "整改后合格"]},
+    {"name": "项目主体组签字(工艺)", "type": "hand-sign"},
+    {"name": "技术指标达标情况", "type": "radio", "options": ["合格", "不合格", "整改后合格"]},
+    {"name": "项目主体组签字(技术)", "type": "hand-sign"},
+    {"name": "材料设备核定结果", "type": "radio", "options": ["合格", "不合格", "整改后合格"]},
+    {"name": "项目主体组签字(材料)", "type": "hand-sign"},
+    {"name": "工程量核量结果", "type": "radio", "options": ["合格", "不合格", "整改后合格"]},
+    {"name": "项目主体组签字(核量)", "type": "hand-sign"},
+    {"name": "验收问题清单", "type": "textarea"},
+    {"name": "验收结论", "type": "radio", "options": ["合格", "不合格", "整改后复验"]},
+    {"name": "技术部负责人签字", "type": "hand-sign"},
+    {"name": "施工单位签字", "type": "hand-sign"},
+    {"name": "分管领导组签字", "type": "hand-sign"}
+  ],
+  "menuParent": "工程验收管理"
+}
+```
+
+**调用示例：**
+```bash
+# 1. Write 工具生成 JSON 配置文件
+# 2. 执行脚本
+python "C:/Users/moe/.claude/skills/jeecg-desform/scripts/desform_creator.py" \
+    --api-base http://192.168.1.233:3100/jeecgboot \
+    --token eyJhbGciOiJIUzI1NiJ9... \
+    --config eng_acceptance.json
+
+# 如需覆盖已存在的表单
+python "C:/Users/moe/.claude/skills/jeecg-desform/scripts/desform_creator.py" \
+    --api-base http://192.168.1.233:3100/jeecgboot \
+    --token eyJhbGciOiJIUzI1NiJ9... \
+    --config eng_acceptance.json \
+    --force
+
+# 3. 删除临时 JSON 文件
+```
 
 #### 3.1 生成唯一标识
 
@@ -235,22 +426,19 @@ if dict_code:
 
 #### 3.3 使用 Python 调用 API（必须用 Python，不要用 curl）
 
-**优先使用共通工具库 `desform_utils.py`**（位于 `references/desform_utils.py`）：
-
-> 使用前先将 `desform_utils.py` 复制到后端项目根目录。
+**优先使用共通工具库 `desform_utils.py`**（位于 `scripts/desform_utils.py`）。
 
 **使用共通工具库的执行步骤：**
 ```
-1. 确认后端项目根目录有 desform_utils.py（没有则从 references 复制）
-2. Write 工具 → 写入业务脚本 create_xxx.py（项目根目录，import desform_utils）
-3. Bash 工具 → cd 后端项目根目录 && python create_xxx.py
-4. Bash 工具 → rm create_xxx.py（清理临时脚本，保留 desform_utils.py）
+1. Write 工具 → 写入业务脚本 create_xxx.py（scripts/ 目录，import desform_utils）
+2. Bash 工具 → cd <skill目录>/scripts && python create_xxx.py
+3. Bash 工具 → rm create_xxx.py（清理临时脚本）
 ```
 
 **共通工具库使用示例：**
 ```python
 import sys
-sys.path.insert(0, r'后端项目根目录')
+sys.path.insert(0, r'{后端项目根目录}')
 from desform_utils import *
 
 init_api('https://boot3.jeecg.com/jeecgboot', 'your-token')
@@ -480,6 +668,27 @@ VALUES ('{uuid}', '{roleId}', '{menuUuid}', NULL, now(), '127.0.0.1');
 
 > **重要：输出菜单 SQL 时，必须直接使用 `gen_menu_sql` 函数的完整输出，不要手动缩写或省略列名，否则会因列错位导致执行报错。**
 
+### 本地环境自动执行菜单 SQL 规则
+
+**判断条件：** `init_api` 传入的 api_base 以 `http://127.0.0.1` 或 `http://localhost` 开头（不区分大小写）。
+
+**自动执行方式：** 在 `gen_menu_sql` 生成 SQL 后，通过 Bash 工具逐条执行 MySQL 命令：
+
+```bash
+# 先检查菜单是否已存在，避免重复插入
+mysql -h127.0.0.1 -P3306 -uroot -proot jeecgboot3 -e "SELECT id FROM sys_permission WHERE id='{menuId}'"
+# 不存在则执行插入（包括 sys_permission 和 sys_role_permission）
+mysql -h127.0.0.1 -P3306 -uroot -proot jeecgboot3 -e "INSERT INTO sys_permission(...) VALUES (...);"
+mysql -h127.0.0.1 -P3306 -uroot -proot jeecgboot3 -e "INSERT INTO sys_role_permission(...) VALUES (...);"
+```
+
+**注意事项：**
+- 将 `gen_menu_sql` 的每条 INSERT 语句拆分后逐条通过 MySQL CLI 执行
+- 执行前先检查父菜单 ID 是否已存在，避免重复插入
+- 如果 MySQL 执行失败，回退为输出 SQL 让用户手动执行，不中断整体流程
+- 数据库连接参数默认 `mysql -h127.0.0.1 -P3306 -uroot -proot jeecgboot3`，与 jeecg-codegen 保持一致
+- 输出结果中标注 `菜单 SQL：已自动执行 ✓`
+
 ---
 
 ## 编辑已有表单
@@ -526,7 +735,7 @@ delete_form('2032994312457920514')
 | 错误 | 解决方案 |
 |------|---------|
 | Token 过期（401/认证失败） | 提示用户重新获取 X-Access-Token |
-| `该code已存在` | 通过 `queryByIdOrCode` 或 list 全量搜索获取已有表单 ID，直接更新设计 |
+| `该code已存在` | **不要直接覆盖**，提示用户确认是否覆盖（参见 Step 2.5 防覆盖规则），用户确认后再用 `update_form` 更新设计 |
 | `未找到对应实体` | 表单数据不一致（存在于 list 但无法编辑），需用 `deleteBatch` + `recycleBin/deleteByIds` 彻底删除后重建 |
 | `表单编码过长` | desformCode 缩短到 200 字符以内 |
 | `当前版本已过时，请刷新重试` | updateCount 传值错误，必须传当前值（通过 queryByIdOrCode 或 list 获取） |
@@ -537,7 +746,9 @@ delete_form('2032994312457920514')
 
 ## 参考文档
 
-- 阅读 `references/desform-design-json-schema.md` 获取完整 JSON Schema
-- 阅读 `references/desform-widget-options.md` 获取所有控件 options 配置
-- 阅读 `references/desform-examples.md` 获取常见表单模式和完整 Python 脚本
-- 阅读 `references/desform-real-samples.md` 获取真实业务表单案例（字典、半行、分区、公式、关联）
+- `scripts/desform_creator.py` — **通用表单创建脚本**，优先使用此脚本 + JSON 配置文件
+- `scripts/desform_utils.py` — **共通工具库**（控件工厂、API 封装、布局引擎）
+- `references/desform-design-json-schema.md` — JSON Schema 结构、控件类型清单、通用字段
+- `references/desform-widget-options.md` — 每种控件的完整 options 配置
+- `references/desform-examples.md` — 常见表单模式示例 + Python 脚本模板
+- `references/desform-real-samples.md` — 真实业务表单案例（字典、半行、分区、公式、关联）
