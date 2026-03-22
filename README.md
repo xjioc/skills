@@ -39,7 +39,7 @@
 - 增量修改：加/删/改字段，精确修改每个相关文件
 - 主键策略自适应、Flyway 版本号自动递增
 
-**使用文档**：[CODEGEN-GUIDE.md](jeecg-codegen/docs/skill-usage-guide.md)
+**使用文档**：[skill-usage-guide.md](jeecg-codegen/docs/skill-usage-guide.md)
 
 ---
 
