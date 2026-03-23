@@ -1,6 +1,6 @@
 ---
 name: jimureport
-description: Use when user asks to create/edit JiMu reports (积木报表), visual Excel-style reports, or says "创建积木报表", "积木报表", "jmreport", "做一个可视化报表", "Excel报表", "数据填报", "积木设计器", "create jimureport", "visual report". Also triggers when user describes report requirements involving Excel-like layouts, data binding with #{}, or multi-sheet reports.
+description: Use when user asks to create/edit JiMu reports (积木报表), visual Excel-style reports, or says "创建积木报表", "积木报表", "jmreport", "做一个可视化报表", "Excel报表", "数据填报", "积木设计器", "create jimureport", "visual report". Also triggers when user describes report requirements involving Excel-like layouts, data binding with #{}, or multi-sheet reports. Supports generating reports from screenshots — when user provides a screenshot/image of a report and asks to reproduce it (e.g., "按照截图生成报表", "照着这个图片做报表", "根据截图创建报表", "generate report from screenshot", "recreate this report").
 ---
 
 # JeecgBoot 积木报表 (JiMu Report) AI 自动生成器

@@ -1,6 +1,6 @@
 ---
 name: jeecg-desform
-description: Use when user asks to create/generate a form using AI, design a form automatically, or says "AI设计表单", "AI生成表单", "自动创建表单", "智能表单", "生成一个表单", "帮我设计表单", "创建表单", "新建表单", "做一个表单", "ai form", "generate form", "create form", "design form". Also triggers when user describes form fields like "需要姓名、手机号、地址字段" or mentions form requirements like "做一个请假表单包含请假天数和原因".
+description: Use when user asks to create/generate a form using AI, design a form automatically, or says "AI设计表单", "AI生成表单", "自动创建表单", "智能表单", "生成一个表单", "帮我设计表单", "创建表单", "新建表单", "做一个表单", "ai form", "generate form", "create form", "design form". Also triggers when user describes form fields like "需要姓名、手机号、地址字段" or mentions form requirements like "做一个请假表单包含请假天数和原因". Supports generating forms from screenshots — when user provides a screenshot/image of a form and asks to reproduce it (e.g., "按照截图生成表单", "照着这个图片做表单", "根据截图创建表单", "generate form from screenshot", "recreate this form").
 ---
 
 # JeecgBoot 表单设计器 AI 自动生成器
