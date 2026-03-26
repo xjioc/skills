@@ -1,6 +1,6 @@
-# JeecgBoot AI Skills — Claude Code 技能清单
+# JeecgBoot & JimuReport AI Skills — Claude Code 技能集合
 
-> JeecgBoot 平台 Claude Code 技能集合，通过自然语言驱动，**支持一句话生成完整系统**，AI 自动生成代码、表单、流程、报表、图表等，覆盖低代码开发全场景。
+> 基于 Claude Code 的 AI 技能集合，覆盖 **JeecgBoot 低代码平台** 和 **JimuReport 积木报表** 两大产品，通过自然语言驱动，**一句话生成代码、表单、流程、报表、图表、大屏、仪表盘**，覆盖企业级开发全场景。
 
 ## 视频文档
 
@@ -9,7 +9,44 @@
 
 ---
 
+## 安装方法
+
+### 一、安装 Claude Code
+
+```bash
+# 需要 Node.js 18+
+npm install -g @anthropic-ai/claude-code
+
+# 在项目目录中启动，首次会引导登录
+cd your-project
+claude
+```
+
+> 需要订阅 Claude Pro / Max 计划，详见 [claude.ai](https://claude.ai)。更多安装方式参考 [官方文档](https://docs.anthropic.com/en/docs/claude-code)。
+
+---
+
+### 二、安装 Skills 技能
+
+将需要的 Skill 目录复制到 Claude Code 的 skills 目录：
+
+```bash
+# macOS / Linux
+cp -r jeecg-codegen ~/.claude/skills/
+cp -r jimureport ~/.claude/skills/
+
+# Windows
+xcopy jeecg-codegen %USERPROFILE%\.claude\skills\jeecg-codegen\ /E /I
+xcopy jimureport %USERPROFILE%\.claude\skills\jimureport\ /E /I
+```
+
+安装后需要根据实际项目修改 Skill 中的路径和数据库连接配置，具体见各 Skill 的 SKILL.md。
+
+---
+
 ## 功能清单
+
+### JeecgBoot 技能
 
 | 序号 | 技能名称 | 功能说明 | 触发关键词 | 产出物 |
 |------|---------|---------|-----------|--------|
@@ -19,9 +56,14 @@
 | 4 | **jeecg-desform** | 设计器表单生成器 — 自然语言描述表单需求或提供截图，自动生成表单 JSON 并创建 | AI设计表单、生成表单、创建表单、按照截图生成表单 | 设计器表单 JSON |
 | 5 | **jeecg-onlchart** | Online 图表生成器 — 自然语言描述图表需求，自动生成数据可视化图表 | 创建图表、生成图表、柱状图、折线图、饼图、可视化 | Online 图表配置 |
 | 6 | **jeecg-bpmn** | BPM 流程生成器 — 自然语言描述审批流程，自动生成 BPMN XML 并部署 | 创建流程、生成流程、审批流程、工作流、BPM | Flowable BPMN 2.0 XML |
+
+### JimuReport 积木报表技能
+
+| 序号 | 技能名称 | 功能说明 | 触发关键词 | 产出物 |
+|------|---------|---------|-----------|--------|
 | 7 | **jimubi-bigscreen** | 大屏生成器 — 自然语言描述大屏需求，自动生成全屏数据可视化大屏 | 创建大屏、生成大屏、数据大屏、可视化大屏、监控大屏、BI大屏 | Drag Page 大屏配置 |
 | 8 | **jimubi-dashboard** | 仪表盘生成器 — 自然语言描述看板需求，自动生成数据仪表盘 | 创建仪表盘、数据看板、创建看板、统计看板、运营看板 | Drag Page 仪表盘配置 |
-| 9 | **jimureport** | 积木报表生成器 — 自然语言描述报表需求或提供截图，自动生成积木报表（支持数据报表、打印报表、分组报表、循环报表、数据填报等全类型） | 积木报表、jmreport、Excel报表、数据填报、可视化报表、打印报表、分组报表、循环报表、按照截图生成报表 | 积木报表配置 |
+| 9 | **jimureport** | 积木报表生成器 — 自然语言描述报表需求或提供截图，自动生成积木报表（全类型支持） | 积木报表、jmreport、Excel报表、数据填报、可视化报表、打印报表、按照截图生成报表 | 积木报表配置 |
 
 ---
 
@@ -182,22 +224,9 @@
 
 ---
 
-## 安装方法
-
-将需要的 Skill 目录复制到 Claude Code 的 skills 目录：
-
-```bash
-# macOS / Linux
-cp -r jeecg-codegen ~/.claude/skills/
-
-# Windows
-xcopy jeecg-codegen %USERPROFILE%\.claude\skills\jeecg-codegen\ /E /I
-```
-
-安装后需要根据实际项目修改 Skill 中的路径和数据库连接配置，具体见各 Skill 的 SKILL.md。
-
 ## 适用版本
 
 - **JeecgBoot** 3.x（Spring Boot 3 + Jakarta + MyBatis-Plus）
+- **JimuReport** 积木报表 1.7+
 - **前端** Vue3 + TypeScript + Vite + Ant Design Vue 4
 - **Claude Code** 最新版本

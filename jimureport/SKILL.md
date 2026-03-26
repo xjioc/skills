@@ -1,19 +1,30 @@
 ---
 name: jimureport
-description: Use when user asks to create/edit JiMu reports (积木报表), visual Excel-style reports, or says "创建积木报表", "积木报表", "jmreport", "做一个可视化报表", "Excel报表", "数据填报", "积木设计器", "create jimureport", "visual report". Also triggers when user describes report requirements involving Excel-like layouts, data binding with #{}, or multi-sheet reports. Supports generating reports from screenshots — when user provides a screenshot/image of a report and asks to reproduce it (e.g., "按照截图生成报表", "照着这个图片做报表", "根据截图创建报表", "generate report from screenshot", "recreate this report").
+description: Use when user asks to create/edit JiMu reports (积木报表), visual reports of any type, or says "创建积木报表", "积木报表", "jmreport", "做一个可视化报表", "Excel报表", "数据填报", "打印报表", "分组报表", "循环报表", "积木设计器", "create jimureport", "visual report", "print report". Also triggers when user describes report requirements involving data reports, print reports (tickets, certificates, prescriptions), grouped reports (horizontal/vertical grouping with subtotals), loop reports (loopBlock detail iteration), data entry/fill forms, Excel-like layouts, data binding with #{}, or multi-sheet reports. Supports generating reports from screenshots — when user provides a screenshot/image of a report and asks to reproduce it (e.g., "按照截图生成报表", "照着这个图片做报表", "根据截图创建报表", "generate report from screenshot", "recreate this report").
 ---
 
 # JeecgBoot 积木报表 (JiMu Report) AI 自动生成器
 
 将自然语言的报表需求描述转换为积木报表配置，并通过 API 在 JeecgBoot 系统中自动创建/编辑报表。
 
-> **重要：本 skill 处理「积木报表」（可视化 Excel 风格报表设计器），不涉及「Online 报表」（SQL 驱动的 cgreport）或「Online 表单」（cgform）。**
+> **重要：本 skill 处理「积木报表」（全类型报表设计器，支持数据报表、打印报表、分组报表、循环报表、数据填报等），不涉及「Online 报表」（SQL 驱动的 cgreport）或「Online 表单」（cgform）。**
+
+## 支持的报表类型
+
+| 报表类型 | 说明 | 典型场景 |
+|---------|------|---------|
+| 数据报表 | 普通列表/明细报表，支持排序、合计 | 员工花名册、销售明细表 |
+| 打印报表 | 精细打印控制（纸张/边距/方向） | 票据、证书、处方、合同 |
+| 分组报表 | 横向/纵向分组，支持分组小计 | 部门分组统计、区域汇总 |
+| 循环报表 | loopBlock 明细循环，主子表迭代 | 订单明细、多记录逐条展示 |
+| 数据填报 | 用户可直接在报表中录入和提交数据（submitForm=1） | 数据采集、信息登记 |
 
 ## 与 Online 报表的区别
 
 | 特性 | 积木报表 (jimureport) | Online 报表 (cgreport) |
 |------|----------------------|----------------------|
 | 设计方式 | 可视化 Excel 设计器 | 配置式（字段列表） |
+| 报表类型 | 数据报表、打印报表、分组报表、循环报表、数据填报 | 数据列表报表 |
 | 布局能力 | 自由布局、合并单元格、多sheet | 固定表格列 |
 | 数据绑定 | `#{数据集编码.字段名}` | 自动列映射 |
 | 填报功能 | 支持（submitForm=1） | 不支持 |
