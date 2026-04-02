@@ -33,41 +33,6 @@
 
 ---
 
-## 安装方法
-
-### 一、安装 Claude Code
-
-```bash
-# 需要 Node.js 18+
-npm install -g @anthropic-ai/claude-code
-
-# 在项目目录中启动，首次会引导登录
-cd your-project
-claude
-```
-
-> 需要订阅 Claude Pro / Max 计划，详见 [claude.ai](https://claude.ai)。更多安装方式参考 [官方文档](https://docs.anthropic.com/en/docs/claude-code)。
-
----
-
-### 二、安装 Skills 技能
-
-将需要的 Skill 目录复制到 Claude Code 的 skills 目录：
-
-```bash
-# macOS / Linux
-cp -r jeecg-codegen ~/.claude/skills/
-cp -r jimureport ~/.claude/skills/
-
-# Windows
-xcopy jeecg-codegen %USERPROFILE%\.claude\skills\jeecg-codegen\ /E /I
-xcopy jimureport %USERPROFILE%\.claude\skills\jimureport\ /E /I
-```
-
-安装后需要根据实际项目修改 Skill 中的路径和数据库连接配置，具体见各 Skill 的 SKILL.md。
-
----
-
 ## 功能清单
 
 ### JeecgBoot 技能
@@ -90,6 +55,26 @@ xcopy jimureport %USERPROFILE%\.claude\skills\jimureport\ /E /I
 | 9 | **jimureport** | 积木报表生成器 — 自然语言描述报表需求或提供截图，自动生成积木报表（全类型支持） | 积木报表、jmreport、Excel报表、数据填报、可视化报表、打印报表、按照截图生成报表 | 积木报表配置 |
 
 ---
+
+---
+
+
+## 安装 Skills 技能
+
+将需要的 Skill 目录复制到 Claude Code 的 skills 目录：
+
+```bash
+# macOS / Linux
+cp -r jeecg-codegen ~/.claude/skills/
+cp -r jimureport ~/.claude/skills/
+
+# Windows
+xcopy jeecg-codegen %USERPROFILE%\.claude\skills\jeecg-codegen\ /E /I
+xcopy jimureport %USERPROFILE%\.claude\skills\jimureport\ /E /I
+```
+
+安装后需要根据实际项目修改 Skill 中的路径和数据库连接配置，具体见各 Skill 的 SKILL.md。
+
 
 ## 技能详情
 
