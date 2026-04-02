@@ -84,6 +84,7 @@ className: `form-textarea` | icon: `icon-textarea`
   "required": false,
   "defaultValue": 0,
   "placeholder": "",
+  "precision": null,
   "controls": false,
   "min": 0,
   "minUnlimited": true,
@@ -102,6 +103,10 @@ className: `form-textarea` | icon: `icon-textarea`
   "autoWidth": 100
 }
 ```
+
+| 字段 | 说明 |
+|------|------|
+| `precision` | 小数精度，`null`/不设置表示不限制，`0` 表示整数，`1` 保留1位小数，以此类推 |
 
 className: `form-number` | icon: `icon-number`
 
@@ -807,6 +812,19 @@ className: `form-text-compose` | icon: `icon-zuhe`
 
 className: `form-auto-number` | icon: `icon-hashtag`
 
+**numberRules[] 元素结构**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `type` | string | 规则类型：`"number"` 序号 / `"create_date"` 日期 / `"text"` 固定文本 / `"field"` 字段引用 |
+| `mode` | number | number 时：`1` = 自然数（1,2,3...），`2` = 指定位数（0001,0002...） |
+| `start` | number | number 时：起始值（默认 1） |
+| `reset` | number | number 时：重置规则 `0`=不重置 / `1`=每天 / `2`=每周 / `3`=每月 / `4`=每年 |
+| `length` | number | number 时（mode=2）：指定位数（如 4 → 0001） |
+| `continue` | boolean | number 时（mode=2）：超出指定位数时是否继续递增 |
+| `dateFormat` | string | create_date 时：日期格式（如 `"yyyyMMdd"`） |
+| `value` | string | text 时：固定文本内容；field 时：引用字段 model |
+
 ## select-user — 用户组件
 
 ```json
@@ -830,7 +848,18 @@ className: `form-auto-number` | icon: `icon-hashtag`
 
 className: `form-select-user` | icon: `icon-user-circle`
 
-`defaultLogin`：true 时默认填充当前登录用户
+`defaultLogin`：true 时默认填充当前登录用户（仅 add/preview 模式生效）
+
+**keyMaps[] 元素结构**（选择用户后自动回填其他字段）：
+
+```json
+[
+  { "source": "realname", "target": "user_name_field_model" },
+  { "source": "orgCode", "target": "org_field_model" }
+]
+```
+
+`source` 为用户属性名（realname/orgCode/phone/email 等），`target` 为本表其他字段的 model。选择用户后自动将 source 属性值回填到 target 字段。
 
 ## select-depart — 部门组件
 
@@ -948,13 +977,15 @@ className: `form-ocr` | icon: `icon-ocr-a`
 
 `fieldMapping.content`：识别结果映射到的目标控件 model
 
-## summary — 汇总
+## summary — 汇总控件
+
+用于汇总子表列数据（如求和、计数等），将子表某一列的聚合结果显示在主表中。
 
 ```json
 {
-  "linkTable": "1773453175163_330101",
-  "field": "inner-record-count",
-  "summary": "",
+  "linkTable": "sub_table_design_xxx",
+  "field": "money_xxx",
+  "summary": "inner-sum",
   "filter": { "enabled": false, "rules": [], "matchType": "AND" },
   "hidden": false,
   "hiddenOnAdd": false,
@@ -965,6 +996,30 @@ className: `form-ocr` | icon: `icon-ocr-a`
 ```
 
 className: `form-summary` | icon: `icon-sigma`
+
+| 字段 | 说明 |
+|------|------|
+| `linkTable` | 关联的子表 model（sub-table-design 控件的 model） |
+| `field` | 要汇总的子表列 model（如 `money_xxx`、`formula_xxx`），或内置值 `"inner-record-count"`（子表记录数） |
+| `summary` | 汇总类型：`"inner-sum"`（求和）、`"inner-avg"`（平均）、`"inner-max"`（最大）、`"inner-min"`（最小）；当 `field` 为 `"inner-record-count"` 时留空 |
+| `filter` | 过滤条件，`enabled: true` 时仅对满足条件的子表行进行汇总 |
+
+**filter 子结构**：
+```json
+{
+  "enabled": true,
+  "matchType": "AND",
+  "rules": [
+    { "field": "子表字段model", "rule": "eq", "value": "过滤值" }
+  ]
+}
+```
+
+> **典型用法：** 主表需要显示子表某列的合计金额时，使用 `SUMMARY(name, sub_table_model, field_model, summary_type='inner-sum')`，不要用 `FORMULA`。
+
+### summary 日期变体
+
+在 `linkageComponents` 中还存在一个带 `isSummary: true` 标记的 date 控件变体，用于对日期类型字段的汇总。其 type 仍为 `date`，但通过 `isSummary` 标记与普通 date 区分。此变体在内部通过 `summaryTypeBefore` 常量 (`'__summary__'`) 进行识别。
 
 ## sub-table-design — 设计子表
 
@@ -1025,15 +1080,22 @@ className: `form-sub-table` | icon: `icon-table`
 
 className: `form-formula` | icon: `icon-gongshibianji`
 
+**表达式格式：** 使用 `$model$` 引用字段（每个字段引用以 `$` 开头和结尾）。例如：
+- SUM: `"expression": "$money_xxx$$number_xxx$"`（两个字段相加）
+- PRODUCT: `"expression": "$money_xxx$$integer_xxx$"`（两个字段相乘）
+- CUSTOM: `"expression": "$field1$ + $field2$ - $field3$"`（自定义运算）
+
+> **注意：** 子表内的 formula 控件引用同行其他列，格式相同。
+
 **数字模式 (`type: "number"`)：**
 | mode | 说明 |
 |------|------|
 | `SUM` | 求和（选择多个字段相加） |
-| `avg` | 平均值 |
-| `max` | 最大值 |
-| `min` | 最小值 |
-| `product` | 乘积 |
-| `custom` | 自定义公式，使用 `expression` 字段（如 `field1 + field2 - field3`） |
+| `AVERAGE` | 平均值 |
+| `MAX` | 最大值 |
+| `MIN` | 最小值 |
+| `PRODUCT` | 乘积 |
+| `custom` | 自定义公式，使用 `expression` 字段 |
 
 **日期模式 (`type: "date"`)：**
 | mode | 说明 |
@@ -1084,8 +1146,6 @@ className: `form-formula` | icon: `icon-gongshibianji`
   "required": false,
   "disabled": false,
   "hidden": false,
-  "isSubTable": false,
-  "isSelf": false,
   "hiddenOnAdd": false,
   "fieldNote": "",
   "autoWidth": 100
@@ -1093,6 +1153,15 @@ className: `form-formula` | icon: `icon-gongshibianji`
 ```
 
 className: `form-link-record` | icon: **`icon-link`**（注意：不是 `icon-link-record`！）
+
+**控件顶层属性**（与 `type`/`key`/`model` 同级，不在 options 内）：
+
+| 属性 | 说明 |
+|------|------|
+| `isSubTable` | 是否为子表模式（一对多），设为 `true` 时不需要 card 容器 |
+| `isSelf` | 是否为自关联（关联自身表单） |
+
+**options 字段说明：**
 
 | 字段 | 说明 |
 |------|------|
@@ -1103,7 +1172,6 @@ className: `form-link-record` | icon: **`icon-link`**（注意：不是 `icon-li
 | `showFields` | 要在关联视图中展示的来源表字段 model 列表 |
 | `twoWayModel` | 双向关联的反向字段 model |
 | `dataSelectAuth` | `"all"` 或 `"read"`（数据权限范围） |
-| `isSubTable` | 是否为子表模式（一对多） |
 
 > **showMode="many" 或 showType="table" 时不需要 card 容器**
 
@@ -1159,47 +1227,73 @@ className: `form-link-field` | icon: **`icon-field`**（注意：不是 `icon-li
 
 ```json
 {
-  "width": "100%",
-  "height": "200px",
   "disabled": false,
+  "required": false,
   "hidden": false,
   "hiddenOnAdd": false,
-  "required": false,
   "fieldNote": "",
   "autoWidth": 100
 }
 ```
 
-className: `form-hand-sign` | icon: `icon-qianming`
+className: `form-hand-sign` | icon: `icon-signature`
+
+> `desform_utils.py` 生成时会额外传入 `"width": "100%"` 和 `"height": "200px"` 优化显示效果，但源码默认 options 不含这两个字段。
+
+## oa-approval-comments — OA审批意见
+
+```json
+{
+  "width": "100%",
+  "required": false,
+  "disabled": false,
+  "placeholder": "",
+  "hidden": false,
+  "hiddenOnAdd": false,
+  "fieldNote": "",
+  "autoWidth": 100
+}
+```
+
+className: `form-oa-approval-comments` | icon: `icon-input`
+
+OA 流程审批意见控件，用于 BPM 审批场景。
 
 ## table-dict — 表字典
 
 ```json
 {
-  "dictTable": "",
-  "dictText": "",
-  "dictCode": "",
-  "placeholder": "",
-  "width": "",
+  "width": "100%",
+  "defaultValue": "",
+  "placeholder": "点击选择表字典",
+  "showIcon": true,
+  "iconName": "icon-popup",
   "disabled": false,
-  "clearable": true,
   "multiple": false,
+  "clearable": true,
+  "style": "select",
+  "dictTable": "",
+  "dictCode": "",
+  "dictText": "",
   "hidden": false,
-  "hiddenOnAdd": false,
   "required": false,
+  "filterable": true,
+  "queryScope": "cgreport",
+  "hiddenOnAdd": false,
   "fieldNote": "",
-  "autoWidth": 100,
-  "matchType": "like",
-  "isPopup": false
+  "autoWidth": 100
 }
 ```
 
-className: `form-table-dict` | icon: `icon-table-dict`
+className: `form-dict` | icon: `icon-dict`
 
 | 字段 | 说明 |
 |------|------|
+| `style` | 展示方式：`"select"`（下拉模糊搜索）或 `"popup"`（弹窗选择） |
 | `dictTable` | 表名 |
-| `dictText` | 显示字段 |
-| `dictCode` | 存储字段 |
-| `matchType` | `"like"`（模糊）或 `"eq"`（精确） |
-| `isPopup` | 是否 popup 模式（弹窗选择） |
+| `dictCode` | 存储字段（value） |
+| `dictText` | 显示字段（label） |
+| `filterable` | 是否可搜索（仅 style=select 时有效） |
+| `queryScope` | 查询作用域：`"cgreport"`（Online报表，默认）或 `"database"`（数据库表） |
+| `showIcon` | 是否显示图标 |
+| `iconName` | 图标名（默认 `"icon-popup"`） |

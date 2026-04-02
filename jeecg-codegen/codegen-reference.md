@@ -492,13 +492,15 @@ export const saveOrUpdate = (params, isUpdate) => {
 };
 ```
 
-**vue3Native 风格差异：** `saveOrUpdate` 使用 `{ isTransformResponse: false }` 选项：
+**vue3Native 单表风格差异：** `saveOrUpdate` 使用 `{ isTransformResponse: false }` 选项（Modal 中手动判断 `res.success`）：
 ```typescript
 export const saveOrUpdate = (params, isUpdate) => {
   let url = isUpdate ? Api.edit : Api.save;
   return defHttp.post({ url: url, params }, { isTransformResponse: false });
 };
 ```
+
+**vue3Native 一对多风格差异：** `saveOrUpdate` **不用** `isTransformResponse: false`（Form 中直接 `await saveOrUpdate(values, isUpdate)` 即可）。子表查询导出为**函数**，需额外导出 `queryDataById`。详见 **C13 节**。
 
 ---
 
@@ -1619,24 +1621,29 @@ INSERT INTO sys_role_permission (id, role_id, permission_id, data_rule_ids, oper
 
 ## B. 树表模式差异
 
-树表在单表基础上有以下差异：
+树表在单表基础上有以下差异，相比单表多了树结构管理（父子节点关系、懒加载、展开状态维护）。
 
 ### B1. Entity 额外字段
 
+在 Entity 类中追加以下树结构字段（放在系统字段之前）：
+
 ```java
-    /**父级节点*/
-    @Excel(name = "父级节点", width = 15)
-    @Schema(description = "父级节点")
+    // ==================== 树结构字段 ====================
+
+    /**父ID*/
+    @Schema(description = "父ID")
     private String pid;
+
     /**是否有子节点*/
     @Excel(name = "是否有子节点", width = 15, dicCode = "yn")
     @Dict(dicCode = "yn")
-    @TableField(value = "has_child")
     @Schema(description = "是否有子节点")
     private String hasChild;
 ```
 
 ### B2. Mapper 额外方法
+
+Mapper 接口中增加树节点状态更新和子节点查询方法：
 
 ```java
 public interface {{entityName}}Mapper extends BaseMapper<{{entityName}}> {
@@ -1644,31 +1651,61 @@ public interface {{entityName}}Mapper extends BaseMapper<{{entityName}}> {
     /**
      * 编辑节点状态
      */
-    @Update("update {{tableName}} set has_child=#{hasChild} where id = #{pid}")
     void updateTreeNodeStatus(@Param("pid") String pid, @Param("hasChild") String hasChild);
 
     /**
-     * 根据pid查询子节点
+     * 根据pid查询子节点（返回SelectTreeModel用于树选择组件）
      */
-    @Select("select * from {{tableName}} where pid = #{parentId} ${installCondition}")
-    List<{{entityName}}> queryListByPid(@Param("parentId") String parentId, @Param("installCondition") String installCondition);
+    List<SelectTreeModel> queryListByPid(@Param("parentId") String parentId, @Param("installCondition") String installCondition);
 }
+```
+
+对应 Mapper XML（注意 `{{displayField}}` 为树节点显示字段，如 name）：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jeecg.modules.{{entityPackage}}.mapper.{{entityName}}Mapper">
+
+    <update id="updateTreeNodeStatus">
+        update {{tableName}} set has_child = #{hasChild} where id = #{pid}
+    </update>
+
+    <select id="queryListByPid" parameterType="string" resultType="org.jeecg.common.system.vo.SelectTreeModel">
+        select id as "key", {{displayField}} as "title", pid as "parentId",
+               (case when has_child = '1' then 0 else 1 end) as "isLeaf"
+        from {{tableName}} where pid = #{parentId}
+    </select>
+
+</mapper>
 ```
 
 ### B3. Service 接口额外方法
 
 ```java
+import org.jeecg.common.system.vo.SelectTreeModel;
+
 public interface I{{entityName}}Service extends IService<{{entityName}}> {
+
+    /**根节点父ID的值*/
     public static final String ROOT_PID_VALUE = "0";
+    /**树节点有子节点状态值*/
     public static final String HASCHILD = "1";
+    /**树节点无子节点状态值*/
     public static final String NOCHILD = "0";
 
+    /**新增节点*/
     void add{{entityName}}({{entityName}} entity);
+    /**修改节点*/
     void update{{entityName}}({{entityName}} entity);
+    /**删除节点（含递归删除子节点）*/
     void delete{{entityName}}(String id) throws JeecgBootException;
+    /**查询所有数据，无分页（搜索时递归找到根节点）*/
     List<{{entityName}}> queryTreeListNoPage(QueryWrapper<{{entityName}}> queryWrapper);
-    List<{{entityName}}> queryListByCode(String code);
-    List<{{entityName}}> queryListByPid(String pid);
+    /**根据父级编码加载分类字典的数据*/
+    List<SelectTreeModel> queryListByCode(String parentCode);
+    /**根据pid查询子节点集合*/
+    List<SelectTreeModel> queryListByPid(String pid);
 }
 ```
 
@@ -1680,13 +1717,15 @@ public class {{entityName}}ServiceImpl extends ServiceImpl<{{entityName}}Mapper,
 
     @Override
     public void add{{entityName}}({{entityName}} entity) {
+        // 新增时设置hasChild为0
+        entity.setHasChild(I{{entityName}}Service.NOCHILD);
         if (oConvertUtils.isEmpty(entity.getPid())) {
             entity.setPid(I{{entityName}}Service.ROOT_PID_VALUE);
         } else {
             // 如果当前节点父ID不为空 则设置父节点的hasChild为1
             {{entityName}} parent = baseMapper.selectById(entity.getPid());
-            if (parent != null && !I{{entityName}}Service.HASCHILD.equals(parent.getHasChild())) {
-                parent.setHasChild(I{{entityName}}Service.HASCHILD);
+            if (parent != null && !"1".equals(parent.getHasChild())) {
+                parent.setHasChild("1");
                 baseMapper.updateById(parent);
             }
         }
@@ -1695,17 +1734,21 @@ public class {{entityName}}ServiceImpl extends ServiceImpl<{{entityName}}Mapper,
 
     @Override
     public void update{{entityName}}({{entityName}} entity) {
-        {{entityName}} old = baseMapper.selectById(entity.getId());
-        if (old != null && !old.getPid().equals(entity.getPid())) {
-            // 更新新父节点状态
-            updateOldParentNode(entity.getPid());
-            // 更新旧父节点状态（检查是否还有子节点）
-            int childCount = baseMapper.selectCount(new QueryWrapper<{{entityName}}>().eq("pid", old.getPid())).intValue();
-            if (childCount == 1) {
-                // 当前是唯一子节点，更新旧父为无子节点
-                if (!I{{entityName}}Service.ROOT_PID_VALUE.equals(old.getPid())) {
-                    baseMapper.updateTreeNodeStatus(old.getPid(), I{{entityName}}Service.NOCHILD);
-                }
+        {{entityName}} old = this.getById(entity.getId());
+        if (old == null) {
+            throw new JeecgBootException("未找到对应实体");
+        }
+        String old_pid = old.getPid();
+        String new_pid = entity.getPid();
+        if (!old_pid.equals(new_pid)) {
+            // 父节点变更：更新旧父节点状态
+            updateOldParentNode(old_pid);
+            if (oConvertUtils.isEmpty(new_pid)) {
+                entity.setPid(I{{entityName}}Service.ROOT_PID_VALUE);
+            }
+            // 更新新父节点为有子节点
+            if (!I{{entityName}}Service.ROOT_PID_VALUE.equals(entity.getPid())) {
+                baseMapper.updateTreeNodeStatus(entity.getPid(), I{{entityName}}Service.HASCHILD);
             }
         }
         baseMapper.updateById(entity);
@@ -1714,111 +1757,816 @@ public class {{entityName}}ServiceImpl extends ServiceImpl<{{entityName}}Mapper,
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete{{entityName}}(String id) throws JeecgBootException {
-        // 查询选中节点下所有子节点一起删除
-        id = TreeUtils.getTreeChildIds(id, (pid) -> baseMapper.queryListByPid(pid, null));
+        // 查询选中节点下所有子节点一并删除
+        id = this.queryTreeChildIds(id);
         if (id.indexOf(",") > 0) {
-            baseMapper.deleteBatchIds(Arrays.asList(id.split(",")));
+            StringBuffer sb = new StringBuffer();
+            String[] idArr = id.split(",");
+            for (String idVal : idArr) {
+                if (idVal != null) {
+                    {{entityName}} item = this.getById(idVal);
+                    String pidVal = item.getPid();
+                    // 查询此节点上一级是否还有其他子节点
+                    List<{{entityName}}> dataList = baseMapper.selectList(new QueryWrapper<{{entityName}}>().eq("pid", pidVal).notIn("id", Arrays.asList(idArr)));
+                    boolean flag = (dataList == null || dataList.size() == 0) && !Arrays.asList(idArr).contains(pidVal) && !sb.toString().contains(pidVal);
+                    if (flag) {
+                        sb.append(pidVal).append(",");
+                    }
+                }
+            }
+            // 批量删除节点
+            baseMapper.deleteBatchIds(Arrays.asList(idArr));
+            // 修改已无子节点的标识
+            String[] pidArr = sb.toString().split(",");
+            for (String pid : pidArr) {
+                this.updateOldParentNode(pid);
+            }
         } else {
+            {{entityName}} item = this.getById(id);
+            if (item == null) {
+                throw new JeecgBootException("未找到对应实体");
+            }
+            updateOldParentNode(item.getPid());
             baseMapper.deleteById(id);
-        }
-        // 更新父节点状态
-        {{entityName}} entity = baseMapper.selectById(id.split(",")[0]);
-        if (entity != null) {
-            updateOldParentNode(entity.getPid());
         }
     }
 
-    private void updateOldParentNode(String pid) {
-        if (!I{{entityName}}Service.ROOT_PID_VALUE.equals(pid)) {
-            {{entityName}} parent = baseMapper.selectById(pid);
-            if (parent != null) {
-                parent.setHasChild(I{{entityName}}Service.HASCHILD);
-                baseMapper.updateById(parent);
+    @Override
+    public List<{{entityName}}> queryTreeListNoPage(QueryWrapper<{{entityName}}> queryWrapper) {
+        List<{{entityName}}> dataList = baseMapper.selectList(queryWrapper);
+        List<{{entityName}}> mapList = new ArrayList<>();
+        for ({{entityName}} data : dataList) {
+            String pidVal = data.getPid();
+            // 递归查询子节点的根节点
+            if (pidVal != null && !I{{entityName}}Service.ROOT_PID_VALUE.equals(pidVal)) {
+                {{entityName}} rootVal = this.getTreeRoot(pidVal);
+                if (rootVal != null && !mapList.contains(rootVal)) {
+                    mapList.add(rootVal);
+                }
+            } else {
+                if (!mapList.contains(data)) {
+                    mapList.add(data);
+                }
             }
         }
+        return mapList;
+    }
+
+    @Override
+    public List<SelectTreeModel> queryListByCode(String parentCode) {
+        String pid = ROOT_PID_VALUE;
+        if (oConvertUtils.isNotEmpty(parentCode)) {
+            LambdaQueryWrapper<{{entityName}}> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq({{entityName}}::getPid, parentCode);
+            List<{{entityName}}> list = baseMapper.selectList(queryWrapper);
+            if (list == null || list.size() == 0) {
+                throw new JeecgBootException("该编码【" + parentCode + "】不存在，请核实!");
+            }
+            if (list.size() > 1) {
+                throw new JeecgBootException("该编码【" + parentCode + "】存在多个，请核实!");
+            }
+            pid = list.get(0).getId();
+        }
+        return baseMapper.queryListByPid(pid, null);
+    }
+
+    @Override
+    public List<SelectTreeModel> queryListByPid(String pid) {
+        if (oConvertUtils.isEmpty(pid)) {
+            pid = ROOT_PID_VALUE;
+        }
+        return baseMapper.queryListByPid(pid, null);
+    }
+
+    /**
+     * 根据所传pid查询旧的父级节点的子节点并修改相应状态值
+     */
+    private void updateOldParentNode(String pid) {
+        if (!I{{entityName}}Service.ROOT_PID_VALUE.equals(pid)) {
+            Long count = baseMapper.selectCount(new QueryWrapper<{{entityName}}>().eq("pid", pid));
+            if (count == null || count <= 1) {
+                baseMapper.updateTreeNodeStatus(pid, I{{entityName}}Service.NOCHILD);
+            }
+        }
+    }
+
+    /**
+     * 递归查询节点的根节点
+     */
+    private {{entityName}} getTreeRoot(String pidVal) {
+        {{entityName}} data = baseMapper.selectById(pidVal);
+        if (data != null && !I{{entityName}}Service.ROOT_PID_VALUE.equals(data.getPid()) && !data.getPid().equals(data.getId())) {
+            return this.getTreeRoot(data.getPid());
+        } else {
+            return data;
+        }
+    }
+
+    /**
+     * 根据id查询所有子节点id
+     */
+    private String queryTreeChildIds(String ids) {
+        String[] idArr = ids.split(",");
+        StringBuffer sb = new StringBuffer();
+        for (String pidVal : idArr) {
+            if (pidVal != null) {
+                if (!sb.toString().contains(pidVal)) {
+                    if (sb.toString().length() > 0) {
+                        sb.append(",");
+                    }
+                    sb.append(pidVal);
+                    this.getTreeChildIds(pidVal, sb);
+                }
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 递归查询所有子节点
+     */
+    private StringBuffer getTreeChildIds(String pidVal, StringBuffer sb) {
+        List<{{entityName}}> dataList = baseMapper.selectList(new QueryWrapper<{{entityName}}>().eq("pid", pidVal));
+        if (dataList != null && dataList.size() > 0) {
+            for ({{entityName}} tree : dataList) {
+                if (!sb.toString().contains(tree.getId())) {
+                    sb.append(",").append(tree.getId());
+                }
+                this.getTreeChildIds(tree.getId(), sb);
+            }
+        }
+        return sb;
     }
 }
 ```
 
 ### B5. Controller 额外端点
 
+树表 Controller 不使用单表的 `list` 端点，替换为以下端点：
+
 ```java
     /**
-     * 查询根节点数据
+     * 分页列表查询（树根节点）
+     * - 有搜索条件时(hasQuery=true)：调用 queryTreeListNoPage 搜索并递归找到根节点
+     * - 无搜索条件时：只查 pid=0 的根节点
      */
+    @Operation(summary = "{{description}}-分页列表查询")
     @GetMapping(value = "/rootList")
-    public Result<IPage<{{entityName}}>> rootList({{entityName}} entity,
-                                                   @RequestParam(name = "pageNo", defaultValue = "1") Integer pageNo,
-                                                   @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize,
-                                                   HttpServletRequest req) {
-        // 判断有没有查询条件，如果有则按条件查全部（不分树层级）
+    public Result<IPage<{{entityName}}>> queryPageList({{entityName}} entity,
+                                                        @RequestParam(name = "pageNo", defaultValue = "1") Integer pageNo,
+                                                        @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize,
+                                                        HttpServletRequest req) {
         String hasQuery = req.getParameter("hasQuery");
-        if (oConvertUtils.isNotEmpty(hasQuery) && "true".equals(hasQuery)) {
+        if (hasQuery != null && "true".equals(hasQuery)) {
             QueryWrapper<{{entityName}}> queryWrapper = QueryGenerator.initQueryWrapper(entity, req.getParameterMap());
+            List<{{entityName}}> list = {{entityName_uncap}}Service.queryTreeListNoPage(queryWrapper);
+            IPage<{{entityName}}> pageList = new Page<>(1, 10, list.size());
+            pageList.setRecords(list);
+            return Result.OK(pageList);
+        } else {
+            String parentId = entity.getPid();
+            if (oConvertUtils.isEmpty(parentId)) {
+                parentId = "0";
+            }
+            entity.setPid(null);
+            QueryWrapper<{{entityName}}> queryWrapper = QueryGenerator.initQueryWrapper(entity, req.getParameterMap());
+            // 使用 eq 防止模糊查询
+            queryWrapper.eq("pid", parentId);
             Page<{{entityName}}> page = new Page<>(pageNo, pageSize);
             IPage<{{entityName}}> pageList = {{entityName_uncap}}Service.page(page, queryWrapper);
             return Result.OK(pageList);
         }
-        // 无查询条件则查根节点
-        QueryWrapper<{{entityName}}> queryWrapper = QueryGenerator.initQueryWrapper(entity, req.getParameterMap());
-        queryWrapper.eq("pid", I{{entityName}}Service.ROOT_PID_VALUE);
-        Page<{{entityName}}> page = new Page<>(pageNo, pageSize);
-        IPage<{{entityName}}> pageList = {{entityName_uncap}}Service.page(page, queryWrapper);
-        return Result.OK(pageList);
     }
 
     /**
-     * 查询子节点
+     * 获取子数据（展开树节点时调用）
      */
+    @Operation(summary = "{{description}}-获取子数据")
     @GetMapping(value = "/childList")
-    public Result<List<{{entityName}}>> childList({{entityName}} entity,
-                                                   HttpServletRequest req) {
+    public Result<IPage<{{entityName}}>> queryChildList({{entityName}} entity, HttpServletRequest req) {
         QueryWrapper<{{entityName}}> queryWrapper = QueryGenerator.initQueryWrapper(entity, req.getParameterMap());
         List<{{entityName}}> list = {{entityName_uncap}}Service.list(queryWrapper);
-        return Result.OK(list);
-    }
-
-    /**
-     * 批量查询子节点
-     */
-    @GetMapping(value = "/getChildListBatch")
-    public Result getChildListBatch(@RequestParam("parentIds") String parentIds) {
-        List<{{entityName}}> list = {{entityName_uncap}}Service.queryListByPid(parentIds);
         IPage<{{entityName}}> pageList = new Page<>(1, 10, list.size());
         pageList.setRecords(list);
         return Result.OK(pageList);
     }
+
+    /**
+     * 批量查询子节点（已展开节点刷新时批量加载子数据）
+     */
+    @Operation(summary = "{{description}}-批量获取子数据")
+    @GetMapping("/getChildListBatch")
+    public Result getChildListBatch(@RequestParam("parentIds") String parentIds) {
+        try {
+            QueryWrapper<{{entityName}}> queryWrapper = new QueryWrapper<>();
+            List<String> parentIdList = Arrays.asList(parentIds.split(","));
+            queryWrapper.in("pid", parentIdList);
+            List<{{entityName}}> list = {{entityName_uncap}}Service.list(queryWrapper);
+            IPage<{{entityName}}> pageList = new Page<>(1, 10, list.size());
+            pageList.setRecords(list);
+            return Result.OK(pageList);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            return Result.error("批量查询子节点失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 【vue3专用】加载节点的子数据（用于JTreeSelect父节点选择组件）
+     */
+    @RequestMapping(value = "/loadTreeChildren", method = RequestMethod.GET)
+    public Result<List<SelectTreeModel>> loadTreeChildren(@RequestParam(name = "pid") String pid) {
+        Result<List<SelectTreeModel>> result = new Result<>();
+        try {
+            List<SelectTreeModel> ls = {{entityName_uncap}}Service.queryListByPid(pid);
+            result.setResult(ls);
+            result.setSuccess(true);
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setMessage(e.getMessage());
+            result.setSuccess(false);
+        }
+        return result;
+    }
+
+    /**
+     * 【vue3专用】加载一级节点/如果是同步则所有数据（用于JTreeSelect父节点选择组件）
+     */
+    @RequestMapping(value = "/loadTreeRoot", method = RequestMethod.GET)
+    public Result<List<SelectTreeModel>> loadTreeRoot(@RequestParam(name = "async") Boolean async, @RequestParam(name = "pcode") String pcode) {
+        Result<List<SelectTreeModel>> result = new Result<>();
+        try {
+            List<SelectTreeModel> ls = {{entityName_uncap}}Service.queryListByCode(pcode);
+            if (!async) {
+                loadAllChildren(ls);
+            }
+            result.setResult(ls);
+            result.setSuccess(true);
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setMessage(e.getMessage());
+            result.setSuccess(false);
+        }
+        return result;
+    }
+
+    /**
+     * 递归求子节点 同步加载用到
+     */
+    private void loadAllChildren(List<SelectTreeModel> ls) {
+        for (SelectTreeModel tsm : ls) {
+            List<SelectTreeModel> temp = {{entityName_uncap}}Service.queryListByPid(tsm.getKey());
+            if (temp != null && temp.size() > 0) {
+                tsm.setChildren(temp);
+                loadAllChildren(temp);
+            }
+        }
+    }
+
+    // 注意：树表批量删除应逐条调用 delete{{entityName}} 以正确处理树结构
+    @DeleteMapping(value = "/deleteBatch")
+    public Result<String> deleteBatch(@RequestParam(name = "ids", required = true) String ids) {
+        for (String id : ids.split(",")) {
+            {{entityName_uncap}}Service.delete{{entityName}}(id);
+        }
+        return Result.OK("批量删除成功!");
+    }
 ```
 
-### B6. 树表前端 API 额外方法
+**注意：** 如果实体中有多选/checkbox类字段，需在 `rootList` 方法中添加自定义查询规则：
+```java
+    Map<String, QueryRuleEnum> customeRuleMap = new HashMap<>();
+    customeRuleMap.put("多选字段名", QueryRuleEnum.LIKE_WITH_OR);
+    // 然后传给 QueryGenerator.initQueryWrapper(entity, req.getParameterMap(), customeRuleMap);
+```
+
+### B6. 树表前端 API ({{entityName}}.api.ts)
+
+树表 API 完整模板（注意区别于单表的几个关键点）：
 
 ```typescript
+import { defHttp } from '/@/utils/http/axios';
+import { useMessage } from '/@/hooks/web/useMessage';
+
+const { createConfirm } = useMessage();
+
 enum Api {
-  list = '/{{entityPackagePath}}/{{entityName_uncap}}/rootList',  // 注意是 rootList
-  // ... 其他同单表
-  loadTreeData = '/{{entityPackagePath}}/{{entityName_uncap}}/rootList',
-  getChildList = '/{{entityPackagePath}}/{{entityName_uncap}}/childList',
+  rootList = '/{{entityPackagePath}}/{{entityName_uncap}}/rootList',
+  childList = '/{{entityPackagePath}}/{{entityName_uncap}}/childList',
   getChildListBatch = '/{{entityPackagePath}}/{{entityName_uncap}}/getChildListBatch',
+  save = '/{{entityPackagePath}}/{{entityName_uncap}}/add',
+  edit = '/{{entityPackagePath}}/{{entityName_uncap}}/edit',
+  deleteOne = '/{{entityPackagePath}}/{{entityName_uncap}}/delete',
+  deleteBatch = '/{{entityPackagePath}}/{{entityName_uncap}}/deleteBatch',
+  importExcel = '/{{entityPackagePath}}/{{entityName_uncap}}/importExcel',
+  exportXls = '/{{entityPackagePath}}/{{entityName_uncap}}/exportXls',
+  loadTreeData = '/{{entityPackagePath}}/{{entityName_uncap}}/loadTreeRoot',
 }
 
-// 额外导出
-export const loadTreeData = (params) => defHttp.get({ url: Api.loadTreeData, params });
-export const getChildList = (params) => defHttp.get({ url: Api.getChildList, params });
+export const getExportUrl = Api.exportXls;
+export const getImportUrl = Api.importExcel;
+export const list = (params) => defHttp.get({ url: Api.rootList, params });
+export const getChildList = (params) => defHttp.get({ url: Api.childList, params });
+// 关键：isTransformResponse: false 返回完整 Result 对象，用于 loadDataByExpandedRows
 export const getChildListBatch = (params) => defHttp.get({ url: Api.getChildListBatch, params }, { isTransformResponse: false });
+export const deleteOne = (params, handleSuccess) => {
+  return defHttp.delete({ url: Api.deleteOne, params }, { joinParamsToUrl: true }).then(() => {
+    handleSuccess();
+  });
+};
+export const batchDelete = (params, handleSuccess) => {
+  createConfirm({
+    iconType: 'warning',
+    title: '确认删除',
+    content: '是否删除选中数据',
+    okText: '确认',
+    cancelText: '取消',
+    onOk: () => {
+      return defHttp.delete({ url: Api.deleteBatch, data: params }, { joinParamsToUrl: true }).then(() => {
+        handleSuccess();
+      });
+    },
+  });
+};
+export const saveOrUpdate = (params, isUpdate) => {
+  let url = isUpdate ? Api.edit : Api.save;
+  return defHttp.post({ url: url, params });
+};
+export const loadTreeData = (params) => defHttp.get({ url: Api.loadTreeData, params });
 ```
 
-### B7. 树表前端 List 页面差异
+### B7. 树表前端 data.ts 差异
 
-vue3 封装风格中 `useListPage` 的 `tableProps` 增加：
+`formSchema` 中 `pid` 字段必须使用 `JTreeSelect` 组件（而非隐藏的 Input），配置如下：
+
 ```typescript
-tableProps: {
-  // ... 同单表
-  isTreeTable: true,  // 标记为树表
-  // list API 改为 rootList
-}
+// formSchema 中的 pid 字段
+{
+  label: '父级节点',
+  field: 'pid',
+  component: 'JTreeSelect',
+  componentProps: {
+    dict: '{{tableName}},{{displayField}},id',  // 表名,显示字段,值字段
+    pidField: 'pid',
+    pidValue: '0',
+    hasChildField: 'has_child',
+    placeholder: '请选择父级节点',
+  },
+},
 ```
 
-模板中增加展开/加载子节点逻辑（参考 `src/views/system/category/index.vue`）。
+columns 中 `title` 字段（树表主显示列）建议 `align: 'left'`，便于展示层级缩进。
+
+### B8. 树表前端 List 页面 ({{entityName}}List.vue) — 完整模板
+
+树表 List 页面与单表有**根本性差异**，需要完整的树节点展开/收缩/懒加载/刷新逻辑：
+
+```vue
+<template>
+  <div>
+    <BasicTable @register="registerTable" :rowSelection="rowSelection" :expandedRowKeys="expandedRowKeys" @expand="handleExpand" @fetch-success="onFetchSuccess">
+      <template #tableTitle>
+        <a-button type="primary" v-auth="'{{entityPackage}}:{{tableName}}:add'" @click="handleCreate" preIcon="ant-design:plus-outlined"> 新增</a-button>
+        <a-button type="primary" v-auth="'{{entityPackage}}:{{tableName}}:exportXls'" preIcon="ant-design:export-outlined" @click="onExportXls"> 导出</a-button>
+        <j-upload-button type="primary" v-auth="'{{entityPackage}}:{{tableName}}:importExcel'" preIcon="ant-design:import-outlined" @click="onImportXls">导入</j-upload-button>
+        <a-dropdown v-if="selectedRowKeys.length > 0">
+          <template #overlay>
+            <a-menu>
+              <a-menu-item key="1" @click="batchHandleDelete">
+                <Icon icon="ant-design:delete-outlined" />
+                删除
+              </a-menu-item>
+            </a-menu>
+          </template>
+          <a-button v-auth="'{{entityPackage}}:{{tableName}}:deleteBatch'">批量操作
+            <Icon icon="mdi:chevron-down" />
+          </a-button>
+        </a-dropdown>
+        <!-- 高级查询 -->
+        <super-query :config="superQueryConfig" @search="handleSuperQuery" />
+      </template>
+      <template #action="{ record }">
+        <TableAction :actions="getTableAction(record)" :dropDownActions="getDropDownAction(record)" />
+      </template>
+      <template v-slot:bodyCell="{ column, record, index, text }">
+        {{!-- 根据业务需要添加自定义列渲染 --}}
+      </template>
+    </BasicTable>
+    <{{entityName}}Modal @register="registerModal" @success="handleSuccess" />
+  </div>
+</template>
+
+<script lang="ts" name="{{entityPackage}}-{{entityName_uncap}}" setup>
+  import { ref, reactive, unref } from 'vue';
+  import { BasicTable, TableAction } from '/@/components/Table';
+  import { useModal } from '/@/components/Modal';
+  import { useListPage } from '/@/hooks/system/useListPage';
+  import {{entityName}}Modal from './components/{{entityName}}Modal.vue';
+  import { columns, searchFormSchema, superQuerySchema } from './{{entityName}}.data';
+  import { list, getChildList, getChildListBatch, deleteOne, batchDelete, getExportUrl, getImportUrl } from './{{entityName}}.api';
+  import { getDateByPicker } from '/@/utils';
+
+  const queryParam = reactive<any>({});
+  const expandedRowKeys = ref<Array<string | number>>([]);
+  const [registerModal, { openModal }] = useModal();
+  // 日期个性化选择（如有季度/年/月/周字段）
+  const fieldPickers = reactive({
+    // quarterVal: 'quarter', yearVal: 'year', monthVal: 'month', weekVal: 'week',
+  });
+
+  const { prefixCls, tableContext, onExportXls, onImportXls } = useListPage({
+    tableProps: {
+      title: '{{description}}',
+      api: list,
+      columns,
+      canResize: true,
+      isTreeTable: true,
+      formConfig: {
+        schemas: searchFormSchema,
+        autoSubmitOnEnter: true,
+        showAdvancedButton: true,
+        fieldMapToNumber: [],
+        fieldMapToTime: [],
+      },
+      actionColumn: {
+        width: 240,
+        fixed: 'right',
+      },
+      beforeFetch: (params) => {
+        if (params && fieldPickers) {
+          for (let key in fieldPickers) {
+            if (params[key]) {
+              params[key] = getDateByPicker(params[key], fieldPickers[key]);
+            }
+          }
+        }
+        params['hasQuery'] = 'true';
+        return Object.assign(params, queryParam);
+      },
+    },
+    exportConfig: {
+      name: '{{description}}',
+      url: getExportUrl,
+      params: queryParam,
+    },
+    importConfig: {
+      url: getImportUrl,
+      success: importSuccess,
+    },
+  });
+
+  const [registerTable, { reload, updateTableDataRecord, findTableDataRecord, getDataSource }, { rowSelection, selectedRowKeys }] = tableContext;
+  const superQueryConfig = reactive(superQuerySchema);
+
+  /**
+   * 接口请求成功后回调：为有子节点的数据添加loading占位
+   */
+  function onFetchSuccess(result) {
+    getDataByResult(result.items) && loadDataByExpandedRows();
+  }
+
+  /**
+   * 根据已展开的行查询数据（用于保存后刷新时异步加载子级的数据）
+   */
+  async function loadDataByExpandedRows() {
+    if (unref(expandedRowKeys).length > 0) {
+      const res = await getChildListBatch({ parentIds: unref(expandedRowKeys).join(',') });
+      if (res.success && res.result.records.length > 0) {
+        let records = res.result.records;
+        const listMap = new Map();
+        for (let item of records) {
+          let pid = item['pid'];
+          if (unref(expandedRowKeys).includes(pid)) {
+            let mapList = listMap.get(pid);
+            if (mapList == null) {
+              mapList = [];
+            }
+            mapList.push(item);
+            listMap.set(pid, mapList);
+          }
+        }
+        let childrenMap = listMap;
+        let fn = (list) => {
+          if (list) {
+            list.forEach((data) => {
+              if (unref(expandedRowKeys).includes(data.id)) {
+                data.children = getDataByResult(childrenMap.get(data.id));
+                fn(data.children);
+              }
+            });
+          }
+        };
+        fn(getDataSource());
+      }
+    }
+  }
+
+  /**
+   * 处理数据集：为 hasChild='1' 的节点添加 loading 占位子节点
+   */
+  function getDataByResult(result) {
+    if (result && result.length > 0) {
+      return result.map((item) => {
+        if (item['hasChild'] == '1') {
+          let loadChild = { id: item.id + '_loadChild', name: 'loading...', isLoading: true };
+          item.children = [loadChild];
+        }
+        return item;
+      });
+    }
+  }
+
+  /**
+   * 树节点展开/合并：展开时懒加载子节点数据
+   */
+  async function handleExpand(expanded, record) {
+    if (expanded) {
+      expandedRowKeys.value.push(record.id);
+      if (record.children.length > 0 && !!record.children[0].isLoading) {
+        let result = await getChildList({ pid: record.id });
+        result = result.records ? result.records : result;
+        if (result && result.length > 0) {
+          record.children = getDataByResult(result);
+        } else {
+          record.children = null;
+          record.hasChild = '0';
+        }
+      }
+    } else {
+      let keyIndex = expandedRowKeys.value.indexOf(record.id);
+      if (keyIndex >= 0) {
+        expandedRowKeys.value.splice(keyIndex, 1);
+      }
+    }
+  }
+
+  /**
+   * 操作表格后处理树节点展开
+   */
+  async function expandTreeNode(key) {
+    let record = findTableDataRecord(key);
+    expandedRowKeys.value.push(key);
+    let result = await getChildList({ pid: key });
+    if (result && result.length > 0) {
+      record.children = getDataByResult(result);
+    } else {
+      record.children = null;
+      record.hasChild = '0';
+    }
+    updateTableDataRecord(key, record);
+  }
+
+  function handleSuperQuery(params) {
+    Object.keys(params).map((k) => {
+      queryParam[k] = params[k];
+    });
+    reload();
+  }
+
+  function handleCreate() {
+    openModal(true, { isUpdate: false });
+  }
+
+  function handleAddChild(record) {
+    openModal(true, { record: { pid: record.id }, isUpdate: false });
+  }
+
+  function handleEdit(record) {
+    openModal(true, { record, isUpdate: true });
+  }
+
+  function handleDetail(record) {
+    openModal(true, { record, isUpdate: true, hideFooter: true });
+  }
+
+  async function handleDelete(record) {
+    await deleteOne({ id: record.id }, importSuccess);
+  }
+
+  async function batchHandleDelete() {
+    const ids = selectedRowKeys.value.filter((item) => !item.includes('loadChild'));
+    await batchDelete({ ids: ids }, importSuccess);
+  }
+
+  function importSuccess() {
+    (selectedRowKeys.value = []) && reload();
+  }
+
+  /**
+   * 成功回调（编辑/新增后精确刷新，避免全量reload）
+   */
+  async function handleSuccess({ isUpdate, values, expandedArr, changeParent }) {
+    if (isUpdate) {
+      if (changeParent) {
+        // 父节点变更，需要全量刷新
+        reload();
+      } else {
+        // 父节点未变，只更新单条记录
+        let data = await list({ id: values.id, pageSize: 1, pageNo: 1, pid: values['pid'] });
+        if (data && data.records && data.records.length > 0) {
+          updateTableDataRecord(values.id, data.records[0]);
+        } else {
+          updateTableDataRecord(values.id, values);
+        }
+      }
+    } else {
+      if (!values['id'] || !values['pid']) {
+        // 新增根节点
+        reload();
+      } else {
+        // 新增子节点：按展开路径逐级加载
+        expandedRowKeys.value = [];
+        for (let key of unref(expandedArr)) {
+          await expandTreeNode(key);
+        }
+      }
+    }
+  }
+
+  function getTableAction(record) {
+    return [
+      { label: '编辑', onClick: handleEdit.bind(null, record), auth: '{{entityPackage}}:{{tableName}}:edit' },
+      { label: '添加子节点', onClick: handleAddChild.bind(null, record), auth: '{{entityPackage}}:{{tableName}}:add' },
+    ];
+  }
+
+  function getDropDownAction(record) {
+    return [
+      { label: '详情', onClick: handleDetail.bind(null, record) },
+      {
+        label: '删除',
+        popConfirm: { title: '确定删除吗?', confirm: handleDelete.bind(null, record), placement: 'topLeft' },
+        auth: '{{entityPackage}}:{{tableName}}:delete',
+      },
+    ];
+  }
+</script>
+
+<style lang="less" scoped>
+  :deep(.ant-picker),:deep(.ant-input-number) {
+    width: 100%;
+  }
+</style>
+```
+
+### B9. 树表前端 Modal ({{entityName}}Modal.vue) — 完整模板
+
+树表 Modal 与单表的关键差异：
+1. 打开时加载父级树数据（`loadTreeData`），用于 JTreeSelect 组件
+2. 编辑时通过 `updateSchema` 设置 `hiddenNodeKey`，防止选择自己作为父节点
+3. 提交成功后回传 `expandedArr`（展开路径）和 `changeParent`（是否变更父级），以便 List 页面精确刷新
+
+```vue
+<template>
+  <BasicModal v-bind="$attrs" @register="registerModal" destroyOnClose :maxHeight="500" :width="800" :title="title" @ok="handleSubmit">
+    <BasicForm @register="registerForm" name="{{entityName}}Form" />
+  </BasicModal>
+</template>
+
+<script lang="ts" setup>
+  import { ref, computed, unref, reactive } from 'vue';
+  import { BasicModal, useModalInner } from '/@/components/Modal';
+  import { BasicForm, useForm } from '/@/components/Form';
+  import { formSchema } from '../{{entityName}}.data';
+  import { saveOrUpdate, loadTreeData } from '../{{entityName}}.api';
+  import { getDateByPicker } from '/@/utils';
+
+  const emit = defineEmits(['register', 'success']);
+  const isUpdate = ref(true);
+  const isDetail = ref(false);
+  const expandedRowKeys = ref([]);
+  const treeData = ref([]);
+  // 当前编辑的数据（用于判断父节点是否变更）
+  let model: Nullable<Recordable> = null;
+  // 日期个性化选择（如有季度/年/月/周字段）
+  const fieldPickers = reactive({
+    // quarterVal: 'quarter', yearVal: 'year', monthVal: 'month', weekVal: 'week',
+  });
+
+  const [registerForm, { setProps, resetFields, setFieldsValue, validate, updateSchema, scrollToField }] = useForm({
+    schemas: formSchema,
+    showActionButtonGroup: false,
+    baseColProps: { span: 24 },
+    labelCol: { xs: { span: 24 }, sm: { span: 4 } },
+    wrapperCol: { xs: { span: 24 }, sm: { span: 18 } },
+    baseRowStyle: { padding: '0 20px' },
+  });
+
+  const [registerModal, { setModalProps, closeModal }] = useModalInner(async (data) => {
+    await resetFields();
+    expandedRowKeys.value = [];
+    setModalProps({ confirmLoading: false, minHeight: 80, showOkBtn: !data?.hideFooter });
+    isUpdate.value = !!data?.isUpdate;
+    isDetail.value = !data?.hideFooter;
+    if (data?.record) {
+      model = data.record;
+      await setFieldsValue({ ...data.record });
+      // 编辑时隐藏自身节点（防止选自己做父级）
+      updateSchema([{ field: 'pid', componentProps: { hiddenNodeKey: data.record.id } }]);
+    } else {
+      model = null;
+      updateSchema([{ field: 'pid', componentProps: { hiddenNodeKey: '' } }]);
+    }
+    // 加载父级节点树信息（仅用于 getExpandKeysByPid，不传给 JTreeSelect）
+    // 注意：JTreeSelect 通过 dict 配置自行加载数据，updateSchema 中禁止传递 treeData！
+    treeData.value = await loadTreeData({ async: false, pcode: '' });
+    // 详情模式下禁用表单
+    setProps({ disabled: !!data?.hideFooter });
+  });
+
+  const title = computed(() => (!unref(isUpdate) ? '新增' : !unref(isDetail) ? '详情' : '编辑'));
+
+  /**
+   * 根据pid获取展开的节点路径（从子到根）
+   */
+  function getExpandKeysByPid(pid, arr) {
+    if (pid && arr && arr.length > 0) {
+      for (let i = 0; i < arr.length; i++) {
+        if (arr[i].key == pid && unref(expandedRowKeys).indexOf(pid) < 0) {
+          expandedRowKeys.value.push(arr[i].key);
+          getExpandKeysByPid(arr[i]['parentId'], unref(treeData));
+        } else {
+          getExpandKeysByPid(pid, arr[i].children);
+        }
+      }
+    }
+  }
+
+  const changeDateValue = (formData) => {
+    if (formData && fieldPickers) {
+      for (let key in fieldPickers) {
+        if (formData[key]) {
+          formData[key] = getDateByPicker(formData[key], fieldPickers[key]);
+        }
+      }
+    }
+  };
+
+  async function handleSubmit() {
+    try {
+      let values = await validate();
+      changeDateValue(values);
+      setModalProps({ confirmLoading: true });
+      await saveOrUpdate(values, isUpdate.value);
+      closeModal();
+      // 收集展开的节点路径信息
+      await getExpandKeysByPid(values['pid'], unref(treeData));
+      // 回传给 List 页面进行精确刷新
+      emit('success', {
+        isUpdate: unref(isUpdate),
+        values: { ...values },
+        expandedArr: unref(expandedRowKeys).reverse(),
+        changeParent: model != null && model['pid'] != values['pid'],
+      });
+    } catch ({ errorFields }) {
+      if (errorFields) {
+        const firstField = errorFields[0];
+        if (firstField) {
+          scrollToField(firstField.name, { behavior: 'smooth', block: 'center' });
+        }
+      }
+      return Promise.reject(errorFields);
+    } finally {
+      setModalProps({ confirmLoading: false });
+    }
+  }
+</script>
+
+<style lang="less" scoped>
+  :deep(.ant-input-number) {
+    width: 100%;
+  }
+  :deep(.ant-calendar-picker) {
+    width: 100%;
+  }
+</style>
+```
+
+### B10. 树表技术要点总结
+
+| 技术点 | 说明 |
+|--------|------|
+| **懒加载占位** | `onFetchSuccess` + `getDataByResult` 为 `hasChild='1'` 的节点添加 `isLoading` 占位子节点 |
+| **占位节点显示字段** | loading 占位节点的显示字段名必须与 columns 第一列 dataIndex 一致（如 `categoryName: 'loading...'`，不要写 `name`） |
+| **展开懒加载** | `handleExpand` 判断 `isLoading` 占位，首次展开时请求 `childList` 接口 |
+| **handleExpand 结果处理** | `result = result.records ? result.records : result` 兼容返回 Page 和 List 两种格式 |
+| **批量子节点恢复** | `loadDataByExpandedRows` 页面刷新后根据 `expandedRowKeys` 批量请求 `getChildListBatch` 恢复子数据 |
+| **精确刷新** | `handleSuccess` 区分：编辑不变父→重新查询单条（含dictText），编辑变父→全刷新，新增根→全刷新，新增子→按路径展开 |
+| **编辑后重新查询** | 编辑后必须 `await list({id, pageSize:1, pageNo:1})` 重新查询，不能直接用 form values（缺少 `_dictText` 翻译） |
+| **新增子节点前清空** | 新增子节点展开前必须 `expandedRowKeys.value = []` 先清空，否则展开逻辑出错 |
+| **展开路径回传** | Modal 的 `getExpandKeysByPid` 递归收集从当前节点到根的展开路径，提交后回传给 List |
+| **父节点变更检测** | Modal 保存 `model` 原始数据，提交时对比 `model.pid != values.pid` 判断是否变更父级 |
+| **隐藏自身节点** | 编辑时 `updateSchema` **只传** `hiddenNodeKey`，**禁止传 treeData**（会导致下拉框 label 变 value） |
+| **treeData 用途** | `treeData` 变量仅用于 `getExpandKeysByPid` 计算展开路径，不传给 JTreeSelect（组件通过 dict 自行加载） |
+| **API isTransformResponse** | `getChildListBatch` 必须设 `{ isTransformResponse: false }` 返回完整 Result 对象 |
+| **批量删除过滤** | `batchHandleDelete` 需过滤掉 `_loadChild` 占位节点的 ID |
+| **批量删除递归** | Controller 批量删除应逐条调用 `deleteXxx` 以正确处理树结构（递归子节点+父节点状态） |
+| **搜索模式** | `rootList` 的 `hasQuery=true` 参数触发 `queryTreeListNoPage`，搜索结果递归找到根节点展示 |
+| **pid 组件** | formSchema 中 `pid` 使用 `JTreeSelect` 组件（非隐藏 Input），配置 `dict/pidField/pidValue/hasChildField` |
+| **id 隐藏字段位置** | formSchema 中 `id` 隐藏字段放在**最后**（参考 JeecgBoot 代码生成器标准输出） |
+| **Mapper XML 参数名** | `updateTreeNodeStatus` 用 `#{id}` `#{status}`，`queryListByPid` 用 `#{pid}`，需包含 `query` 的 foreach 支持 |
+| **详情模式** | Modal 用 `setProps({ disabled: !!data?.hideFooter })` 禁用表单，`showOkBtn: !!!data?.hideFooter` 隐藏确认按钮 |
+| **权限和布局** | List 所有按钮需 `v-auth`，操作拆分为主操作（编辑+添加下级）和下拉操作（详情+删除），`actionColumn.fixed:'right'` |
 
 ---
 
@@ -1966,12 +2714,1760 @@ public class {{entityName}}Page {
     }
 ```
 
-### C7. 前端差异
+### C7. 前端差异 — api.ts
 
-主要差异在于编辑 Modal/Form 中包含子表的 Tab 页或内嵌表格：
-- 主表字段 + 子表 Tab（使用 `a-tabs` 切换）
-- 子表使用 `JEditableTable` 或 `BasicTable` 展示和编辑
-- 保存时收集主表 + 子表数据一起提交
+**vue3 封装风格：** 子表查询接口导出为 URL 字符串常量（不是函数），供 Modal 中 `defHttp.get` 或 `requestSubTableData` 使用：
+
+```typescript
+enum Api {
+  // ... 主表 CRUD 接口
+  {{subEntityName_uncap}}List = '/{{entityPackage}}/{{entityName_uncap}}/query{{subEntityName}}ByMainId',
+}
+
+// 子表接口导出为 URL 字符串（不是函数！）
+export const {{subEntityName_uncap}}List = Api.{{subEntityName_uncap}}List;
+```
+
+**vue3Native 原生风格（C13）：** 子表查询接口导出为**函数**，且需要额外的 `queryDataById`。详见 C13-1。
+
+### C8. 前端差异 — data.ts
+
+一对多子表使用 `JVxeColumn[]`（**不是 FormSchema[]**），组件类型使用 `JVxeTypes` 枚举：
+
+```typescript
+import { JVxeTypes, JVxeColumn } from '/@/components/jeecg/JVxeTable/types';
+
+export const {{subEntityName_uncap}}Columns: JVxeColumn[] = [
+  {
+    title: '字段标题',
+    key: 'fieldName',        // 注意用 key 不是 field
+    type: JVxeTypes.input,   // 注意用 JVxeTypes 不是 component 字符串
+    width: '200px',          // 字符串带px
+    placeholder: '请输入${title}',
+    defaultValue: '',
+  },
+  // JVxeTypes 与 FormSchema component 的对应关系见 SKILL.md 的 JVxeTable 章节
+];
+```
+
+**JVxeColumn 与 FormSchema 的关键区别：**
+| 维度 | FormSchema | JVxeColumn |
+|------|-----------|-----------|
+| 字段名属性 | `field` | `key` |
+| 组件类型属性 | `component: 'JDictSelectTag'` | `type: JVxeTypes.select` |
+| 字典配置 | `componentProps: { dictCode: 'xxx' }` | 顶层属性 `dictCode: 'xxx'` |
+| 下拉选项 | 自动从字典加载 | 需显式声明 `options: []` |
+| 宽度 | `colProps: { span: 12 }` | `width: '200px'` |
+| 校验规则 | `dynamicRules` 函数 | `validateRules` 数组 |
+| 占位符 | `componentProps: { placeholder }` | 顶层属性 `placeholder`，支持 `${title}` |
+
+一对一子表使用 `FormSchema[]`（与主表 formSchema 相同的写法）：
+
+```typescript
+export const {{subEntityName_uncap}}FormSchema: FormSchema[] = [
+  // 与主表 formSchema 写法完全一致，使用 component/field/componentProps
+];
+```
+
+### C9. 前端差异 — Modal.vue（核心模板）
+
+#### Tab 风格核心特征
+
+Tab-in-Modal 使用 **radio-group 标题栏** 切换主表/子表区域，一对一子表抽成**独立 Form.vue 组件**，通过 `useJvxeMethod` + `validateSubForm` 统一处理提交。
+
+**关键模式：**
+- Modal 标题栏用 `a-radio-group` + `a-radio-button`（不是 `a-tabs`）
+- 各区域用 `v-show` 切换（不是 `a-tab-pane`），避免频繁销毁/重建
+- `wrapClassName="j-cgform-tab-modal"` 启用专属样式
+- 一对一子表抽成独立 `XxxForm.vue` 组件，暴露 `initFormData`/`getFormData`/`validateForm`/`resetFields` 方法
+- 通过 `useJvxeMethod` 第6个参数 `validateSubForm` 校验所有一对一子表
+- 不需要自写 `handleSubmit`，`useJvxeMethod` 返回的 `handleSubmit` 已整合所有校验和提交逻辑
+
+#### 文件结构
+
+Tab-in-Modal 风格比其他风格多一个一对一子表 Form 组件：
+
+```
+views/{{viewDir}}/
+├── {{entityName}}List.vue                   # 主列表
+├── {{entityName}}.api.ts                    # API（子表导出为URL字符串）
+├── {{entityName}}.data.ts                   # 列/表单配置（JVxeColumn + FormSchema）
+└── components/
+    ├── {{entityName}}Modal.vue              # Modal（radio-group Tab 切换）
+    └── {{detailEntityName}}Form.vue         # 一对一子表独立Form组件（仅有一对一子表时）
+```
+
+#### 一对一子表独立 Form 组件（{{detailEntityName}}Form.vue）
+
+```html
+<template>
+    <BasicForm @register="registerForm" name="{{detailEntityName}}Form" class="basic-modal-form" />
+</template>
+<script lang="ts">
+    import {defineComponent} from 'vue';
+    import {BasicForm, useForm} from '/@/components/Form/index';
+    import { {{detailEntityName_uncap}}FormSchema } from '../{{entityName}}.data';
+    import {defHttp} from '/@/utils/http/axios';
+    import { VALIDATE_FAILED } from '/@/utils/common/vxeUtils'
+
+    export default defineComponent({
+        name:"{{detailEntityName}}Form",
+        components: {BasicForm},
+        emits:['register'],
+        props:{
+            disabled: {
+                type: Boolean,
+                default: false
+            }
+        },
+        setup(props,{emit}) {
+            const [registerForm, { setProps, resetFields, setFieldsValue, getFieldsValue, validate, scrollToField }] = useForm({
+                schemas: {{detailEntityName_uncap}}FormSchema,
+                showActionButtonGroup: false,
+                baseColProps: {span: 12}
+            });
+            // 初始化加载数据（url 是子表查询接口的 URL 字符串）
+            function initFormData(url,id){
+                if(id){
+                     defHttp.get({url,params:{id}},{isTransformResponse:false}).then(res=>{
+                       res.success && res.result && res.result.length > 0 && setFieldsValue({...res.result[0]});
+                    })
+                }
+                setProps({disabled: props.disabled})
+            }
+            // 获取表单数据（返回数组，因为后端统一用 List<Entity> 接收）
+            function getFormData(){
+               let formData = getFieldsValue();
+               Object.keys(formData).map(k=>{
+                   if(formData[k] instanceof Array){
+                       formData[k] = formData[k].join(',')
+                   }
+               });
+               return [formData];
+            }
+            // 表单校验（index 参数对应 refKeys 数组中的位置）
+            function validateForm(index){
+                return new Promise((resolve, reject) => {
+                    validate().then(()=>{
+                        return resolve()
+                    }).catch(({ errorFields }) => {
+                      return reject({ error: VALIDATE_FAILED, index, errorFields: errorFields, scrollToField: scrollToField });
+                    });
+                })
+            }
+            return {
+                registerForm,
+                resetFields,
+                initFormData,
+                getFormData,
+                validateForm
+            }
+        }
+    })
+</script>
+<style lang="less" scoped>
+  .basic-modal-form {
+    overflow: auto;
+    height: 340px;
+  }
+</style>
+```
+
+**Form 组件关键点：**
+- 使用 Options API（`defineComponent`），不是 `<script setup>`，因为需要通过 `return` 暴露方法给父组件 `ref` 调用
+- `initFormData(url, id)` 中 `isTransformResponse: false` 返回完整响应 `{success, result}`，取 `result[0]`
+- `getFormData()` 返回**数组** `[formData]`，与后端 `List<Entity>` 对应
+- `validateForm(index)` 的 `index` 参数对应 `refKeys` 数组位置，校验失败时自动跳转到对应 Tab
+- FormSchema 中必须包含隐藏的 `id` 字段：`{ label: '', field: 'id', component: 'Input', show: false }`
+
+#### Modal.vue — 纯一对多（无一对一子表）
+
+```html
+<template>
+  <BasicModal ref="modalRef" destroyOnClose wrapClassName="j-cgform-tab-modal" v-bind="$attrs" @register="registerModal" :maxHeight="500" :width="896" @ok="handleSubmit">
+    <template #title>
+        <div class="titleArea">
+          <div class="title">{{ title }}</div>
+          <div class="right">
+            <a-radio-group v-model:value="activeKey">
+              <template v-for="(item, index) in tabNav" :key="index">
+                <a-radio-button :value="item.tableName">{{ item.tableTxt }}</a-radio-button>
+              </template>
+            </a-radio-group>
+          </div>
+        </div>
+     </template>
+     <div class="contentArea">
+        <BasicForm @register="registerForm" ref="formRef" v-show="activeKey == refKeys[0]" name="{{entityName}}Form"/>
+         <JVxeTable
+           v-show="activeKey == '{{subEntityName_uncap}}'"
+           keep-source resizable
+           ref="{{subEntityName_uncap}}"
+           :loading="{{subEntityName_uncap}}Table.loading"
+           :columns="{{subEntityName_uncap}}Table.columns"
+           :dataSource="{{subEntityName_uncap}}Table.dataSource"
+           :height="340"
+           :disabled="formDisabled"
+           :rowNumber="true"
+           :rowSelection="true"
+           :toolbar="true"
+           />
+     </div>
+  </BasicModal>
+</template>
+
+<script lang="ts" setup>
+    import {ref, computed, unref, reactive} from 'vue';
+    import {BasicModal, useModalInner} from '/@/components/Modal';
+    import {BasicForm, useForm} from '/@/components/Form/index';
+    import { useJvxeMethod } from '/@/hooks/system/useJvxeMethods.ts'
+    import {formSchema, {{subEntityName_uncap}}Columns} from '../{{entityName}}.data';
+    import {saveOrUpdate, {{subEntityName_uncap}}List} from '../{{entityName}}.api';
+
+    const emit = defineEmits(['register','success']);
+    const isUpdate = ref(true);
+    const formDisabled = ref(false);
+    const modalRef = ref();
+    // refKeys[0] 是主表的 key，后面是各子表的 key
+    const refKeys = ref(['{{entityName_uncap}}', '{{subEntityName_uncap}}']);
+    const tabNav = ref<any>([
+      { tableName: '{{entityName_uncap}}', tableTxt: '{{description}}' },
+      { tableName: '{{subEntityName_uncap}}', tableTxt: '{{subDescription}}' },
+    ]);
+    const activeKey = ref('{{entityName_uncap}}');
+    const {{subEntityName_uncap}} = ref();
+    const tableRefs = { {{subEntityName_uncap}} };
+    const {{subEntityName_uncap}}Table = reactive({
+          loading: false,
+          dataSource: [],
+          columns: {{subEntityName_uncap}}Columns
+    })
+    const [registerForm, {setProps, resetFields, setFieldsValue, validate}] = useForm({
+        schemas: formSchema,
+        showActionButtonGroup: false,
+        baseColProps: {span: 12}
+    });
+    const [registerModal, {setModalProps, closeModal}] = useModalInner(async (data) => {
+        await reset();
+        setModalProps({confirmLoading: false, showCancelBtn: data?.showFooter, showOkBtn: data?.showFooter});
+        isUpdate.value = !!data?.isUpdate;
+        formDisabled.value = !data?.showFooter;
+        if (unref(isUpdate)) {
+            await setFieldsValue({ ...data.record });
+            requestSubTableData({{subEntityName_uncap}}List, {id: data?.record?.id}, {{subEntityName_uncap}}Table)
+        }
+        setProps({ disabled: !data?.showFooter })
+    });
+    const [handleChangeTabs, handleSubmit, requestSubTableData, formRef] = useJvxeMethod(requestAddOrEdit, classifyIntoFormData, tableRefs, activeKey, refKeys);
+
+    const title = computed(() => (!unref(isUpdate) ? '新增' : !unref(formDisabled) ? '编辑' : '详情'));
+    async function reset(){
+      await resetFields();
+      activeKey.value = '{{entityName_uncap}}';
+      {{subEntityName_uncap}}Table.dataSource = [];
+    }
+    function classifyIntoFormData(allValues) {
+         let main = Object.assign({}, allValues.formValue)
+         return {
+           ...main,
+           {{subEntityName_uncap}}List: allValues.tablesValue[0].tableData,
+         }
+    }
+    async function requestAddOrEdit(values) {
+        try {
+            setModalProps({confirmLoading: true});
+            await saveOrUpdate(values, isUpdate.value);
+            closeModal();
+            emit('success');
+        } finally {
+            setModalProps({confirmLoading: false});
+        }
+    }
+</script>
+
+<style lang="less" scoped>
+  :deep(.ant-input-number) { width: 100%; }
+  :deep(.ant-calendar-picker) { width: 100%; }
+  .titleArea {
+    display: flex;
+    align-content: center;
+    padding-right: 70px;
+    .title { margin-right: 16px; line-height: 32px; }
+    .right {
+      overflow-x: auto; overflow-y: hidden; flex: 1; white-space: nowrap;
+      .ant-radio-group { font-weight: normal; }
+    }
+  }
+  html[data-theme='light'] {
+    .right .ant-radio-group {
+      :deep(.ant-radio-button-wrapper:not(.ant-radio-button-wrapper-checked)) { color: #555; }
+    }
+  }
+</style>
+<style lang="less">
+.j-cgform-tab-modal {
+   .contentArea { padding: 20px 1.5% 0; }
+  .ant-modal .ant-modal-body > .scrollbar,
+  .ant-tabs-nav .ant-tabs-tab { padding-top: 0; }
+  .ant-tabs-top-bar { width: calc(100% - 55px); position: relative; left: -14px; }
+  .ant-tabs .ant-tabs-top-content > .ant-tabs-tabpane { overflow: hidden auto; }
+}
+</style>
+```
+
+#### Modal.vue — 一对一 + 一对多混合（多个子表）
+
+当同时存在一对一子表和一对多子表时，Modal 需额外引入一对一 Form 组件，并通过 `validateSubForm` 回调校验。
+
+**与纯一对多的关键差异：**
+- 多引入 `{{detailEntityName}}Form` 组件和 `VALIDATE_FAILED`
+- `refKeys` 多一项一对一子表的 key
+- `tabNav` 多一项一对一子表
+- `useJvxeMethod` 第6个参数传入 `validateSubForm` 函数
+- `reset()` 中额外调用 `{{detailEntityName_uncap}}Form.value.resetFields()`
+- `classifyIntoFormData` 中调用 `{{detailEntityName_uncap}}Form.value.getFormData()` 获取一对一数据
+- 编辑时通过 `{{detailEntityName_uncap}}Form.value.initFormData(url, id)` 加载一对一数据
+
+```html
+<template>
+  <BasicModal ref="modalRef" destroyOnClose wrapClassName="j-cgform-tab-modal" v-bind="$attrs" @register="registerModal" :maxHeight="500" :width="896" @ok="handleSubmit">
+    <template #title>
+        <div class="titleArea">
+          <div class="title">{{ title }}</div>
+          <div class="right">
+            <a-radio-group v-model:value="activeKey">
+              <template v-for="(item, index) in tabNav" :key="index">
+                <a-radio-button :value="item.tableName">{{ item.tableTxt }}</a-radio-button>
+              </template>
+            </a-radio-group>
+          </div>
+        </div>
+     </template>
+     <div class="contentArea">
+        <BasicForm @register="registerForm" ref="formRef" v-show="activeKey == refKeys[0]" name="{{entityName}}Form"/>
+         <JVxeTable
+           v-show="activeKey == '{{subEntityName_uncap}}'"
+           keep-source resizable
+           ref="{{subEntityName_uncap}}"
+           :loading="{{subEntityName_uncap}}Table.loading"
+           :columns="{{subEntityName_uncap}}Table.columns"
+           :dataSource="{{subEntityName_uncap}}Table.dataSource"
+           :height="340"
+           :disabled="formDisabled"
+           :rowNumber="true" :rowSelection="true" :toolbar="true"
+           />
+         <{{detailEntityName}}Form ref="{{detailEntityName_uncap}}Form" :disabled="formDisabled" v-show="activeKey == '{{detailEntityName_uncap}}'"><\/{{detailEntityName}}Form>
+     </div>
+  </BasicModal>
+</template>
+
+<script lang="ts" setup>
+    import {ref, computed, unref, reactive} from 'vue';
+    import {BasicModal, useModalInner} from '/@/components/Modal';
+    import {BasicForm, useForm} from '/@/components/Form/index';
+    import { useJvxeMethod } from '/@/hooks/system/useJvxeMethods.ts'
+    import {{detailEntityName}}Form from './{{detailEntityName}}Form.vue'
+    import {formSchema, {{subEntityName_uncap}}Columns} from '../{{entityName}}.data';
+    import {saveOrUpdate, {{subEntityName_uncap}}List, {{detailEntityName_uncap}}List} from '../{{entityName}}.api';
+    import { VALIDATE_FAILED } from '/@/utils/common/vxeUtils'
+
+    const emit = defineEmits(['register','success']);
+    const isUpdate = ref(true);
+    const formDisabled = ref(false);
+    const modalRef = ref();
+    const refKeys = ref(['{{entityName_uncap}}', '{{subEntityName_uncap}}', '{{detailEntityName_uncap}}']);
+    const tabNav = ref<any>([
+      { tableName: '{{entityName_uncap}}', tableTxt: '{{description}}' },
+      { tableName: '{{subEntityName_uncap}}', tableTxt: '{{subDescription}}' },
+      { tableName: '{{detailEntityName_uncap}}', tableTxt: '{{detailDescription}}' },
+    ]);
+    const activeKey = ref('{{entityName_uncap}}');
+    const {{subEntityName_uncap}} = ref();
+    const {{detailEntityName_uncap}}Form = ref();
+    const tableRefs = { {{subEntityName_uncap}} };
+    const {{subEntityName_uncap}}Table = reactive({
+          loading: false,
+          dataSource: [],
+          columns: {{subEntityName_uncap}}Columns
+    })
+    const [registerForm, {setProps, resetFields, setFieldsValue, validate}] = useForm({
+        schemas: formSchema,
+        showActionButtonGroup: false,
+        baseColProps: {span: 12}
+    });
+    const [registerModal, {setModalProps, closeModal}] = useModalInner(async (data) => {
+        await reset();
+        setModalProps({confirmLoading: false, showCancelBtn: data?.showFooter, showOkBtn: data?.showFooter});
+        isUpdate.value = !!data?.isUpdate;
+        formDisabled.value = !data?.showFooter;
+        if (unref(isUpdate)) {
+            await setFieldsValue({ ...data.record });
+            {{detailEntityName_uncap}}Form.value.initFormData({{detailEntityName_uncap}}List, data?.record?.id)
+            requestSubTableData({{subEntityName_uncap}}List, {id: data?.record?.id}, {{subEntityName_uncap}}Table)
+        }
+        setProps({ disabled: !data?.showFooter })
+    });
+    // 第6个参数 validateSubForm 用于校验一对一子表
+    const [handleChangeTabs, handleSubmit, requestSubTableData, formRef] = useJvxeMethod(requestAddOrEdit, classifyIntoFormData, tableRefs, activeKey, refKeys, validateSubForm);
+
+    const title = computed(() => (!unref(isUpdate) ? '新增' : !unref(formDisabled) ? '编辑' : '详情'));
+    async function reset(){
+      await resetFields();
+      activeKey.value = '{{entityName_uncap}}';
+      {{subEntityName_uncap}}Table.dataSource = [];
+      {{detailEntityName_uncap}}Form.value.resetFields();
+    }
+    function classifyIntoFormData(allValues) {
+         let main = Object.assign({}, allValues.formValue)
+         return {
+           ...main,
+           {{subEntityName_uncap}}List: allValues.tablesValue[0].tableData,
+           {{detailEntityName_uncap}}List: {{detailEntityName_uncap}}Form.value.getFormData(),
+         }
+    }
+    // 校验所有一对一子表表单
+    function validateSubForm(allValues){
+        return new Promise((resolve,reject)=>{
+            Promise.all([
+                 {{detailEntityName_uncap}}Form.value.validateForm(2),
+            ]).then(() => {
+                resolve(allValues)
+            }).catch(e => {
+                if (e.error === VALIDATE_FAILED) {
+                    activeKey.value = e.index == null ? unref(activeKey) : refKeys.value[e.index]
+                    if (e.errorFields) {
+                      const firstField = e.errorFields[0];
+                      if (firstField) {
+                        e.scrollToField(firstField.name, { behavior: 'smooth', block: 'center' });
+                      }
+                    }
+                } else {
+                    console.error(e)
+                }
+            })
+        })
+    }
+    async function requestAddOrEdit(values) {
+        try {
+            setModalProps({confirmLoading: true});
+            await saveOrUpdate(values, isUpdate.value);
+            closeModal();
+            emit('success');
+        } finally {
+            setModalProps({confirmLoading: false});
+        }
+    }
+</script>
+<!-- 样式同纯一对多 Modal，包含 titleArea + j-cgform-tab-modal -->
+```
+
+**`validateSubForm` 中 `validateForm(2)` 的参数说明：**
+- 参数 `2` 是一对一子表在 `refKeys` 数组中的索引（从0开始：0=主表, 1=一对多子表, 2=一对一子表）
+- 校验失败时通过 `refKeys.value[e.index]` 自动切换到对应 Tab
+- 如有多个一对一子表，在 `Promise.all` 中追加，每个传入不同的 index
+
+### C10. 一对多技术要点和常见陷阱
+
+| 要点 | 说明 |
+|------|------|
+| **三种 Modal 布局风格** | **Tab-in-Modal(C9)**：radio-group 标题栏切换，主表/子表同级用 `v-show`，需 `wrapClassName="j-cgform-tab-modal"`。**内嵌子表(C12)/ERP(C11)**：原始布局，上面主表 BasicForm，下面子表用 `a-tabs` 组织，不需要 radio-group 和 `j-cgform-tab-modal` |
+| **一对一子表必须抽成独立 Form.vue** | 使用 Options API（`defineComponent`）暴露 `initFormData`/`getFormData`/`validateForm`/`resetFields` 方法，父组件通过 `ref` 调用 |
+| **Form.vue 用 isTransformResponse:false** | `initFormData` 中 `defHttp.get({url,params:{id}},{isTransformResponse:false})` 返回完整 `{success,result}`，取 `result[0]` 赋值 |
+| **Form.vue 的 getFormData 返回数组** | `return [formData]` 包装成数组，因为后端统一用 `List<Entity>` 接收 |
+| **validateSubForm 是 useJvxeMethod 第6个参数** | 有一对一子表时，`useJvxeMethod(requestAddOrEdit, classifyIntoFormData, tableRefs, activeKey, refKeys, validateSubForm)`，第6个参数传入校验函数 |
+| **validateForm(index) 的 index 对应 refKeys 位置** | 例如 `refKeys = ['main', 'subMany', 'subOne']`，一对一子表 `validateForm(2)` 对应 index=2，校验失败自动切换到该 Tab |
+| **refKeys[0] 是主表 key** | `v-show="activeKey == refKeys[0]"` 控制主表显隐，`reset()` 中 `activeKey.value = refKeys[0]` 的值 |
+| **JVxeTable ref 名与 refKeys/activeKey 一致** | `ref="aiControlSub"` 必须与 `refKeys` 中的 key 和 `v-show="activeKey == 'aiControlSub'"` 完全一致 |
+| **JVxeTypes 不等于 FormSchema component** | 子表列定义必须用 `JVxeTypes.select` 而非 `'JDictSelectTag'`。没有 `JVxeTypes.selectDict` 这个类型！ |
+| **select 必须声明 options:[]** | `JVxeTypes.select/selectMultiple` 必须显式设置 `options:[]`，配合 `dictCode` 自动加载 |
+| **开关用 checkbox 不是 switch** | JVxeTable 中开关使用 `JVxeTypes.checkbox` + `customValue:['Y','N']`，没有 JSwitch 类型 |
+| **文件/图片需要 token** | `JVxeTypes.file/image` 必须设置 `token:true, responseName:'message'` |
+| **popup 用 popupCode** | JVxeTable 的 Popup 使用 `popupCode`（不是 `code`），多选通过 `props: { multi: true }` |
+| **width 是字符串** | JVxeColumn 的 width 格式为 `'200px'`（字符串），不是数字 |
+| **校验用 validateRules** | 使用 `validateRules` 数组（不是 `dynamicRules` 函数），pattern 支持正则字符串和特殊值（`'only'` = 唯一） |
+| **子表 API 导出为 URL 字符串** | `export const xxxList = Api.xxxList`（导出字符串），不是 `export const xxxList = (params) => defHttp.get(...)` |
+| **一对一 FormSchema 需要隐藏 id 字段** | `{ label: '', field: 'id', component: 'Input', show: false }` 必须加在 FormSchema 首位 |
+| **多子表 Service 参数** | 有多个子表时 `saveMain/updateMain` 参数对应增加，ServiceImpl 中需分别处理每个子表的删除和插入 |
+
+### C11. ERP 风格一对多（子表独立CRUD）
+
+ERP 风格与 Tab-in-Modal 风格的核心区别：主表和子表**各自独立保存**，不再整体提交。
+
+#### 架构对比
+
+| 维度 | Tab-in-Modal 风格 | ERP 风格 |
+|------|-------------------|---------|
+| 主表列表选择 | 多选 `rowSelection` | **单选 `rowSelection: { type: 'radio' }` ** |
+| 子表位置 | Modal 内 Tab 页签 | **主表列表下方 Tab 页签** |
+| 子表数据传递 | useJvxeMethod + requestSubTableData | **provide/inject + watch** |
+| 子表保存方式 | 随主表一起提交（saveMain/updateMain） | **子表独立 CRUD（各自 add/edit/delete）** |
+| 主表 Modal | 包含主表 + 子表 Tab | **仅主表字段** |
+| 后端主表接口 | `/add` (saveMain) `/edit` (updateMain) | **`/addMain` (save) `/editMain` (updateById)** |
+
+#### 关键陷阱：主表编辑不能用 updateMain
+
+**问题：** ERP 模式下主表 Modal 只提交主表字段，如果仍调用 `updateMain()`，该方法会先删除所有子表记录再重新插入空列表，导致**子表数据全部丢失**。
+
+**解决：** 后端必须新增仅操作主表的接口：
+```java
+// ERP模式：仅操作主表，不影响子表
+@PostMapping(value = "/addMain")
+public Result<String> addMain(@RequestBody {{entityName}} {{entityName_uncap}}) {
+    {{entityName_uncap}}Service.save({{entityName_uncap}});
+    return Result.OK("添加成功！");
+}
+
+@RequestMapping(value = "/editMain", method = {RequestMethod.PUT, RequestMethod.POST})
+public Result<String> editMain(@RequestBody {{entityName}} {{entityName_uncap}}) {
+    {{entityName_uncap}}Service.updateById({{entityName_uncap}});
+    return Result.OK("编辑成功!");
+}
+```
+前端 api.ts 中主表的 save/edit 指向 `/addMain` 和 `/editMain`。
+
+#### 子表独立 CRUD 接口（后端）
+
+每个子表需要 5 个接口：list（分页）、add、edit、delete、deleteBatch：
+```java
+// 子表分页列表（支持 BasicTable 分页参数）
+@GetMapping(value = "/list{{subEntityName}}ByMainId")
+public Result<IPage<{{subEntityName}}>> list{{subEntityName}}ByMainId(
+        {{subEntityName}} {{subEntityName_uncap}},
+        @RequestParam(name = "pageNo", defaultValue = "1") Integer pageNo,
+        @RequestParam(name = "pageSize", defaultValue = "10") Integer pageSize,
+        HttpServletRequest req) {
+    QueryWrapper<{{subEntityName}}> queryWrapper = QueryGenerator.initQueryWrapper({{subEntityName_uncap}}, req.getParameterMap());
+    Page<{{subEntityName}}> page = new Page<>(pageNo, pageSize);
+    IPage<{{subEntityName}}> pageList = {{subEntityName_uncap}}Service.page(page, queryWrapper);
+    return Result.OK(pageList);
+}
+
+@PostMapping(value = "/add{{subEntityName_suffix}}")
+public Result<String> add{{subEntityName_suffix}}(@RequestBody {{subEntityName}} entity) {
+    {{subEntityName_uncap}}Service.save(entity);
+    return Result.OK("添加成功！");
+}
+
+@RequestMapping(value = "/edit{{subEntityName_suffix}}", method = {RequestMethod.PUT, RequestMethod.POST})
+public Result<String> edit{{subEntityName_suffix}}(@RequestBody {{subEntityName}} entity) {
+    {{subEntityName_uncap}}Service.updateById(entity);
+    return Result.OK("编辑成功!");
+}
+
+@DeleteMapping(value = "/delete{{subEntityName_suffix}}")
+public Result<String> delete{{subEntityName_suffix}}(@RequestParam(name = "id") String id) {
+    {{subEntityName_uncap}}Service.removeById(id);
+    return Result.OK("删除成功!");
+}
+
+@DeleteMapping(value = "/deleteBatch{{subEntityName_suffix}}")
+public Result<String> deleteBatch{{subEntityName_suffix}}(@RequestParam(name = "ids") String ids) {
+    {{subEntityName_uncap}}Service.removeByIds(Arrays.asList(ids.split(",")));
+    return Result.OK("批量删除成功!");
+}
+```
+
+#### 前端文件结构
+
+```
+views/{{viewDir}}/
+├── {{entityName}}List.vue                   # ERP主页面（主表 + 下方Tab子表）
+├── {{subEntityName}}List.vue                # 子表列表组件（每个子表一个）
+├── {{entityName}}.api.ts                    # 全部API（主表+各子表CRUD）
+├── {{entityName}}.data.ts                   # 全部列/表单配置
+└── components/
+    ├── {{entityName}}Modal.vue              # 主表Modal（仅主表字段）
+    └── {{subEntityName}}Modal.vue           # 子表Modal（每个子表一个）
+```
+
+#### 前端核心模式 — 主表 provide + 子表 inject
+
+**主表 List.vue：**
+```typescript
+import { computed, unref, provide } from 'vue';
+
+// 单选模式
+rowSelection: { type: 'radio' },
+
+// 计算选中的主表ID，下发给子表
+const {{mainEntityName_uncap}}Id = computed(() =>
+  unref(selectedRowKeys).length > 0 ? unref(selectedRowKeys)[0] : ''
+);
+provide('{{mainEntityName_uncap}}Id', {{mainEntityName_uncap}}Id);
+
+// handleSuccess 只 reload，不清空选中（否则子表会触发 watch 变空）
+function handleSuccess() {
+  reload();
+}
+```
+
+**子表 List.vue：**
+```typescript
+import type { ComputedRef } from 'vue';
+import { ref, computed, unref, watch, inject, reactive } from 'vue';
+import { isEmpty } from '/@/utils/is';
+import { useMessage } from '/@/hooks/web/useMessage';
+
+// 注入主表ID
+const {{mainEntityName_uncap}}Id = inject<ComputedRef<string>>(
+  '{{mainEntityName_uncap}}Id',
+  computed(() => '')
+);
+const $message = useMessage();
+// ⚠️ 必须用 reactive，否则 BasicTable 的 :searchInfo 绑定可能不触发重新请求
+const searchInfo = reactive<Record<string, any>>({});
+
+// 监听主表ID变化，重新加载子表
+watch({{mainEntityName_uncap}}Id, () => {
+  searchInfo.{{mainEntityName_uncap}}Id = unref({{mainEntityName_uncap}}Id);
+  reload();
+  setSelectedRowKeys([]);
+});
+
+// 包装API：主表未选中时返回空数组
+async function getSubList(params) {
+  let { {{mainEntityName_uncap}}Id } = params;
+  if ({{mainEntityName_uncap}}Id == null || isEmpty({{mainEntityName_uncap}}Id)) {
+    return [];
+  }
+  return await subListApi(params);
+}
+
+// 新增前检查是否选中主表
+function handleCreate() {
+  if (isEmpty(unref({{mainEntityName_uncap}}Id))) {
+    $message.createMessage.warning('请选择一条主表记录');
+    return;
+  }
+  openModal(true, { isUpdate: false, showFooter: true });
+}
+```
+
+**子表 Modal.vue：**
+```typescript
+import { inject } from 'vue';
+
+// 注入主表ID
+const {{mainEntityName_uncap}}Id = inject('{{mainEntityName_uncap}}Id') || '';
+
+// 提交时自动关联主表ID
+async function handleSubmit() {
+  const values = await validate();
+  if (unref({{mainEntityName_uncap}}Id)) {
+    values.{{mainEntityName_uncap}}Id = unref({{mainEntityName_uncap}}Id);
+  }
+  await saveOrUpdateSub(values, isUpdate.value);
+  closeModal();
+  emit('success');
+}
+```
+
+#### data.ts 差异
+
+ERP 模式下子表使用 `BasicColumn[]`（普通列表列）+ `FormSchema[]`（Modal 表单），**不使用 JVxeColumn[]**：
+```typescript
+// ERP 模式：子表用 BasicColumn 列表展示
+export const {{subEntityName_uncap}}Columns: BasicColumn[] = [
+  { title: '字段名', align: 'center', dataIndex: 'fieldName' },
+  { title: '字典字段', align: 'center', dataIndex: 'dictField_dictText' },
+];
+
+// ERP 模式：子表用 FormSchema 弹窗编辑（需包含隐藏的 id 和外键字段）
+export const {{subEntityName_uncap}}FormSchema: FormSchema[] = [
+  { label: '', field: 'id', component: 'Input', show: false },
+  { label: '', field: '{{mainEntityName_uncap}}Id', component: 'Input', show: false },
+  // ... 业务字段
+];
+```
+
+#### 一对一子表特殊处理
+
+一对一关系的子表需要限制只能有一条记录：
+
+```typescript
+// 子表 List.vue — 一对一限制
+const hasDetailRecord = ref(false);
+
+// useListPage tableProps 中添加 afterFetch
+afterFetch: (data) => {
+  // 一对一：检查是否已有记录
+  hasDetailRecord.value = data && data.length > 0;
+  return data;
+},
+
+// 新增按钮添加 :disabled="hasDetailRecord"
+// <a-button type="primary" @click="handleCreate" :disabled="hasDetailRecord">新增</a-button>
+
+// handleCreate 增加双重检查
+function handleCreate() {
+  if (isEmpty(unref({{mainEntityName_uncap}}Id))) {
+    $message.createMessage.warning('请选择一条主表记录');
+    return;
+  }
+  if (hasDetailRecord.value) {
+    $message.createMessage.warning('一对一子表只能有一条记录，请编辑现有记录');
+    return;
+  }
+  openModal(true, { isUpdate: false, showFooter: true });
+}
+
+// 包装API中也要重置标记
+async function getSubList(params) {
+  let { {{mainEntityName_uncap}}Id } = params;
+  if ({{mainEntityName_uncap}}Id == null || isEmpty({{mainEntityName_uncap}}Id)) {
+    hasDetailRecord.value = false;
+    return [];
+  }
+  return await subListApi(params);
+}
+```
+
+---
+
+### C12. 内嵌子表风格（expandedRowRender + Tab-in-Modal）
+
+内嵌子表风格是 Tab-in-Modal 的增强版：**Modal 内编辑子表数据**（与 C9 相同），同时在**列表页通过行展开（expandedRowRender）直接查看子表数据**，无需打开 Modal。
+
+#### 架构对比
+
+| 维度 | Tab-in-Modal 风格（C9） | 内嵌子表风格（C12） | ERP 风格（C11） |
+|------|------------------------|-------------------|----------------|
+| 列表页子表展示 | 无（需点编辑/详情才能看） | **行展开 expandedRowRender** | 主表下方 Tab 页签 |
+| Modal 布局 | **radio-group 标题栏切换**（主表/子表同级） | **上面主表 + 下面子表 a-tabs**（原始布局） | 仅主表字段 |
+| 保存方式 | 整体提交（saveMain） | 整体提交（同C9） | 子表独立保存 |
+| 子表数据传递 | useJvxeMethod | useJvxeMethod + SubTable组件 | provide/inject |
+
+#### 前端文件结构
+
+```
+views/{{viewDir}}/
+├── {{entityName}}List.vue                   # 主列表（含 expandedRowRender）
+├── {{entityName}}.api.ts                    # API（主表CRUD + 子表双重导出）
+├── {{entityName}}.data.ts                   # 列/表单配置（子表三种导出）
+├── components/
+│   └── {{entityName}}Modal.vue              # Modal（主表 + 子表 Tab 编辑，同C9）
+└── subTables/
+    ├── {{subEntityName}}SubTable.vue        # 子表展示组件（每个子表一个）
+    └── {{detailEntityName}}SubTable.vue     # 一对一子表展示组件
+```
+
+#### data.ts — 子表三种数据导出
+
+每个子表需要导出**两种或三种**列定义，分别用于不同场景：
+
+```typescript
+import { JVxeTypes, JVxeColumn } from '/@/components/jeecg/JVxeTable/types';
+
+// ===== 一对多子表 =====
+
+// 1. BasicColumn[] — 供 SubTable 组件展示（行展开时的只读列表）
+export const {{subEntityName_uncap}}Columns: BasicColumn[] = [
+  { title: '字段标题', align: 'center', dataIndex: 'fieldName' },
+  { title: '字典字段', align: 'center', dataIndex: 'dictField_dictText' },
+];
+
+// 2. JVxeColumn[] — 供 Modal 内 JVxeTable 编辑（可编辑表格）
+export const {{subEntityName_uncap}}JVxeColumns: JVxeColumn[] = [
+  { title: '字段标题', key: 'fieldName', type: JVxeTypes.input, width: '200px',
+    placeholder: '请输入${title}', defaultValue: '' },
+  { title: '字典字段', key: 'dictField', type: JVxeTypes.select, width: '200px',
+    dictCode: 'dict_code', placeholder: '请选择${title}' },
+];
+
+// ===== 一对一子表 =====
+
+// 1. BasicColumn[] — 供 SubTable 组件展示
+export const {{detailEntityName_uncap}}Columns: BasicColumn[] = [
+  { title: '字段标题', align: 'center', dataIndex: 'fieldName' },
+];
+
+// 2. FormSchema[] — 供 Modal 内 BasicForm 编辑（一对一不用 JVxeTable）
+export const {{detailEntityName_uncap}}FormSchema: FormSchema[] = [
+  { label: '字段标题', field: 'fieldName', component: 'Input' },
+];
+// 注意：一对一的 FormSchema 不需要隐藏的 id 和外键字段（与 ERP 模式不同）
+```
+
+#### api.ts — 子表双重导出
+
+```typescript
+enum Api {
+  // 主表 CRUD
+  list = '/{{entityPackagePath}}/{{entityName_uncap}}/list',
+  save = '/{{entityPackagePath}}/{{entityName_uncap}}/add',
+  edit = '/{{entityPackagePath}}/{{entityName_uncap}}/edit',
+  deleteOne = '/{{entityPackagePath}}/{{entityName_uncap}}/delete',
+  deleteBatch = '/{{entityPackagePath}}/{{entityName_uncap}}/deleteBatch',
+  importExcel = '/{{entityPackagePath}}/{{entityName_uncap}}/importExcel',
+  exportXls = '/{{entityPackagePath}}/{{entityName_uncap}}/exportXls',
+  // 子表查询（非分页接口，返回 Result<List>）
+  {{subEntityName_uncap}}List = '/{{entityPackagePath}}/{{entityName_uncap}}/query{{subEntityName}}ByMainId',
+  {{detailEntityName_uncap}}List = '/{{entityPackagePath}}/{{entityName_uncap}}/query{{detailEntityName}}ByMainId',
+}
+
+// === 导出方式1：URL 字符串（供 Modal 中 requestSubTableData / defHttp.get 使用） ===
+export const query{{subEntityName}}ByMainId = Api.{{subEntityName_uncap}}List;
+export const query{{detailEntityName}}ByMainId = Api.{{detailEntityName_uncap}}List;
+
+// === 导出方式2：函数（供 SubTable 组件直接调用，isTransformResponse:false 返回完整响应） ===
+export const {{subEntityName_uncap}}ListApi = (params) =>
+  defHttp.get({ url: Api.{{subEntityName_uncap}}List, params }, { isTransformResponse: false });
+export const {{detailEntityName_uncap}}ListApi = (params) =>
+  defHttp.get({ url: Api.{{detailEntityName_uncap}}List, params }, { isTransformResponse: false });
+```
+
+**为什么需要双重导出？**
+- **URL 字符串**：Modal 中 `requestSubTableData(urlString, params, table)` 和 `defHttp.get({ url: urlString })` 需要纯 URL
+- **函数导出**：SubTable 组件需要完整的 `{ success, result, message }` 响应对象来判断请求是否成功，所以设 `isTransformResponse: false`
+
+#### SubTable 组件模板（subTables/{{subEntityName}}SubTable.vue）
+
+```html
+<template>
+  <div>
+    <BasicTable bordered size="middle" :loading="loading" rowKey="id" :canResize="true"
+      :columns="{{subEntityName_uncap}}Columns" :dataSource="dataSource" :pagination="false">
+      <!--字段回显插槽-->
+      <template v-slot:bodyCell="{ column, record, index, text }">
+        <!-- 文件字段 -->
+        <template v-if="column.dataIndex==='fileField'">
+          <span v-if="!text" style="font-size: 12px;font-style: italic;">无文件</span>
+          <a-button v-else :ghost="true" type="primary" preIcon="ant-design:download-outlined"
+            size="small" @click="downloadFile(text)">下载</a-button>
+        </template>
+        <!-- 富文本字段 -->
+        <template v-if="column.dataIndex==='richTextField'">
+          <div v-html="text"></div>
+        </template>
+      </template>
+    </BasicTable>
+  </div>
+</template>
+
+<script lang="ts" setup>
+  import { ref, watchEffect } from 'vue';
+  import { BasicTable } from '/@/components/Table';
+  import { {{subEntityName_uncap}}Columns } from '../{{entityName}}.data';
+  import { {{subEntityName_uncap}}ListApi } from '../{{entityName}}.api';
+  // import { downloadFile } from '/@/utils/common/renderUtils'; // 有文件字段时需要
+
+  const props = defineProps({
+    id: {
+      type: String,
+      default: '',
+    },
+  });
+
+  const loading = ref(false);
+  const dataSource = ref([]);
+
+  watchEffect(() => {
+    props.id && loadData(props.id);
+  });
+
+  function loadData(id) {
+    dataSource.value = [];
+    loading.value = true;
+    {{subEntityName_uncap}}ListApi({ id })
+      .then((res) => {
+        if (res.success) {
+          dataSource.value = res.result;
+        }
+      })
+      .finally(() => {
+        loading.value = false;
+      });
+  }
+</script>
+```
+
+**SubTable 关键点：**
+- `watchEffect` 监听 `props.id` 变化自动重新加载
+- API 使用函数导出（`xxxListApi`），返回完整响应 `{ success, result }`
+- `dataSource.value = res.result` — 非分页接口直接返回数组
+- `:pagination="false"` — 子表不分页
+
+#### List.vue — expandedRowRender 模板
+
+```html
+<template>
+  <div>
+    <BasicTable @register="registerTable" :rowSelection="rowSelection"
+      :expandedRowKeys="expandedRowKeys" @expand="handleExpand">
+      <!-- 内嵌table区域 begin -->
+      <template #expandedRowRender="{ record }">
+        <a-tabs tabPosition="top">
+          <a-tab-pane tab="{{detailDescription}}" key="{{detailEntityName_uncap}}" forceRender>
+            <{{detailEntityName}}SubTable v-if="expandedRowKeys.includes(record.id)" :id="record.id" />
+          </a-tab-pane>
+          <a-tab-pane tab="{{subDescription}}" key="{{subEntityName_uncap}}" forceRender>
+            <{{subEntityName}}SubTable v-if="expandedRowKeys.includes(record.id)" :id="record.id" />
+          </a-tab-pane>
+        </a-tabs>
+      </template>
+      <!-- 内嵌table区域 end -->
+      <!--插槽:table标题-->
+      <template #tableTitle>
+        <a-button type="primary" preIcon="ant-design:plus-outlined" @click="handleAdd">新增</a-button>
+        <a-button type="primary" preIcon="ant-design:export-outlined" @click="onExportXls">导出</a-button>
+        <j-upload-button type="primary" preIcon="ant-design:import-outlined" @click="onImportXls">导入</j-upload-button>
+        <a-dropdown v-if="selectedRowKeys.length > 0">
+          <template #overlay>
+            <a-menu>
+              <a-menu-item key="1" @click="batchHandleDelete">
+                <Icon icon="ant-design:delete-outlined" />
+                删除
+              </a-menu-item>
+            </a-menu>
+          </template>
+          <a-button>批量操作<Icon icon="mdi:chevron-down" /></a-button>
+        </a-dropdown>
+      </template>
+      <!--操作栏-->
+      <template #action="{ record }">
+        <TableAction :actions="getTableAction(record)" :dropDownActions="getDropDownAction(record)" />
+      </template>
+      <!--字段回显插槽-->
+      <template v-slot:bodyCell="{ column, record, index, text }">
+      </template>
+    </BasicTable>
+    <!-- 表单区域 -->
+    <{{entityName}}Modal @register="registerModal" @success="handleSuccess" />
+  </div>
+</template>
+
+<script lang="ts" setup>
+  import { ref, reactive } from 'vue';
+  import { BasicTable, TableAction } from '/@/components/Table';
+  import { useModal } from '/@/components/Modal';
+  import { useListPage } from '/@/hooks/system/useListPage';
+  import {{entityName}}Modal from './components/{{entityName}}Modal.vue';
+  import {{detailEntityName}}SubTable from './subTables/{{detailEntityName}}SubTable.vue';
+  import {{subEntityName}}SubTable from './subTables/{{subEntityName}}SubTable.vue';
+  import { columns, searchFormSchema } from './{{entityName}}.data';
+  import { list, deleteOne, batchDelete, getImportUrl, getExportUrl } from './{{entityName}}.api';
+
+  const [registerModal, { openModal }] = useModal();
+  // 展开key — 控制哪些行展开
+  const expandedRowKeys = ref<any[]>([]);
+
+  const { prefixCls, tableContext, onExportXls, onImportXls } = useListPage({
+    tableProps: {
+      title: '{{description}}',
+      api: list,
+      columns,
+      canResize: false,
+      formConfig: {
+        schemas: searchFormSchema,
+        autoSubmitOnEnter: true,
+      },
+      actionColumn: {
+        width: 120,
+        fixed: 'right',
+      },
+    },
+    exportConfig: { name: '{{description}}', url: getExportUrl },
+    importConfig: { url: getImportUrl, success: handleSuccess },
+  });
+
+  const [registerTable, { reload, collapseAll, updateTableDataRecord, deleteTableDataRecord },
+    { rowSelection, selectedRowKeys, selectedRows }] = tableContext;
+
+  /**
+   * 展开事件 — 同时只展开一行
+   */
+  function handleExpand(expanded, record) {
+    expandedRowKeys.value = [];
+    if (expanded === true) {
+      expandedRowKeys.value.push(record.id);
+    }
+  }
+
+  function handleAdd() {
+    openModal(true, { isUpdate: false, showFooter: true });
+  }
+
+  function handleEdit(record: Recordable) {
+    openModal(true, { record, isUpdate: true, showFooter: true });
+  }
+
+  function handleDetail(record: Recordable) {
+    openModal(true, { record, isUpdate: true, showFooter: false });
+  }
+
+  async function handleDelete(record) {
+    await deleteOne({ id: record.id }, handleSuccess);
+  }
+
+  async function batchHandleDelete() {
+    await batchDelete({ ids: selectedRowKeys.value }, handleSuccess);
+  }
+
+  function handleSuccess() {
+    (selectedRowKeys.value = []) && reload();
+  }
+
+  function getTableAction(record) {
+    return [{ label: '编辑', onClick: handleEdit.bind(null, record) }];
+  }
+
+  function getDropDownAction(record) {
+    return [
+      { label: '详情', onClick: handleDetail.bind(null, record) },
+      { label: '删除', popConfirm: { title: '是否确认删除', confirm: handleDelete.bind(null, record), placement: 'topLeft' } },
+    ];
+  }
+</script>
+```
+
+**List.vue 关键点：**
+- `expandedRowKeys` + `handleExpand`：同时只展开一行，避免多行展开时数据混乱
+- `v-if="expandedRowKeys.includes(record.id)"`：仅在展开时渲染 SubTable，避免不必要的 API 请求
+- `handleSuccess` 使用 `(selectedRowKeys.value = []) && reload()` 模式（标准风格，非 ERP 的 `reload()` 不清空选中）
+- 不使用 `provide/inject`，子表数据通过 SubTable 的 `id` prop 传递
+
+#### Modal.vue — 原始布局（上面主表，下面子表 Tabs）
+
+**内嵌子表风格和 ERP 风格的 Modal 不使用 radio-group 标题栏切换**，而是采用原始布局：
+- 上方：主表 BasicForm（全宽展示）
+- 下方：子表区域，多个子表用 `a-tabs` 组织（注意是 **内容区的 a-tabs**，不是标题栏的 radio-group）
+- 不需要 `wrapClassName="j-cgform-tab-modal"`
+- 不需要 `v-show` 切换（主表始终可见）
+
+**只有 Tab-in-Modal 风格（C9）才使用 radio-group 标题栏切换！**
+
+##### 纯一对多 Modal
+
+```html
+<template>
+  <BasicModal v-bind="$attrs" @register="registerModal" destroyOnClose :title="title" :width="896" @ok="handleSubmit">
+    <!-- 主表表单 -->
+    <BasicForm @register="registerForm" ref="formRef" name="{{entityName}}Form"/>
+    <!-- 子表区域 -->
+    <a-tabs v-model:activeKey="activeKey">
+      <a-tab-pane tab="{{subDescription}}" key="{{subEntityName_uncap}}" forceRender>
+        <JVxeTable
+          keep-source resizable
+          ref="{{subEntityName_uncap}}"
+          :loading="{{subEntityName_uncap}}Table.loading"
+          :columns="{{subEntityName_uncap}}Table.columns"
+          :dataSource="{{subEntityName_uncap}}Table.dataSource"
+          :height="340"
+          :disabled="formDisabled"
+          :rowNumber="true" :rowSelection="true" :toolbar="true"
+        />
+      </a-tab-pane>
+    </a-tabs>
+  </BasicModal>
+</template>
+
+<script lang="ts" setup>
+    import {ref, computed, unref, reactive} from 'vue';
+    import {BasicModal, useModalInner} from '/@/components/Modal';
+    import {BasicForm, useForm} from '/@/components/Form/index';
+    import { useJvxeMethod } from '/@/hooks/system/useJvxeMethods.ts'
+    import {formSchema, {{subEntityName_uncap}}JVxeColumns} from '../{{entityName}}.data';
+    import {saveOrUpdate, query{{subEntityName}}ByMainId} from '../{{entityName}}.api';
+
+    const emit = defineEmits(['register','success']);
+    const isUpdate = ref(true);
+    const formDisabled = ref(false);
+    const refKeys = ref(['{{subEntityName_uncap}}']);
+    const activeKey = ref('{{subEntityName_uncap}}');
+    const {{subEntityName_uncap}} = ref();
+    const tableRefs = { {{subEntityName_uncap}} };
+    const {{subEntityName_uncap}}Table = reactive({
+          loading: false,
+          dataSource: [],
+          columns: {{subEntityName_uncap}}JVxeColumns
+    })
+    const [registerForm, {setProps, resetFields, setFieldsValue, validate}] = useForm({
+        schemas: formSchema,
+        showActionButtonGroup: false,
+        baseColProps: {span: 12}
+    });
+    const [registerModal, {setModalProps, closeModal}] = useModalInner(async (data) => {
+        await reset();
+        setModalProps({confirmLoading: false, showCancelBtn: data?.showFooter, showOkBtn: data?.showFooter});
+        isUpdate.value = !!data?.isUpdate;
+        formDisabled.value = !data?.showFooter;
+        if (unref(isUpdate)) {
+            await setFieldsValue({ ...data.record });
+            requestSubTableData(query{{subEntityName}}ByMainId, {id: data?.record?.id}, {{subEntityName_uncap}}Table)
+        }
+        setProps({ disabled: !data?.showFooter })
+    });
+    const [handleChangeTabs, handleSubmit, requestSubTableData, formRef] = useJvxeMethod(requestAddOrEdit, classifyIntoFormData, tableRefs, activeKey, refKeys);
+
+    const title = computed(() => (!unref(isUpdate) ? '新增' : !unref(formDisabled) ? '编辑' : '详情'));
+    async function reset(){
+      await resetFields();
+      activeKey.value = '{{subEntityName_uncap}}';
+      {{subEntityName_uncap}}Table.dataSource = [];
+    }
+    function classifyIntoFormData(allValues) {
+         let main = Object.assign({}, allValues.formValue)
+         return {
+           ...main,
+           {{subEntityName_uncap}}List: allValues.tablesValue[0].tableData,
+         }
+    }
+    async function requestAddOrEdit(values) {
+        try {
+            setModalProps({confirmLoading: true});
+            await saveOrUpdate(values, isUpdate.value);
+            closeModal();
+            emit('success');
+        } finally {
+            setModalProps({confirmLoading: false});
+        }
+    }
+</script>
+
+<style lang="less" scoped>
+  :deep(.ant-input-number) { width: 100%; }
+  :deep(.ant-calendar-picker) { width: 100%; }
+</style>
+```
+
+##### 一对一 + 一对多混合 Modal
+
+```html
+<template>
+  <BasicModal v-bind="$attrs" @register="registerModal" destroyOnClose :title="title" :width="896" @ok="handleSubmit">
+    <!-- 主表表单 -->
+    <BasicForm @register="registerForm" ref="formRef" name="{{entityName}}Form"/>
+    <!-- 子表区域 -->
+    <a-tabs v-model:activeKey="activeKey">
+      <a-tab-pane tab="{{subDescription}}" key="{{subEntityName_uncap}}" forceRender>
+        <JVxeTable
+          keep-source resizable
+          ref="{{subEntityName_uncap}}"
+          :loading="{{subEntityName_uncap}}Table.loading"
+          :columns="{{subEntityName_uncap}}Table.columns"
+          :dataSource="{{subEntityName_uncap}}Table.dataSource"
+          :height="340"
+          :disabled="formDisabled"
+          :rowNumber="true" :rowSelection="true" :toolbar="true"
+        />
+      </a-tab-pane>
+      <a-tab-pane tab="{{detailDescription}}" key="{{detailEntityName_uncap}}" forceRender>
+        <{{detailEntityName}}Form ref="{{detailEntityName_uncap}}Form" :disabled="formDisabled" />
+      </a-tab-pane>
+    </a-tabs>
+  </BasicModal>
+</template>
+
+<script lang="ts" setup>
+    import {ref, computed, unref, reactive} from 'vue';
+    import {BasicModal, useModalInner} from '/@/components/Modal';
+    import {BasicForm, useForm} from '/@/components/Form/index';
+    import { useJvxeMethod } from '/@/hooks/system/useJvxeMethods.ts'
+    import {{detailEntityName}}Form from './{{detailEntityName}}Form.vue'
+    import {formSchema, {{subEntityName_uncap}}JVxeColumns} from '../{{entityName}}.data';
+    import {saveOrUpdate, query{{subEntityName}}ByMainId, query{{detailEntityName}}ByMainId} from '../{{entityName}}.api';
+    import { VALIDATE_FAILED } from '/@/utils/common/vxeUtils'
+
+    const emit = defineEmits(['register','success']);
+    const isUpdate = ref(true);
+    const formDisabled = ref(false);
+    const refKeys = ref(['{{subEntityName_uncap}}', '{{detailEntityName_uncap}}']);
+    const activeKey = ref('{{subEntityName_uncap}}');
+    const {{subEntityName_uncap}} = ref();
+    const {{detailEntityName_uncap}}Form = ref();
+    const tableRefs = { {{subEntityName_uncap}} };
+    const {{subEntityName_uncap}}Table = reactive({
+          loading: false,
+          dataSource: [],
+          columns: {{subEntityName_uncap}}JVxeColumns
+    })
+    const [registerForm, {setProps, resetFields, setFieldsValue, validate}] = useForm({
+        schemas: formSchema,
+        showActionButtonGroup: false,
+        baseColProps: {span: 12}
+    });
+    const [registerModal, {setModalProps, closeModal}] = useModalInner(async (data) => {
+        await reset();
+        setModalProps({confirmLoading: false, showCancelBtn: data?.showFooter, showOkBtn: data?.showFooter});
+        isUpdate.value = !!data?.isUpdate;
+        formDisabled.value = !data?.showFooter;
+        if (unref(isUpdate)) {
+            await setFieldsValue({ ...data.record });
+            {{detailEntityName_uncap}}Form.value.initFormData(query{{detailEntityName}}ByMainId, data?.record?.id)
+            requestSubTableData(query{{subEntityName}}ByMainId, {id: data?.record?.id}, {{subEntityName_uncap}}Table)
+        }
+        setProps({ disabled: !data?.showFooter })
+    });
+    // 第6个参数 validateSubForm 用于校验一对一子表
+    const [handleChangeTabs, handleSubmit, requestSubTableData, formRef] = useJvxeMethod(requestAddOrEdit, classifyIntoFormData, tableRefs, activeKey, refKeys, validateSubForm);
+
+    const title = computed(() => (!unref(isUpdate) ? '新增' : !unref(formDisabled) ? '编辑' : '详情'));
+    async function reset(){
+      await resetFields();
+      activeKey.value = '{{subEntityName_uncap}}';
+      {{subEntityName_uncap}}Table.dataSource = [];
+      {{detailEntityName_uncap}}Form.value.resetFields();
+    }
+    function classifyIntoFormData(allValues) {
+         let main = Object.assign({}, allValues.formValue)
+         return {
+           ...main,
+           {{subEntityName_uncap}}List: allValues.tablesValue[0].tableData,
+           {{detailEntityName_uncap}}List: {{detailEntityName_uncap}}Form.value.getFormData(),
+         }
+    }
+    function validateSubForm(allValues){
+        return new Promise((resolve,reject)=>{
+            Promise.all([
+                 {{detailEntityName_uncap}}Form.value.validateForm(1),
+            ]).then(() => {
+                resolve(allValues)
+            }).catch(e => {
+                if (e.error === VALIDATE_FAILED) {
+                    activeKey.value = e.index == null ? unref(activeKey) : refKeys.value[e.index]
+                } else {
+                    console.error(e)
+                }
+            })
+        })
+    }
+    async function requestAddOrEdit(values) {
+        try {
+            setModalProps({confirmLoading: true});
+            await saveOrUpdate(values, isUpdate.value);
+            closeModal();
+            emit('success');
+        } finally {
+            setModalProps({confirmLoading: false});
+        }
+    }
+</script>
+
+<style lang="less" scoped>
+  :deep(.ant-input-number) { width: 100%; }
+  :deep(.ant-calendar-picker) { width: 100%; }
+</style>
+```
+
+**原始布局 Modal 与 Tab-in-Modal (C9) 的关键区别：**
+- **无 `wrapClassName="j-cgform-tab-modal"`**，无 `.titleArea`/`.contentArea` 样式
+- **无 `#title` 插槽**，标题用普通 `:title="title"` 属性
+- **无 radio-group**，主表 BasicForm 始终显示在上方
+- 子表区域使用 **`a-tabs`**（内容区的标签页），而非标题栏的 radio-group
+- `refKeys` **不包含主表 key**（只有子表 key），因为主表不参与 Tab 切换
+- `validateSubForm` 中 `validateForm(1)` 的 index 对应 `refKeys` 中一对一子表的位置（从0开始，0=一对多，1=一对一）
+
+#### 内嵌子表与其他风格的生成差异速查
+
+| 生成项 | 内嵌子表（C12） | Tab-in-Modal（C9） | ERP（C11） |
+|--------|---------------|-------------------|-----------|
+| SubTable 组件 | **需要生成** | 不需要 | 不需要 |
+| subTables/ 目录 | **需要创建** | 不需要 | 不需要 |
+| api.ts 子表导出 | **URL字符串 + 函数双重导出** | 仅 URL 字符串 | 仅函数导出 |
+| data.ts 子表列 | **BasicColumn[] + JVxeColumn[]** | 仅 JVxeColumn[] | 仅 BasicColumn[] + FormSchema[] |
+| List.vue expandedRowRender | **需要** | 不需要 | 不需要 |
+| List.vue rowSelection | 多选（默认） | 多选（默认） | 单选 radio |
+| Modal 布局 | **原始布局**（上面主表 + 下面子表 a-tabs） | **radio-group 标题栏**切换 | 仅主表字段 |
+| Modal wrapClassName | 无 | `j-cgform-tab-modal` | 无 |
+| Modal refKeys | **只有子表 key** | 包含主表 + 子表 key | 无 |
+| 后端接口 | `/add`(saveMain) `/edit`(updateMain) | 同左 | `/addMain`(save) `/editMain`(updateById) |
+
+---
+
+### C13. vue3Native 原生风格一对多（默认布局）
+
+vue3Native 一对多与 vue3 封装风格（C9/C12）的架构**完全不同**。核心区别：**Form 组件（不是 Modal）** 包含主表表单和子表 Tabs，Modal 只是一个薄包装器。
+
+#### 架构对比
+
+| 维度 | vue3 封装风格（C9 Tab-in-Modal） | vue3Native 原生风格 |
+|------|-------------------------------|-------------------|
+| **Modal 职责** | 包含 BasicForm + JVxeTable + SubForm，负责数据编排和提交 | **薄包装器**，只调 `formComponent.submitForm()/edit()/add()` |
+| **Form 职责** | 仅主表字段（单表场景才有 Form.vue） | **核心组件**，包含主表 a-form + 子表 a-tabs + 数据提交逻辑 |
+| **数据收集 hook** | `useJvxeMethod` | `useValidateAntFormAndTable` |
+| **主表表单** | `BasicForm` + `useForm` from `/@/components/Form/index` | 原生 `a-form` + `Form.useForm` from `ant-design-vue` |
+| **一对一子表** | `BasicForm` + `useForm`，`initFormData(url, id)` 传 URL 字符串 | 原生 `a-form` + `Form.useForm`，`initFormData(mainId)` 传主表 ID |
+| **子表 API 导出** | URL 字符串（`export const xxxList = Api.xxxList`） | **函数导出**（`export const queryXxxByMainId = (id) => defHttp.get({...})`） |
+| **saveOrUpdate** | 普通 `defHttp.post({url, params})` | 同左，**不需要** `isTransformResponse: false` |
+| **data.ts** | 有 formSchema（主表）+ JVxeColumn[]（子表）+ FormSchema[]（一对一子表） | **无 formSchema**（主表在模板中写），只有 JVxeColumn[]（子表），**无 FormSchema[]**（一对一子表也在模板中写） |
+| **List.vue** | `useModal` + `openModal(true, {...})` | 同左 |
+| **refKeys** | 包含主表 key + 子表 key | **不需要 refKeys** |
+
+#### 文件结构
+
+```
+views/{{viewDir}}/
+├── {{entityName}}List.vue                   # 主列表（useModal + openModal）
+├── {{entityName}}.api.ts                    # API（子表导出为函数，需要 queryDataById）
+├── {{entityName}}.data.ts                   # 仅 columns + superQuerySchema + JVxeColumn[]（无 formSchema）
+└── components/
+    ├── {{entityName}}Modal.vue              # 薄包装器（BasicModal + useModalInner）
+    ├── {{entityName}}Form.vue               # 核心组件（主表 a-form + 子表 a-tabs + useValidateAntFormAndTable）
+    └── {{detailEntityName}}Form.vue         # 一对一子表原生 Form（仅有一对一子表时）
+```
+
+#### C13-1. api.ts 差异
+
+```typescript
+import { defHttp } from '/@/utils/http/axios';
+
+enum Api {
+  // ... 主表 CRUD 接口
+  queryDataById = '/{{entityPackagePath}}/{{entityName_uncap}}/queryById',
+  {{subEntityName_uncap}}List = '/{{entityPackagePath}}/{{entityName_uncap}}/query{{subEntityName}}ByMainId',
+  {{detailEntityName_uncap}}List = '/{{entityPackagePath}}/{{entityName_uncap}}/query{{detailEntityName}}ByMainId',
+}
+
+// ✅ saveOrUpdate 不需要 isTransformResponse: false
+export const saveOrUpdate = (params, isUpdate) => {
+  let url = isUpdate ? Api.edit : Api.save;
+  return defHttp.post({ url: url, params });
+};
+
+// ✅ 需要 queryDataById（Form.vue 编辑时重新查询主表数据）
+export const queryDataById = (id) => defHttp.get({ url: Api.queryDataById, params: { id } });
+
+// ✅ 子表导出为函数（不是 URL 字符串！）
+export const query{{subEntityName}}ListByMainId = (id) => defHttp.get({ url: Api.{{subEntityName_uncap}}List, params: { id } });
+export const query{{detailEntityName}}ListByMainId = (id) => defHttp.get({ url: Api.{{detailEntityName_uncap}}List, params: { id } });
+```
+
+**与 vue3 封装风格的关键差异：**
+- `saveOrUpdate` **不用** `{ isTransformResponse: false }`
+- 子表查询导出为**函数**（`(id) => defHttp.get({...})`），不是 URL 字符串
+- 需要额外的 `queryDataById` 函数（Form 编辑时 `queryMainData(id)` 调用）
+
+#### C13-2. data.ts 差异
+
+vue3Native 的 data.ts **只包含 columns、superQuerySchema 和 JVxeColumn[]**，不包含 formSchema 和一对一子表的 FormSchema：
+
+```typescript
+import { BasicColumn } from '/@/components/Table';
+import { JVxeTypes, JVxeColumn } from '/@/components/jeecg/JVxeTable/types';
+
+// 主表列定义（与单表相同）
+export const columns: BasicColumn[] = [ /* ... */ ];
+
+// 高级查询（与单表相同）
+export const superQuerySchema = { /* ... */ };
+
+// 一对多子表列定义（JVxeColumn[] 与 vue3 封装风格相同）
+export const {{subEntityName_uncap}}Columns: JVxeColumn[] = [ /* ... */ ];
+
+// ❌ 不需要 formSchema（主表表单在 Form.vue 模板中直接写 a-form）
+// ❌ 不需要 {{detailEntityName_uncap}}FormSchema（一对一子表在 DetailForm.vue 模板中写 a-form）
+```
+
+#### C13-3. Modal.vue — 薄包装器
+
+```html
+<template>
+  <BasicModal v-bind="$attrs" @register="registerModal" :title="title" maxHeight="500px" :width="800" @ok="handleSubmit">
+    <{{entityName_uncap}}-form ref="formComponent" :formDisabled="formDisabled" :formBpm="false" @success="submitSuccess"><\/{{entityName_uncap}}-form>
+  </BasicModal>
+</template>
+
+<script lang="ts">
+  import { ref, unref } from 'vue';
+  import { BasicModal, useModalInner } from '/@/components/Modal';
+  import {{entityName}}Form from './{{entityName}}Form.vue';
+
+  export default {
+    name: "{{entityName}}Modal",
+    components:{ BasicModal, {{entityName}}Form },
+    emits:['register','success'],
+    setup(_p, {emit}){
+      const formComponent = ref()
+      const isUpdate = ref(true);
+      const formDisabled = ref(false);
+      const title = ref('')
+
+      const [registerModal, {setModalProps, closeModal}] = useModalInner(async (data) => {
+        setModalProps({confirmLoading: false, showCancelBtn: data?.showFooter, showOkBtn: data?.showFooter});
+        isUpdate.value = !!data?.isUpdate;
+        formDisabled.value = !data?.showFooter;
+        title.value = data?.isUpdate ? (unref(formDisabled) ? '详情' : '编辑') : '新增';
+        if (unref(isUpdate)) {
+          formComponent.value.edit(data.record)
+        } else {
+          formComponent.value.add()
+        }
+      });
+
+      function handleSubmit() {
+        formComponent.value.submitForm();
+      }
+
+      function submitSuccess(){
+        emit('success');
+        closeModal();
+      }
+      return { registerModal, title, formComponent, formDisabled, handleSubmit, submitSuccess }
+    }
+  }
+</script>
+```
+
+**关键点：**
+- **不用** `<script setup>`，使用 Options API（`export default {...}`）
+- Modal 只做三件事：(1) 新增时调 `formComponent.value.add()`，(2) 编辑时调 `formComponent.value.edit(data.record)`，(3) 提交时调 `formComponent.value.submitForm()`
+- `submitSuccess` 由 Form 组件 `emit('success')` 触发，然后 Modal 关闭并通知 List 刷新
+
+#### C13-4. Form.vue — 核心组件（主表 + 子表 + 提交逻辑）
+
+```html
+<template>
+  <a-spin :spinning="loading">
+    <JFormContainer :disabled="disabled">
+      <template #detail>
+        <a-form v-bind="formItemLayout" name="{{entityName}}Form" ref="formRef" class="jeecg-native-form">
+          <a-row>
+            <!-- 主表字段，与单表 Form.vue 相同 -->
+            <a-col :span="24">
+              <a-form-item label="字段名" v-bind="validateInfos.fieldName" id="{{entityName}}Form-fieldName" name="fieldName">
+                <a-input v-model:value="formData.fieldName" placeholder="请输入" allow-clear />
+              </a-form-item>
+            </a-col>
+            <!-- ... 其他主表字段 ... -->
+          </a-row>
+        </a-form>
+      </template>
+    </JFormContainer>
+
+    <!-- ✅ 子表区域在 Form 中，不是在 Modal 中 -->
+    <a-tabs v-model:activeKey="activeKey" animated style="overflow:hidden;" class="jeecg-native-tab">
+      <!-- 一对多子表 Tab -->
+      <a-tab-pane tab="{{subDescription}}" key="{{subEntityName_uncap}}" :forceRender="true">
+        <j-vxe-table
+          :keep-source="true" resizable
+          ref="{{subEntityName_uncap}}TableRef"
+          :loading="{{subEntityName_uncap}}Table.loading"
+          :columns="{{subEntityName_uncap}}Table.columns"
+          :dataSource="{{subEntityName_uncap}}Table.dataSource"
+          :height="340" :disabled="disabled"
+          :rowNumber="true" :rowSelection="true" :toolbar="true"/>
+      </a-tab-pane>
+      <!-- 一对一子表 Tab -->
+      <a-tab-pane class="sub-one-form" tab="{{detailDescription}}" key="{{detailEntityName_uncap}}" :forceRender="true">
+        <{{detailEntityName_uncap}}-form ref="{{detailEntityName_uncap}}FormRef" :disabled="disabled"><\/{{detailEntityName_uncap}}-form>
+      </a-tab-pane>
+    </a-tabs>
+    <!-- 流程表单提交按钮（仅 BPM 模式可见） -->
+    <div v-if="showFlowSubmitButton" :span="24" style="width: 100%;text-align: center;margin-top: 10px">
+      <a-button preIcon="ant-design:check-outlined" style="width: 126px" type="primary" @click="submitForm">提 交</a-button>
+    </div>
+  </a-spin>
+</template>
+
+<script lang="ts">
+  import { defineComponent, ref, reactive, computed, toRaw, onMounted } from 'vue';
+  import { defHttp } from '/@/utils/http/axios';
+  import { useValidateAntFormAndTable } from '/@/hooks/system/useJvxeMethods';
+  import { query{{subEntityName}}ListByMainId, queryDataById, saveOrUpdate } from '../{{entityName}}.api';
+  import {{detailEntityName}}Form from './{{detailEntityName}}Form.vue';
+  import { {{subEntityName_uncap}}Columns } from '../{{entityName}}.data';
+  // ... import 表单控件组件 ...
+  import JFormContainer from '/@/components/Form/src/container/JFormContainer.vue';
+  import { Form } from 'ant-design-vue';
+  const useForm = Form.useForm;
+
+  export default defineComponent({
+    name: "{{entityName}}Form",
+    components:{ JFormContainer, {{detailEntityName}}Form, /* ... 其他控件 ... */ },
+    props:{
+      formDisabled: { type: Boolean, default: false },
+      formData: { type: Object, default: ()=>{} },
+      formBpm: { type: Boolean, default: true },
+      showSubmitButton: { type: Boolean, default: true },
+    },
+    emits:['success'],
+    setup(props, {emit}) {
+      const loading = ref(false);
+      const formRef = ref();
+      const {{detailEntityName_uncap}}FormRef = ref();
+      const {{subEntityName_uncap}}TableRef = ref();
+      const {{subEntityName_uncap}}Table = reactive<Record<string, any>>({
+        loading: false,
+        columns: {{subEntityName_uncap}}Columns,
+        dataSource: []
+      });
+      const activeKey = ref('{{subEntityName_uncap}}');
+      const formData = reactive<Record<string, any>>({
+        id: '',
+        // ... 主表字段
+      });
+
+      const validatorRules = reactive({ /* 校验规则 */ });
+      const { resetFields, validate, validateInfos } = useForm(formData, validatorRules, { immediate: false });
+      const dbData = {};
+      const formItemLayout = {
+        labelCol: { xs: { span: 24 }, sm: { span: 5 } },
+        wrapperCol: { xs: { span: 24 }, sm: { span: 16 } },
+      };
+
+      const disabled = computed(() => {
+        if (props.formBpm === true) {
+          return props.formData.disabled !== false;
+        }
+        return props.formDisabled;
+      });
+
+      // ✅ 使用 useValidateAntFormAndTable（不是 useJvxeMethod）
+      // key 与 a-tabs 的 activeKey 对应，value 是子组件的 ref
+      const { getSubFormAndTableData, transformData } = useValidateAntFormAndTable(activeKey, {
+        '{{detailEntityName_uncap}}': {{detailEntityName_uncap}}FormRef,  // 一对一子表（isForm = true）
+        '{{subEntityName_uncap}}': {{subEntityName_uncap}}TableRef,       // 一对多子表（JVxeTable ref）
+      });
+
+      function add() {
+        resetFields();
+        {{detailEntityName_uncap}}FormRef.value.initFormData();  // 无参数 = 新增
+        {{subEntityName_uncap}}Table.dataSource = [];
+      }
+
+      async function edit(row) {
+        // 1. 主表数据
+        await queryMainData(row.id);
+        // 2. 一对一子表数据
+        await {{detailEntityName_uncap}}FormRef.value.initFormData(row['id']);
+        // 3. 一对多子表数据
+        const subDataList = await query{{subEntityName}}ListByMainId(row['id']);
+        {{subEntityName_uncap}}Table.dataSource = [...subDataList];
+      }
+
+      async function queryMainData(id) {
+        const row = await queryDataById(id);
+        resetFields();
+        const tmpData = {};
+        Object.keys(formData).forEach((key) => {
+          if (row.hasOwnProperty(key)) {
+            tmpData[key] = row[key];
+          }
+        });
+        Object.assign(formData, tmpData);
+      }
+
+      async function getFormData() {
+        try {
+          await validate();
+        } catch ({ errorFields }) {
+          if (errorFields) {
+            const firstField = errorFields[0];
+            if (firstField) {
+              formRef.value.scrollToField(firstField.name, { behavior: 'smooth', block: 'center' });
+            }
+          }
+          return Promise.reject(errorFields);
+        }
+        return transformData(toRaw(formData));
+      }
+
+      // ✅ 提交逻辑在 Form 中，不在 Modal 中
+      async function submitForm() {
+        const mainData = await getFormData();
+        const subData = await getSubFormAndTableData();
+        const values = Object.assign({}, dbData, mainData, subData);
+        const isUpdate = values.id ? true : false;
+        await saveOrUpdate(values, isUpdate);
+        emit('success');
+      }
+
+      function setFieldsValue(values) {
+        if (values) {
+          Object.keys(values).map(k => { formData[k] = values[k]; });
+        }
+      }
+
+      // 流程表单 BPM 相关（与单表 Form 相同）
+      onMounted(() => { /* initFormData for BPM */ });
+      const showFlowSubmitButton = computed(() => {
+        return props.formBpm === true && props.showSubmitButton === true && props.formData.disabled === false;
+      });
+
+      return {
+        {{detailEntityName_uncap}}FormRef, {{subEntityName_uncap}}TableRef, {{subEntityName_uncap}}Table,
+        validatorRules, validateInfos, activeKey, loading, formData,
+        setFieldsValue, formItemLayout, disabled, showFlowSubmitButton,
+        getFormData, submitForm, add, edit, formRef,
+      }
+    }
+  });
+</script>
+<style lang="less" scoped>
+  .ant-tabs-tabpane.sub-one-form { max-height: 340px; overflow: auto; }
+  .jeecg-native-form, .jeecg-native-tab { padding: 0 20px; }
+</style>
+```
+
+**Form.vue 关键点：**
+1. **必须用 `defineComponent`**（Options API），不能用 `<script setup>`，因为需要 `return` 暴露方法给 Modal 通过 `ref` 调用
+2. **`useValidateAntFormAndTable`** 是核心 hook，它根据子组件是否有 `isForm = true` 属性来区分一对一表单和 JVxeTable
+3. **`getSubFormAndTableData()`** 自动收集所有子表数据：一对一子表调用 `getFormData()` 取数据，一对多子表从 JVxeTable 取 `tableData`
+4. **`transformData(toRaw(formData))`** 处理主表数据中的数组字段（逗号拼接）
+5. 编辑时通过 `queryDataById(id)` 重新查询主表数据，不直接用 record（确保字段完整）
+6. 子表数据加载通过**函数调用**（不是 `defHttp.get({url: urlString, ...})`）
+
+#### C13-5. 一对一子表 Form（原生 a-form 风格）
+
+```html
+<template>
+  <a-spin :spinning="loading">
+    <JFormContainer :disabled="disabled">
+      <template #detail>
+        <a-form v-bind="formItemLayout" name="{{detailEntityName}}Form" ref="formRef" class="antd-modal-form">
+          <a-row>
+            <!-- 一对一子表字段 -->
+            <a-col :span="24">
+              <a-form-item label="字段名" v-bind="validateInfos.fieldName" id="{{detailEntityName}}Form-fieldName" name="fieldName">
+                <a-input v-model:value="formData.fieldName" placeholder="请输入" allow-clear />
+              </a-form-item>
+            </a-col>
+            <!-- ... -->
+          </a-row>
+        </a-form>
+      </template>
+    </JFormContainer>
+  </a-spin>
+</template>
+
+<script lang="ts">
+  import { defineComponent, ref, reactive, toRaw } from 'vue';
+  import { query{{detailEntityName}}ListByMainId } from '../{{entityName}}.api';
+  import JFormContainer from '/@/components/Form/src/container/JFormContainer.vue';
+  import { Form } from 'ant-design-vue';
+  const useForm = Form.useForm;
+
+  export default defineComponent({
+    name: '{{detailEntityName}}Form',
+    components:{ JFormContainer },
+    props:{
+      disabled: { type: Boolean, default: false }
+    },
+    setup(){
+      const isForm = true;  // ✅ 关键标记！useValidateAntFormAndTable 用此判断为表单而非 JVxeTable
+      const loading = ref(false);
+      const formRef = ref();
+      const formData = reactive<Record<string, any>>({
+        id: '',
+        // ... 一对一子表字段
+      });
+      const validatorRules = reactive({ /* 校验规则 */ });
+      const { resetFields, validate, validateInfos } = useForm(formData, validatorRules, { immediate: false });
+      const formItemLayout = {
+        labelCol: { xs: { span: 24 }, sm: { span: 5 } },
+        wrapperCol: { xs: { span: 24 }, sm: { span: 16 } },
+      };
+
+      // ✅ 接收 mainId（不是 url + id），直接调用 API 函数
+      async function initFormData(mainId) {
+        resetFields();
+        let tmpData = {};
+        if (mainId) {
+          let list = await query{{detailEntityName}}ListByMainId(mainId);
+          if (list && list.length > 0) {
+            let temp = list[0];
+            Object.keys(formData).forEach((key) => {
+              if (temp.hasOwnProperty(key)) {
+                tmpData[key] = temp[key];
+              }
+            });
+          }
+        }
+        Object.assign(formData, tmpData);
+      }
+
+      // ✅ getFormData 返回 toRaw(formData)（不是数组！）
+      async function getFormData() {
+        try {
+          await validate();
+        } catch ({ errorFields }) {
+          if (errorFields) {
+            const firstField = errorFields[0];
+            if (firstField) {
+              formRef.value.scrollToField(firstField.name, { behavior: 'smooth', block: 'center' });
+            }
+          }
+          return Promise.reject(errorFields);
+        }
+        let subFormData = toRaw(formData);
+        if (Object.keys(subFormData).length > 0) {
+          return subFormData;
+        }
+        return false;
+      }
+
+      function setFieldsValue(values) {
+        if (values) {
+          Object.keys(values).map(k => { formData[k] = values[k]; });
+        }
+      }
+
+      return {
+        loading, formData, formItemLayout, initFormData, getFormData,
+        setFieldsValue, isForm, validateInfos, formRef,
+      }
+    }
+  });
+</script>
+```
+
+**一对一子表 Form（vue3Native）与 vue3 封装风格的关键差异：**
+
+| 维度 | vue3 封装风格 (C9) | vue3Native 原生风格 (C13) |
+|------|-------------------|-------------------------|
+| 模板 | `<BasicForm @register="registerForm" />` | 原生 `<a-form>` + `<JFormContainer>` + 手写每个 `<a-form-item>` |
+| useForm 来源 | `import { useForm } from '/@/components/Form/index'` | `import { Form } from 'ant-design-vue'; Form.useForm` |
+| `initFormData` 参数 | `(url, id)` — 传 URL 字符串 + 主表 ID | `(mainId)` — 只传主表 ID，内部直接调用 API 函数 |
+| `initFormData` 实现 | `defHttp.get({url, params:{id}}, {isTransformResponse:false})` 取 `res.result[0]` | `await queryXxxByMainId(mainId)` 取 `list[0]` |
+| `getFormData` 返回值 | **数组** `[formData]` | **对象** `toRaw(formData)`（`useValidateAntFormAndTable` 内部处理包装） |
+| 暴露 `isForm` 属性 | 不需要 | **必须** `const isForm = true` 并 return |
+| 暴露 `validateForm` | 需要（`useJvxeMethod` 的 `validateSubForm` 回调会调用） | 不需要（`useValidateAntFormAndTable` 内部自动校验） |
+
+#### C13-6. List.vue 差异
+
+vue3Native 一对多的 List.vue 使用 `useModal` + `openModal(true, {...})` 模式（与 vue3 封装风格**相同**）：
+
+```typescript
+import { useModal } from '/@/components/Modal';
+import EduCourseModal from './components/EduCourseModal.vue';
+
+const [registerModal, { openModal }] = useModal();
+
+function handleAdd() {
+  openModal(true, { isUpdate: false, showFooter: true });
+}
+function handleEdit(record) {
+  openModal(true, { record, isUpdate: true, showFooter: true });
+}
+function handleDetail(record) {
+  openModal(true, { record, isUpdate: true, showFooter: false });
+}
+```
+
+模板中使用 `@register="registerModal"`：
+```html
+<EduCourseModal @register="registerModal" @success="handleSuccess"></EduCourseModal>
+```
+
+**注意：** 不要用 `ref` + `registerModal.value.add()` 模式（那是 `j-modal` 风格），vue3Native 一对多使用 `BasicModal` + `useModal/useModalInner` 配对。
+
+#### C13-7. vue3Native 一对多技术要点和常见陷阱
+
+| 要点 | 说明 |
+|------|------|
+| **Form.vue 必须用 `defineComponent`** | 不能用 `<script setup>`，因为 Modal 需要通过 `ref` 调用 `add()/edit()/submitForm()` 方法，`defineComponent` + `return` 自动暴露 |
+| **Modal 是薄包装器** | Modal 不包含子表，不做数据收集，只负责打开/关闭和调用 Form 方法 |
+| **`useValidateAntFormAndTable` 替代 `useJvxeMethod`** | 原生风格使用 `useValidateAntFormAndTable(activeKey, refsMap)` 而非 `useJvxeMethod`，它根据 `isForm` 属性自动区分表单和 JVxeTable |
+| **一对一子表必须暴露 `isForm = true`** | `useValidateAntFormAndTable` 通过检查 ref 组件上的 `isForm` 属性来判断是调用 `getFormData()` 还是 `getTableData()` |
+| **一对一子表 `getFormData()` 返回对象** | 返回 `toRaw(formData)`（对象），不是数组 `[formData]`；`useValidateAntFormAndTable` 内部会自动包装 |
+| **一对一子表 `initFormData(mainId)` 只传 ID** | 直接调用 API 函数获取数据，不传 URL 字符串 |
+| **子表 API 必须是函数导出** | `export const queryXxxByMainId = (id) => defHttp.get({...})`，不是 URL 字符串 |
+| **`saveOrUpdate` 不用 `isTransformResponse: false`** | 原生风格的 `saveOrUpdate` 直接 `defHttp.post({url, params})`，不需要手动解析响应 |
+| **需要 `queryDataById` 函数** | Form 编辑时通过 `queryDataById(id)` 重新查询主表完整数据，不直接用 record（避免字段缺失） |
+| **activeKey 与 a-tabs 对应** | `useValidateAntFormAndTable` 的第一个参数 `activeKey` 与 `<a-tabs v-model:activeKey>` 一致 |
+| **refsMap 的 key 与 tab key 一致** | `useValidateAntFormAndTable` 的第二个参数中，key 必须与 `<a-tab-pane key="xxx">` 的 key 一致 |
+| **数据提交在 Form 中完成** | `submitForm()` 在 Form.vue 中，调用 `getFormData()` + `getSubFormAndTableData()` 后 `saveOrUpdate` |
+| **`getSubFormAndTableData()` 自动组装子表字段名** | 返回对象的 key 格式为 `{tabKey}List`（如 `eduCourseChapterList`），与后端 Page VO 属性名一致 |
 
 ---
 

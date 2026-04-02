@@ -16,16 +16,67 @@
 | `applyDate` | 发起日期 | `${applyDate > '2026-01-01'}` |
 | `result` | 审批结果 | `${result == 1}` 通过 / `${result == 0}` 拒绝 |
 
-### 1.2 条件运算符
+### 1.2 条件表达式格式（flowUtil.evaluateExpression）
+
+> **重要：所有网关分支条件必须使用 `flowUtil.evaluateExpression` 格式，不要使用简单的 `${variable > 3}` 写法。**
+
+**表达式格式：**
+```xml
+<bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression">${flowUtil.evaluateExpression(execution, 'BASE64_ENCODED_JSON', 'and')}</bpmn2:conditionExpression>
+```
+
+**base64 解码后的 JSON 结构：**
+```json
+[{
+  "logic": "and",
+  "conditions": [{
+    "operator": "gt",
+    "field": "integer_xxx_xxx",
+    "fieldType": "integer",
+    "fieldName": "请假天数",
+    "expectedValue": "3"
+  }]
+}]
+```
+
+**字段说明：**
+| 字段 | 说明 | 示例 |
+|------|------|------|
+| `logic` | 条件组逻辑 | `and` / `or` |
+| `operator` | 运算符 | 见下方运算符表 |
+| `field` | 表单字段 model | `integer_xxx_xxx`（desform 字段）或系统变量如 `result` |
+| `fieldType` | 字段类型 | `integer`, `number`, `input`, `select`, `date` 等 |
+| `fieldName` | 字段中文名 | 用于设计器显示 |
+| `expectedValue` | 比较值 | 字符串格式 |
+
+**多条件组合：** 支持多个条件组（数组中多个对象），也支持单个组内多个条件：
+```json
+[{
+  "logic": "and",
+  "conditions": [
+    {"operator": "gt", "field": "amount", "fieldType": "number", "fieldName": "金额", "expectedValue": "10000"},
+    {"operator": "eq", "field": "type", "fieldType": "select", "fieldName": "类型", "expectedValue": "采购"}
+  ]
+}]
+```
+
+**Python 生成 base64：**
+```python
+import json, base64
+condition = json.dumps([{"logic": "and", "conditions": [...]}], ensure_ascii=False)
+b64 = base64.b64encode(condition.encode('utf-8')).decode('utf-8')
+```
+
+### 1.3 条件运算符
 
 | 运算符 | 含义 | 适用类型 |
 |--------|------|---------|
-| `eq` / `==` | 等于 | 字符串、数字、日期 |
-| `ne` / `!=` | 不等于 | 字符串、数字、日期 |
-| `gt` / `>` | 大于 | 数字、日期 |
-| `gte` / `>=` | 大于等于 | 数字、日期 |
-| `lt` / `<` | 小于 | 数字、日期 |
-| `lte` / `<=` | 小于等于 | 数字、日期 |
+| `eq` | 等于 | 字符串、数字、日期 |
+| `ne` | 不等于 | 字符串、数字、日期 |
+| `gt` | 大于 | 数字、日期 |
+| `gte` | 大于等于 | 数字、日期 |
+| `lt` | 小于 | 数字、日期 |
+| `lte` / `le` | 小于等于 | 数字、日期 |
 | `in` | 在列表中 | 字符串、数字 |
 | `not_in` | 不在列表中 | 字符串、数字 |
 | `contains` | 包含 | 字符串 |
@@ -33,6 +84,25 @@
 | `is_not_empty` | 不为空 | 字符串、数字、文件 |
 | `is_department_manager` | 是部门负责人 | applyUserId, lastAssignee |
 | `is_not_department_manager` | 不是部门负责人 | applyUserId, lastAssignee |
+
+### 1.4 排他网关默认流规则
+
+> **重要：排他网关必须设置一条默认流（`default` 属性），默认流不带条件表达式。**
+
+```xml
+<!-- default 指向默认流 id -->
+<bpmn2:exclusiveGateway id="gateway_xxx" name="网关名称" default="flow_default" />
+
+<!-- 有条件分支 -->
+<bpmn2:sequenceFlow id="flow_condition" name="大于3天" sourceRef="gateway_xxx" targetRef="task_hr">
+  <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression">${flowUtil.evaluateExpression(execution, 'BASE64', 'and')}</bpmn2:conditionExpression>
+</bpmn2:sequenceFlow>
+
+<!-- 默认流（无条件） -->
+<bpmn2:sequenceFlow id="flow_default" name="3天及以内(默认)" sourceRef="gateway_xxx" targetRef="end" />
+```
+
+当所有条件分支都不满足时，流程自动走默认流，避免流程卡死。
 
 ---
 
@@ -90,7 +160,136 @@
 
 ## 4. 服务任务（ServiceTask）
 
-### 4.1 API 服务任务
+服务任务是自动执行节点，流程流转到该节点时自动调用指定逻辑，无需人工操作。Flowable 支持三种配置方式。
+
+### 4.1 Java 类配置（flowable:class）
+
+指定一个实现了 `JavaDelegate` 接口的 Java 类，流程到达该节点时自动调用 `execute()` 方法。
+
+**XML 配置：**
+```xml
+<bpmn2:serviceTask id="service_java" name="Java服务节点"
+  flowable:class="org.jeecg.modules.testListenerExpression.TestService">
+</bpmn2:serviceTask>
+```
+
+**Java 代码示例：**
+```java
+package org.jeecg.modules.testListenerExpression;
+
+import org.flowable.engine.delegate.DelegateExecution;
+import org.flowable.engine.delegate.JavaDelegate;
+
+public class TestService implements JavaDelegate {
+    @Override
+    public void execute(DelegateExecution execution) {
+        // 读取流程变量
+        String applyUser = (String) execution.getVariable("applyUserId");
+
+        // 执行业务逻辑（如调用数据库、调用外部API等）
+        System.out.println("Java服务节点执行，发起人: " + applyUser);
+
+        // 设置流程变量供后续节点使用
+        execution.setVariable("serviceResult", "success");
+    }
+}
+```
+
+**适用场景：** 复杂业务逻辑、调用数据库、调用外部 API、数据转换处理等。
+
+### 4.2 表达式配置（flowable:expression）
+
+使用 UEL 表达式调用 Spring Bean 的方法：
+
+**XML 配置：**
+```xml
+<bpmn2:serviceTask id="service_expr" name="表达式服务节点"
+  flowable:expression="${myService.doSomething(execution)}">
+</bpmn2:serviceTask>
+```
+
+**带返回值（存入流程变量）：**
+```xml
+<bpmn2:serviceTask id="service_expr_result" name="表达式带返回值"
+  flowable:expression="${myService.calculate(execution)}"
+  flowable:resultVariable="calcResult">
+</bpmn2:serviceTask>
+```
+
+**Java 代码示例：**
+```java
+@Service("myService")
+public class MyService {
+    public void doSomething(DelegateExecution execution) {
+        // 无返回值，直接执行逻辑
+        String formData = (String) execution.getVariable("formField");
+        // ... 业务处理
+    }
+
+    public String calculate(DelegateExecution execution) {
+        // 有返回值，结果自动存入 flowable:resultVariable 指定的流程变量
+        return "计算结果";
+    }
+}
+```
+
+**适用场景：** 调用已有的 Spring Bean 方法，无需创建额外的 JavaDelegate 类，代码更简洁。
+
+### 4.3 委托表达式配置（flowable:delegateExpression）
+
+通过 Spring Bean 名称引用一个实现了 `JavaDelegate` 接口的 Bean：
+
+**XML 配置：**
+```xml
+<bpmn2:serviceTask id="service_delegate" name="委托表达式服务节点"
+  flowable:delegateExpression="${myJavaDelegateBean}">
+</bpmn2:serviceTask>
+```
+
+**Java 代码示例：**
+```java
+@Component("myJavaDelegateBean")
+public class MyJavaDelegateBean implements JavaDelegate {
+    @Autowired
+    private SomeRepository repository;  // 可注入 Spring 依赖
+
+    @Override
+    public void execute(DelegateExecution execution) {
+        // 可使用 Spring 注入的依赖
+        repository.save(...);
+    }
+}
+```
+
+**适用场景：** 需要同时使用 `JavaDelegate` 接口和 Spring 依赖注入的场景，结合了 4.1 和 4.2 的优点。
+
+### 4.4 三种配置方式对比
+
+| 对比项 | flowable:class | flowable:expression | flowable:delegateExpression |
+|--------|---------------|--------------------|-----------------------------|
+| 配置值 | Java 类全路径 | UEL 表达式 | Spring Bean 名称 |
+| 实例化 | 每次 new 新实例 | Spring 容器管理 | Spring 容器管理 |
+| Spring 注入 | 不支持（需手动获取） | 支持 | 支持 |
+| 返回值 | 不支持 | 支持（resultVariable） | 不支持 |
+| 代码要求 | 实现 JavaDelegate | 普通 Spring Bean 方法 | 实现 JavaDelegate + @Component |
+| 典型场景 | 独立工具类 | 调用已有服务方法 | 需要 DI 的 JavaDelegate |
+
+### 4.5 服务任务中的流程变量操作
+
+```java
+// 读取流程变量
+String value = (String) execution.getVariable("variableName");
+Integer num = (Integer) execution.getVariable("intField");
+
+// 设置流程变量（后续节点可读取）
+execution.setVariable("resultKey", "resultValue");
+
+// 获取流程实例信息
+String processInstanceId = execution.getProcessInstanceId();
+String businessKey = execution.getProcessInstanceBusinessKey();
+```
+
+### 4.6 API 服务任务（JeecgBoot 内置）
 
 自动调用外部 HTTP 接口：
 
@@ -115,7 +314,7 @@ ApiServiceTaskConfig JSON 结构：
 }
 ```
 
-### 4.2 AI 服务任务
+### 4.7 AI 服务任务（JeecgBoot 内置）
 
 调用 AI 大模型进行智能处理：
 
@@ -139,17 +338,201 @@ AiServiceTaskConfig JSON 结构：
 
 ---
 
-## 5. 设计器 API 端点一览
+## 5. 脚本任务（ScriptTask）
 
-| API 路径 | 用途 |
-|----------|------|
-| `act/designer/api/saveProcess` | 保存/新建流程 |
-| `act/designer/api/getProcessXml` | 获取流程 XML |
-| `act/designer/api/getTypes` | 获取流程类型列表 |
-| `act/designer/api/getPageUsers` | 获取用户列表（审批人选择） |
-| `act/designer/api/getGroups` | 获取角色/组列表 |
-| `act/designer/api/getRoleNameByCodes` | 根据角色编码获取名称 |
-| `act/designer/api/getExpressions` | 获取可用表达式列表 |
-| `act/designer/api/getListenersByType` | 获取监听器列表 |
-| `sys/sysDepart/queryDepartAndPostTreeSync` | 获取部门+岗位树 |
-| `sys/position/list` | 获取职级列表 |
+脚本任务是另一种自动执行节点，与服务任务不同的是脚本代码直接写在 BPMN XML 中，无需编写和部署 Java 类。
+
+### 5.1 基本配置
+
+```xml
+<bpmn2:scriptTask id="script_calc" name="脚本任务" scriptFormat="javascript">
+  <bpmn2:script>
+    var sum = 2 + 9;
+    execution.setVariable("myVar", sum);
+  </bpmn2:script>
+</bpmn2:scriptTask>
+```
+
+| 属性 | 说明 | 必填 |
+|------|------|------|
+| `scriptFormat` | 脚本语言 | 是 |
+| `flowable:resultVariable` | 脚本返回值存入的流程变量名 | 否 |
+| `<bpmn2:script>` | 脚本内容（子元素） | 是 |
+
+### 5.2 支持的脚本语言
+
+| scriptFormat | 说明 | JDK 支持 |
+|-------------|------|---------|
+| `javascript` | JavaScript（推荐，兼容性最好） | JDK 8 内置 Nashorn；JDK 15+ 需引入 GraalVM JS |
+| `groovy` | Groovy（需引入 groovy 依赖） | 需额外依赖 |
+| `juel` | JUEL 表达式 | Flowable 内置 |
+
+> **推荐使用 `javascript`**，JeecgBoot 默认支持，无需额外依赖。
+
+### 5.3 脚本中操作流程变量
+
+```javascript
+// 读取流程变量
+var applyUser = execution.getVariable("applyUserId");
+var amount = execution.getVariable("money_field");
+
+// 设置流程变量
+execution.setVariable("approved", true);
+execution.setVariable("totalAmount", amount * 1.1);
+
+// 条件判断后设置变量
+if (amount > 10000) {
+    execution.setVariable("needDirectorApproval", true);
+} else {
+    execution.setVariable("needDirectorApproval", false);
+}
+```
+
+### 5.4 带返回值的脚本任务
+
+```xml
+<bpmn2:scriptTask id="script_result" name="计算总额"
+  scriptFormat="javascript"
+  flowable:resultVariable="totalPrice">
+  <bpmn2:script>
+    var price = execution.getVariable("unitPrice");
+    var qty = execution.getVariable("quantity");
+    price * qty;
+  </bpmn2:script>
+</bpmn2:scriptTask>
+```
+
+> 脚本最后一行表达式的值会自动存入 `flowable:resultVariable` 指定的流程变量。
+
+### 5.5 完整流程示例（来自生产环境）
+
+```xml
+<!-- 开始 → 拟稿人 → Java服务节点 → 脚本任务 → 结束 -->
+<bpmn2:startEvent id="start" name="开始" flowable:initiator="applyUserId" />
+
+<bpmn2:userTask id="task_draft" name="拟稿人" flowable:assignee="${applyUserId}" />
+
+<bpmn2:serviceTask id="service_java" name="Java服务节点"
+  flowable:class="org.jeecg.modules.testListenerExpression.TestService" />
+
+<bpmn2:scriptTask id="script_calc" name="脚本任务" scriptFormat="javascript">
+  <bpmn2:script>var sum = 2 + 9;
+execution.setVariable("myVarsex", sum);</bpmn2:script>
+</bpmn2:scriptTask>
+
+<bpmn2:endEvent id="end" />
+
+<bpmn2:sequenceFlow id="f1" sourceRef="start" targetRef="task_draft" />
+<bpmn2:sequenceFlow id="f2" sourceRef="task_draft" targetRef="service_java" />
+<bpmn2:sequenceFlow id="f3" sourceRef="service_java" targetRef="script_calc" />
+<bpmn2:sequenceFlow id="f4" sourceRef="script_calc" targetRef="end" />
+```
+
+> **参考 BPMN 文件：** `references/example/流程java和脚本节点配置.bpmn`
+
+### 5.6 服务任务 vs 脚本任务对比
+
+| 对比项 | serviceTask | scriptTask |
+|--------|------------|------------|
+| 代码位置 | Java 后端类 | XML 内联脚本 |
+| 部署方式 | 需编译部署 Java 类 | 脚本随流程 XML 部署，修改流程即生效 |
+| 适用场景 | 复杂业务逻辑、数据库操作、外部 API | 简单计算、变量赋值、条件判断 |
+| Spring 依赖 | expression/delegateExpression 支持注入 | 不支持（只能操作流程变量） |
+| 调试 | 标准 Java 调试 | 较难调试 |
+| 性能 | 高 | 一般（脚本引擎解析开销） |
+
+### 5.7 XML 转义注意事项
+
+脚本内容在 XML 中时，特殊字符需要转义或使用 CDATA：
+
+```xml
+<!-- 方式1：XML 实体转义 -->
+<bpmn2:script>if (amount &gt; 1000) { execution.setVariable("flag", true); }</bpmn2:script>
+
+<!-- 方式2：使用 CDATA 包裹（推荐，避免转义麻烦） -->
+<bpmn2:script><![CDATA[
+if (amount > 1000 && type == "purchase") {
+    execution.setVariable("flag", true);
+}
+]]></bpmn2:script>
+```
+
+> **临时脚本生成 XML 时**，如果脚本内容包含 `<`、`>`、`&` 等字符，推荐用 CDATA 包裹整个脚本内容，避免 XML 解析错误。
+
+---
+
+## 6. 设计器 API 端点一览
+
+| API 路径 | 方法 | 用途 |
+|----------|------|------|
+| `act/designer/api/saveProcess` | POST | 保存/新建流程 |
+| `act/designer/api/getProcessXml` | GET | 获取流程 XML |
+| `act/designer/api/getTypes` | GET | 获取流程类型列表 |
+| `act/designer/api/getPageUsers` | GET | 获取用户列表（审批人选择） |
+| `act/designer/api/getGroups` | GET | 获取角色/组列表 |
+| `act/designer/api/getRoleNameByCodes` | GET | 根据角色编码获取名称 |
+| `act/designer/api/getExpressions` | GET | 获取可用表达式列表 |
+| `act/designer/api/getListenersByType` | GET | 获取监听器列表 |
+| `sys/sysDepart/queryDepartAndPostTreeSync` | GET | 获取部门+岗位树 |
+| `sys/position/list` | GET | 获取职级列表 |
+
+---
+
+## 7. 流程实例操作 API
+
+### 7.1 撤回已发起的流程实例
+
+**接口：** `/act/task/callBackProcess`
+
+**方法：** POST
+
+**请求体：**
+```json
+{
+  "processInstanceId": "流程实例ID"
+}
+```
+
+**返回：**
+```json
+{"success": true, "message": "撤回成功", "code": 200}
+```
+
+**错误返回（流转中的实例）：**
+```json
+{"success": false, "message": "流转中的实例不能被撤回，只有被退回的实例才能撤回", "code": 500}
+```
+
+> **注意：** 只有被审批人**拒绝/退回**的实例才能撤回，流转中的实例不能撤回。
+
+### 7.2 查询我的申请列表
+
+**接口：** `/act/task/myApplyProcessList`
+
+**方法：** GET
+
+**参数：**
+| 参数 | 说明 | 示例 |
+|------|------|------|
+| `column` | 排序字段 | `createTime` |
+| `order` | 排序方向 | `desc` |
+| `pageNo` | 页码 | `1` |
+| `pageSize` | 每页数量 | `10` |
+
+**返回字段：**
+| 字段 | 说明 |
+|------|------|
+| `id` / `processInstanceId` | 实例ID |
+| `processDefinitionName` | 流程名称 |
+| `currentTaskKey` / `currentTaskName` | 当前节点 |
+| `bpmStatus` | 状态 (1=草稿, 2=流转中, 3=已结束) |
+| `startTime` | 发起时间 |
+| `bpmBizTitle` | 业务标题 |
+
+### 7.3 删除流程实例
+
+**接口：** `/act/process/extActProcess/delete`
+
+**方法：** DELETE
+
+**参数：** `id` - 流程实例ID

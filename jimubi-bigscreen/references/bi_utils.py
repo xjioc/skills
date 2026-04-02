@@ -36,8 +36,8 @@ _page_info = {}        # {page_id: {name, style, theme, ...}}
 # ============================================================
 # 大屏（bigScreen）- 深色背景，亮色文字
 _BIGSCREEN = {
-    'bg': 'rgba(0,0,0,0)',
-    'border_color': '',
+    'bg': '#FFFFFF00',
+    'border_color': '#FFFFFF00',
     'title_color': '#ffffff',
     'axis_color': '#ffffff',
     'grid_color': 'rgba(255,255,255,0.1)',
@@ -435,6 +435,8 @@ def add_component(page_id, component, title, x, y, w, h, config=None):
 
     comp = {
         'component': component,
+        'componentName': title,
+        'visible': True,
         'i': key,
         'x': x,
         'y': y,
@@ -447,7 +449,7 @@ def add_component(page_id, component, title, x, y, w, h, config=None):
         'config': json.dumps(default_config, ensure_ascii=False),
     }
 
-    _page_components[page_id].append(comp)
+    _page_components[page_id].insert(0, comp)
     return comp
 
 
@@ -998,6 +1000,251 @@ def add_decoration(page_id, x, y, w, h, deco_type=1, color='#00BAFF'):
     }
 
     return add_component(page_id, 'JDragDecoration', f'装饰{deco_type}', x, y, w, h, config)
+
+
+def add_current_time(page_id, x, y, w=280, h=33, fmt='YYYY-MM-DD hh:mm:ss',
+                     show_week='show', hourly_system='12',
+                     color=None, font_weight='normal', letter_spacing=0):
+    """
+    添加实时时钟组件（JCurrentTime）。
+
+    Args:
+        fmt: 时间格式，如 'YYYY-MM-DD hh:mm:ss'
+        show_week: 是否显示星期 'show'/'hide'
+        hourly_system: 时制 '12'/'24'
+        color: 字体颜色（默认根据模式自动设置）
+        font_weight: 字体粗细 'normal'/'bold'
+        letter_spacing: 字间距
+    """
+    mode = _get_mode(page_id)
+    if color is None:
+        color = mode['title_color']
+
+    config = {
+        'dataType': 1,
+        'background': mode['bg'],
+        'borderColor': mode['border_color'],
+        'chartData': '',
+        'option': {
+            'showWeek': show_week,
+            'hourlySystem': hourly_system,
+            'format': fmt,
+            'card': {'title': '', 'extra': '', 'rightHref': '', 'size': 'default'},
+            'body': {
+                'text': '', 'color': color, 'fontWeight': font_weight,
+                'marginLeft': 0, 'marginTop': 0, 'letterSpacing': letter_spacing,
+            },
+        },
+    }
+
+    return add_component(page_id, 'JCurrentTime', '实时时钟', x, y, w, h, config)
+
+
+def add_word_cloud(page_id, title, x, y, w, h, data=None,
+                   font_family='SimSun', color='#FFE472',
+                   min_size=8, max_size=32, shape='circle'):
+    """
+    添加词云图组件（JWordCloud）。
+
+    Args:
+        data: 词云数据 [{'name':'词语','value':9}, ...]，默认使用内置示例数据
+        font_family: 字体
+        color: 文字颜色
+        min_size: 最小字号
+        max_size: 最大字号
+        shape: 词云形状 'circle'/'cardioid'/'diamond'/'triangle'/'star' 等
+    """
+    mode = _get_mode(page_id)
+    if data is None:
+        data = [
+            {'value': 9, 'name': 'AntV'}, {'value': 8, 'name': 'F2'},
+            {'value': 8, 'name': 'G2'}, {'value': 8, 'name': 'G6'},
+            {'value': 8, 'name': 'DataSet'}, {'value': 8, 'name': '墨者学院'},
+            {'value': 6, 'name': 'Analysis'}, {'value': 6, 'name': 'Data Mining'},
+            {'value': 6, 'name': 'Data Vis'}, {'value': 6, 'name': 'Design'},
+            {'value': 6, 'name': 'Grammar'}, {'value': 6, 'name': 'Graphics'},
+            {'value': 6, 'name': 'Graph'}, {'value': 6, 'name': 'Hierarchy'},
+            {'value': 6, 'name': 'Labeling'}, {'value': 6, 'name': 'Layout'},
+            {'value': 6, 'name': 'Quantitative'}, {'value': 6, 'name': 'Relation'},
+            {'value': 6, 'name': 'Statistics'}, {'value': 6, 'name': '可视化'},
+            {'value': 6, 'name': '数据'}, {'value': 6, 'name': '数据可视化'},
+        ]
+
+    config = {
+        'dataType': 1,
+        'background': mode['bg'],
+        'borderColor': mode['border_color'],
+        'chartData': json.dumps(data, ensure_ascii=False),
+        'option': {
+            'fontFamily': font_family,
+            'color': color,
+            'minSize': min_size,
+            'maxSize': max_size,
+            'padding': 8,
+            'customColor': [],
+            'series': [{'shape': shape}],
+            'card': {'title': '', 'extra': '', 'rightHref': '', 'size': 'default'},
+            'title': {
+                'text': title, 'textAlign': 'left', 'show': True,
+                'textStyle': {'color': mode['title_color'], 'fontWeight': 'normal'},
+            },
+        },
+    }
+
+    return add_component(page_id, 'JWordCloud', title, x, y, w, h, config)
+
+
+def add_color_block(page_id, title, x, y, w, h, blocks=None,
+                    line_num=2, font_size=16, color='#fff'):
+    """
+    添加色块指标卡组件（JColorBlock）。
+
+    Args:
+        blocks: 指标数据列表 [{'backgroundColor':'#67C23A','prefix':'标签','value':'12345','suffix':'元'}, ...]
+                默认使用内置4个示例色块
+        line_num: 每行显示几个色块
+        font_size: 数值字号
+        color: 文字颜色
+    """
+    mode = _get_mode(page_id)
+    if blocks is None:
+        blocks = [
+            {'backgroundColor': '#67C23A', 'prefix': '朝阳总销售额', 'value': '12345', 'suffix': '亿'},
+            {'backgroundColor': '#409EFF', 'prefix': '昌平总销售额', 'value': '12345', 'suffix': '亿'},
+            {'backgroundColor': '#E6A23C', 'prefix': '海淀总销售额', 'value': '12345', 'suffix': '亿'},
+            {'backgroundColor': '#F56C6C', 'prefix': '西城总销售额', 'value': '12345', 'suffix': '亿'},
+        ]
+
+    config = {
+        'dataType': 1,
+        'background': mode['bg'],
+        'borderColor': mode['border_color'],
+        'chartData': json.dumps(blocks, ensure_ascii=False),
+        'option': {
+            'whole': False, 'width': 50, 'height': 50, 'lineNum': line_num,
+            'borderSplitx': 20, 'borderSplity': 20, 'decimals': 0,
+            'fontSize': font_size, 'color': color, 'fontWeight': 'normal',
+            'textAlign': 'center', 'padding': 5,
+            'prefixFontSize': 16, 'prefixColor': color, 'prefixFontWeight': 'normal',
+            'prefixSplitx': 0, 'prefixSplity': 0,
+            'suffix': '', 'suffixSplitx': 40, 'suffixFontSize': 16,
+            'suffixColor': color, 'suffixFontWeight': 'normal', 'prefix': '',
+            'card': _make_card(mode, title),
+            'body': {'text': '', 'color': color, 'fontWeight': 'bold',
+                     'marginLeft': 0, 'marginTop': 0},
+        },
+    }
+
+    return add_component(page_id, 'JColorBlock', title, x, y, w, h, config)
+
+
+def add_progress(page_id, title, x, y, w, h, data=None,
+                 bar_width=19, color='#FF9D00', bg_color='#9C9CA1',
+                 border_radius=10):
+    """
+    添加进度条组件（JProgress）。
+
+    Args:
+        data: 进度数据 [{'name':'满意度','value':50}, ...]
+        bar_width: 进度条粗细
+        color: 进度条颜色
+        bg_color: 背景条颜色
+        border_radius: 圆角
+    """
+    mode = _get_mode(page_id)
+    if data is None:
+        data = [{'name': '满意度', 'value': 50}]
+
+    label_color = mode['title_color']
+
+    config = {
+        'dataType': 1,
+        'background': mode['bg'],
+        'borderColor': mode['border_color'],
+        'chartData': json.dumps(data, ensure_ascii=False),
+        'option': {
+            'valueXOffset': 0, 'valueYOffset': 0,
+            'grid': {'show': False, 'top': 0, 'left': 0, 'right': 55,
+                     'bottom': 0, 'containLabel': True},
+            'yAxis': {'yUnit': '', 'axisLabel': {'show': True, 'color': label_color}},
+            'title': {'text': '', 'textAlign': 'left', 'show': False, 'textStyle': {}},
+            'tooltip': {'confine': True, 'trigger': 'axis',
+                        'axisPointer': {'type': 'none'}},
+            'series': [
+                {
+                    'barWidth': bar_width, 'realtimeSort': True,
+                    'label': {'show': False, 'position': 'left',
+                              'formatter': '{c}%', 'color': label_color, 'fontSize': 24},
+                    'itemStyle': {'normal': {'barBorderRadius': border_radius}},
+                    'color': color, 'zlevel': 1,
+                },
+                {
+                    'type': 'bar', 'barGap': '-100%', 'color': bg_color,
+                    'barWidth': bar_width,
+                    'label': {
+                        'show': True, 'valueAnimation': True, 'position': 'right',
+                        'color': label_color, 'fontSize': 18,
+                        'formatter': '{c}', 'offset': [0, 0],
+                    },
+                    'itemStyle': {'normal': {'barBorderRadius': border_radius}},
+                },
+            ],
+            'card': _make_card(mode, title),
+        },
+    }
+
+    return add_component(page_id, 'JProgress', title, x, y, w, h, config)
+
+
+def add_total_progress(page_id, title, x, y, w, h, data=None,
+                       bar_width=19, color='#151B87', bg_color='#eeeeee',
+                       border_radius=10):
+    """
+    添加总进度条组件（JTotalProgress）。
+
+    Args:
+        data: 进度数据 [{'value':50}, ...]
+        bar_width: 进度条粗细
+        color: 进度条颜色
+        bg_color: 背景条颜色
+        border_radius: 圆角
+    """
+    mode = _get_mode(page_id)
+    if data is None:
+        data = [{'value': 50}]
+
+    label_color = mode['title_color']
+    if mode is _BIGSCREEN:
+        bg_color = '#333333'
+
+    config = {
+        'dataType': 1,
+        'background': mode['bg'],
+        'borderColor': mode['border_color'],
+        'chartData': json.dumps(data, ensure_ascii=False),
+        'option': {
+            'targetValue': {},
+            'series': [
+                {
+                    'barWidth': bar_width,
+                    'label': {
+                        'show': True, 'position': 'right', 'offset': [0, -40],
+                        'formatter': '{c}{a}', 'color': label_color, 'fontSize': 24,
+                    },
+                    'itemStyle': {'normal': {'barBorderRadius': border_radius}},
+                    'color': color, 'zlevel': 1,
+                },
+                {
+                    'type': 'bar', 'barGap': '-100%', 'color': bg_color,
+                    'barWidth': bar_width,
+                    'itemStyle': {'normal': {'barBorderRadius': border_radius}},
+                },
+            ],
+            'card': _make_card(mode, title),
+        },
+    }
+
+    return add_component(page_id, 'JTotalProgress', title, x, y, w, h, config)
 
 
 # ============================================================

@@ -49,14 +49,40 @@
 }
 ```
 
-**关键字段说明：**
+### config 字段说明
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `titleField` | String | 是 | 标题字段的 model key（列表页显示用，通常指向第一个 input） |
-| `hasWidgets` | String[] | 是 | 已使用的所有控件类型（包括 `card`），自动维护 |
-| `labelPosition` | String | 否 | 标签位置：`"top"` / `"left"` / `"right"` |
-| `size` | String | 否 | 控件尺寸：`"small"` / `"default"` / `"large"` |
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `formStyle` | string | "normal" | 表单风格："normal" 普通 / "word" Word文档风格 |
+| `titleField` | string | — | **必填**，标题字段的 model |
+| `showHeaderTitle` | boolean | true | 是否显示表单头部标题 |
+| `labelWidth` | number | 100 | 标签宽度（px） |
+| `labelPosition` | string | "top" | 标签位置："top" / "left" / "right" |
+| `size` | string | "small" | 控件尺寸："small" / "default" / "large" |
+| `dialogOptions` | object | — | 弹窗配置（top、width、padding） |
+| `disabledAutoGrid` | boolean | false | 是否禁用自动栅格布局 |
+| `designMobileView` | boolean | false | 设计器是否以移动端视口展示 |
+| `enableComment` | boolean | true | 是否启用评论功能 |
+| `hasWidgets` | string[] | [] | 已使用的所有控件类型数组（含 card，自动维护） |
+| `defaultLoadLargeControls` | boolean | false | 是否默认加载大控件 |
+| `expand` | object | — | JS/CSS 增强：`{js, css, url: {js, css}}` |
+| `transactional` | boolean | true | 是否启用事务 |
+| `customRequestURL` | array | [{"url":""}] | 自定义请求URL |
+| `disableMobileCss` | boolean | true | 移动端是否禁用自定义 CSS |
+| `allowExternalLink` | boolean | false | 是否允许外部链接访问 |
+| `externalLinkShowData` | boolean | false | 外部链接是否展示数据 |
+| `headerImgUrl` | string | "" | 表单头部图片 URL |
+| `externalTitle` | string | "" | 外部链接显示的标题 |
+| `enableNotice` | boolean | false | 是否启用通知 |
+| `noticeMode` | string | "external" | 通知模式 |
+| `noticeType` | string | "system" | 通知类型 |
+| `noticeReceiver` | string | "" | 通知接收人 |
+| `allowPrint` | boolean | false | 是否允许打印 |
+| `allowJmReport` | boolean | false | 是否允许积木报表 |
+| `jmReportURL` | string | "" | 积木报表 URL |
+| `bizRuleConfig` | array | [] | 业务规则配置，用于设置表单级自动化规则 |
+| `bigDataMode` | boolean | false | 启用大数据渲染模式，延迟加载大控件资源以优化首屏性能 |
+| `onlineForm` | string | "" | 关联的 Online 表单编码（cgformCode），后端通过此字段同步填充 `DesignForm.cgformCode` |
 
 ## 控件列表（list）
 
@@ -70,7 +96,7 @@ list 是控件数组。**大部分控件被包裹在 `card` 容器中**。
   "type": "card",
   "isAutoGrid": true,
   "isContainer": true,
-  "list": [ /* 1~2 个子控件 */ ],
+  "list": [ /* 1~4 个子控件 */ ],
   "options": {},
   "model": "card_{timestamp}_{random6}"
 }
@@ -132,19 +158,25 @@ list 是控件数组。**大部分控件被包裹在 `card` 容器中**。
 
 ## key 和 model 生成规则
 
-源码中 key 由 `randomKey()` 生成（12-18 位随机字符串），model 由 `type + '_' + key` 派生（中划线转下划线）。但 **时间戳+随机数** 格式同样被接受，两种方式都有效：
+统一使用 **时间戳+随机数** 格式：
 
-| 方式 | key 示例 | model 示例 |
-|------|---------|------------|
-| 源码 randomKey | `nRk92kK92sk` | `input_nRk92kK92sk` |
-| 时间戳+随机数 | `1773452631695_489584` | `input_1773452631695_489584` |
-
-**model 生成规则（源码 widgetUtils.js）：**
-```javascript
-let model = widget.type + '_' + key
-model = model.replace(/-/g, '_')  // 中划线 → 下划线
-// link-record → link_record_xxx
 ```
+key:   {13位时间戳}_{6位随机数}
+       示例: 1774581245281_700049
+
+model: {type}_{13位时间戳}_{6位随机数}（type 中的 - 替换为 _）
+       示例: input_1774581245280_703439
+       示例: file_upload_1774581245281_398532
+       示例: select_user_1774581245281_234567
+       示例: link_record_1774581245281_700049
+
+card:  card_{13位时间戳}_{6位随机数}
+       示例: card_1774581245281_700049
+```
+
+**model 生成规则**：`type + '_' + key`，其中 type 的中划线 `-` 替换为下划线 `_`（如 `link-record` → `link_record_xxx`）。
+
+每个控件的 key 和 model 必须全局唯一。
 
 **Python 生成方法（使用时间戳格式，实测可用）：**
 
@@ -187,7 +219,7 @@ def gen_model(widget_type):
 ### 需要 card 容器的控件
 
 所有其他控件，包括：
-`input`, `textarea`, `number`, `integer`, `money`, `radio`, `checkbox`, `select`, `select-tree`, `date`, `time`, `switch`, `rate`, `color`, `slider`, `phone`, `email`, `imgupload`, `file-upload`, `buttons`, `text`, `area-linkage`, `location`, `capital-money`, `barcode`, `text-compose`, `auto-number`, `formula`, `hand-sign`, `ocr`, `link-record`（showMode="single" 且 showType 非 table）, `link-field`, `summary`, `select-user`, `select-depart`, `select-depart-post`, `org-role`
+`input`, `textarea`, `number`, `integer`, `money`, `radio`, `checkbox`, `select`, `select-tree`, `table-dict`, `date`, `time`, `switch`, `rate`, `color`, `slider`, `phone`, `email`, `imgupload`, `file-upload`, `buttons`, `text`, `area-linkage`, `location`, `capital-money`, `barcode`, `text-compose`, `auto-number`, `formula`, `hand-sign`, `ocr`, `link-record`（showMode="single" 且 showType 非 table）, `link-field`, `summary`, `select-user`, `select-depart`, `select-depart-post`, `org-role`
 
 ## 半行布局
 

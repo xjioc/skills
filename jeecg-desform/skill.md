@@ -1,13 +1,13 @@
 ---
 name: jeecg-desform
-description: Use when user asks to create/generate a form using AI, design a form automatically, or says "AI设计表单", "AI生成表单", "自动创建表单", "智能表单", "生成一个表单", "帮我设计表单", "创建表单", "新建表单", "做一个表单", "ai form", "generate form", "create form", "design form". Also triggers when user describes form fields like "需要姓名、手机号、地址字段" or mentions form requirements like "做一个请假表单包含请假天数和原因". Supports generating forms from screenshots — when user provides a screenshot/image of a form and asks to reproduce it (e.g., "按照截图生成表单", "照着这个图片做表单", "根据截图创建表单", "generate form from screenshot", "recreate this form").
+description: JeecgBoot 表单设计器（desform）全生命周期管理——通过对话的方式创建、更新、复制、删除表单设计器，管理表单数据（CRUD），生成 PC/移动端视图，以及一键创建 OA 审批应用（表单+流程+授权）。只要用户意图涉及「表单设计器」就必须使用本技能，包括但不限于：创建或生成表单（"做一个请假表单"、"AI设计表单"、"desform"）、修改已有表单或字段（"加个字段"、"改一下表单"）、复制/删除表单、录入或查询表单数据、创建表单视图（含移动端）、以及咨询设计器功能（控件类型、字典配置、校验规则、关联记录、子表、公式计算、JS/CSS增强、默认值、外链等）。当用户想要创建带审批流程的 OA 应用时也应触发（"创建OA应用"、"创建审批单"、"创建报销单"、"创建请假单"、"做一个OA表单带流程"、"一键创建表单和流程"、"面试申请"、"出差申请"等）。即使用户只是描述字段需求（如"需要姓名、手机号字段"）而未明确说"表单"，只要语境指向表单设计器也应触发。注意：本技能仅处理表单设计器（desform），不处理 Online 表单——如果用户明确提到"Online表单"或"online表"，应使用 jeecg-onlform 技能。
 ---
 
 # JeecgBoot 表单设计器 AI 自动生成器
 
 将自然语言的表单需求描述转换为 desformDesignJson，并通过 API 在 JeecgBoot 系统中自动创建表单。
 
-> **重要：本 skill 只处理「设计器表单」（desform），不涉及 Online 表单。两者是完全独立的表单体系。**
+> **重要：本 skill 只处理「表单设计器」（desform），不涉及 Online 表单。两者是完全独立的表单体系。**
 
 ## 前置条件
 
@@ -19,595 +19,140 @@ description: Use when user asks to create/generate a form using AI, design a for
 如果用户未提供，提示：
 > 请提供 JeecgBoot 后端地址和 X-Access-Token（从浏览器 F12 → Network → 任意请求的 Request Headers 中复制）。
 
-## 交互流程
+### API 初始化（统一入口）
 
-### Step 0: 解析用户需求
-
-从用户描述中提取以下信息：
-
-| 信息 | 默认值 | 示例 |
-|------|--------|------|
-| 表单名称 | 用户指定或自动生成 | "员工请假申请" |
-| 表单编码 | 英文命名，模块名前缀 | `oa_leave_apply`（不用拼音） |
-| 字段列表 | 从描述中解析 | 姓名(必填)、请假天数(数字)、请假原因(多行文本) |
-| 字段属性 | 从描述中推断 | 必填、默认值、选项列表等 |
-
-### Step 1: 识别字段并选择控件类型
-
-**控件类型映射规则：**
-
-| 用户描述关键词 | 控件 type | 说明 |
-|---------------|-----------|------|
-| 名称/标题/姓名/文本 | `input` | 单行文本 |
-| 描述/备注/原因/详情/多行 | `textarea` | 多行文本 |
-| 数量/数字/金额(无单位) | `number` | 数字输入 |
-| 整数/个数/天数 | `integer` | 整数输入 |
-| 金额/费用/价格 | `money` | 金额（带元单位） |
-| 单选/性别/是否/状态 | `radio` | 单选框组 |
-| 多选/标签/兴趣 | `checkbox` | 多选框组 |
-| 下拉/选择/类型/类别 | `select` | 下拉选择框 |
-| 日期/生日/入职日期 | `date` | 日期选择器 |
-| 时间/几点 | `time` | 时间选择器 |
-| 开关/启用/是否激活 | `switch` | 开关 |
-| 评分/星级/打分 | `rate` | 评分 |
-| 颜色 | `color` | 颜色选择器 |
-| 滑块/进度/百分比 | `slider` | 滑块 |
-| 手机/电话/手机号 | `phone` | 手机 |
-| 邮箱/Email | `email` | 邮箱 |
-| 图片/照片/头像 | `imgupload` | 图片上传 |
-| 附件/文件/上传 | `file-upload` | 文件上传 |
-| 富文本/HTML内容 | `editor` | 富文本编辑器 |
-| Markdown | `markdown` | Markdown 编辑器 |
-| 省市/地区/地址选择 | `area-linkage` | 省市级联动 |
-| 地图/位置(地图) | `map` | 地图 |
-| 定位/GPS | `location` | 定位 |
-| 条码/二维码 | `barcode` | 条码 |
-| 自动编号/流水号 | `auto-number` | 自动编号 |
-| 选人/审批人/负责人 | `select-user` | 用户组件 |
-| 部门/选部门 | `select-depart` | 部门组件 |
-| 岗位/选岗位 | `select-depart-post` | 岗位组件 |
-| 分类树/树选择 | `select-tree` | 下拉树 |
-| 表字典/弹窗选择 | `table-dict` | 表字典（popup或模糊查询） |
-| 关联记录/引用 | `link-record` | 关联其他表单的记录 |
-| 他表字段/自动填充 | `link-field` | 显示关联记录的字段值 |
-| 公式/自动计算 | `formula` | 公式计算（求和/均值/自定义） |
-| 手写签名/签字 | `hand-sign` | 手写签名 |
-| 大写金额/中文大写 | `capital-money` | 金额转大写 |
-| 文本组合 | `text-compose` | 多字段值拼接显示 |
-| 分隔符/分区 | `divider` | 表单区域分隔线 |
-| 文本识别/OCR | `ocr` | 图片文字识别 |
-| 子表/明细/清单 | `sub-table-design` | 设计子表 |
-
-### Step 1.5: 字典数据源配置
-
-对于 radio/select/checkbox 控件，数据源有两种方式：
-
-**方式一：静态选项（默认）**
-```json
-"options": {
-  "remote": false,
-  "options": [
-    { "value": "选项1", "itemColor": "#2196F3" },
-    { "value": "选项2", "itemColor": "#08C9C9" }
-  ]
-}
-```
-
-**方式二：系统字典**
-当用户描述中提到「字典」、「数据字典」或使用了 JeecgBoot 常见字典编码（如 sex、priority、valid_status 等），使用字典配置：
-
-```json
-"options": {
-  "remote": "dict",
-  "dictCode": "sex",
-  "showLabel": true,
-  "options": [],
-  "remoteOptions": [],
-  "props": { "value": "value", "label": "label" }
-}
-```
-
-同时在**控件顶层**（与 options 同级）添加 `dictOptions`：
-```json
-"dictOptions": [
-  { "value": "1", "label": "男" },
-  { "value": "2", "label": "女" }
-]
-```
-
-**常用 JeecgBoot 系统字典编码：**
-
-| 字典编码 | 说明 | 典型值 |
-|---------|------|--------|
-| `sex` | 性别 | 1=男, 2=女 |
-| `priority` | 优先级 | L=低, M=中, H=高 |
-| `valid_status` | 有效状态 | 0=无效, 1=有效 |
-| `msg_category` | 消息类型 | 1=通知, 2=系统 |
-| `send_status` | 发送状态 | 0=未发送, 1=已发送 |
-| `yn` | 是否 | Y=是, N=否 |
-
-> **提示：** 当用户指定的字典编码不确定是否存在时，可通过 API `GET /sys/dict/getDictItems/{dictCode}` 查询确认。如果用户只说了"用字典"但未指定编码，需要询问具体的字典编码。
-
-**desform_utils.py 快捷函数使用字典的正确写法：**
-
-> **踩坑警告：** `RADIO`/`SELECT`/`CHECKBOX` 的 `options` 是**必填位置参数**，使用字典时也不能省略。
-> 当指定 `dict_code` 时，`options` 参数必须传**字典项列表**（`[{value, label}]` 格式），不要传字符串列表。
-> **不存在** `dict_options` 关键字参数，不要传它（会报 `unexpected keyword argument` 错误）。
+所有 Python 操作前都需要先初始化 API 连接。`init_api` 只存在于 `desform_utils.py` 中，其他模块（如 `desform_data_utils.py`）不包含此函数——错误导入会导致 ImportError。
 
 ```python
-# 正确 ✅ — options 传字典项列表 + dict_code
-RADIO('性别', [{'value': '1', 'label': '男'}, {'value': '2', 'label': '女'}], dict_code='sex')
-SELECT('状态', [{'value': '0', 'label': '无效'}, {'value': '1', 'label': '有效'}], dict_code='valid_status')
-
-# 错误 ❌ — 缺少 options 位置参数
-RADIO('性别', dict_code='sex')
-
-# 错误 ❌ — 不存在 dict_options 参数
-RADIO('性别', ['男', '女'], dict_code='sex', dict_options=[...])
-
-# 不用字典时，options 传字符串列表即可
-SELECT('职称', options=['教授', '副教授', '讲师', '助教'])
+import sys
+sys.path.insert(0, r'<skill目录>/scripts')
+from desform_utils import init_api
+init_api('<api_base>', '<token>')
 ```
 
-**底层 `make_widget` 函数中字典的实现原理（仅供参考）：**
+后续按需从各模块导入函数：
+- `desform_utils`：`check_code_available`, `get_form_fields`, `query_form`, `create_form`, `update_form`, `add_widget`, `update_widget`, `delete_widget`, `copy_form`, `delete_form`, `sync_auth`
+- `desform_data_utils`：`add_data`, `list_data`, `edit_data`, `delete_data`
+
+## 主数据复用规则
+
+表单字段配置字典、选人、选部门等数据源时，遵循"先查后建"原则——先查系统是否已有该字典/角色/部门，避免重复创建。
+
+> 使用 `jeecg-system` skill 的 `system_utils.py` 查询和管理主数据，详见  `jeecg-system` 技能。
+
+---
+
+## 创建表单
+
+### 1. 解析用户需求
+
+从用户描述中提取：表单名称、表单编码（英文命名，模块名前缀）、字段列表、字段属性。
+
+**布局选择规则：** 默认使用普通布局（`auto`/`half`/`full`），不要主动使用 Word 风格。只有当用户明确要求时才使用 `layout: "word"`——例如用户说"Word风格"、"表格边框样式"、"像Word文档那样"等。即使表单是审批单、申请表等看起来适合 Word 风格的场景，也不要自行判断使用 Word 风格，而是让用户来决定。
+
+**编码唯一性校验（新建表单时）：**
+
+创建新表单时，生成 `desformCode` 后立即执行编码校验，在校验通过前不要展示摘要让用户确认。原因：用户确认摘要后会期望直接执行成功，如果执行时才发现编码冲突，体验很差，且可能意外覆盖已有表单数据。
+
 ```python
-# desform_utils.py 内部处理逻辑：
-if dict_code:
-    opts["remote"] = "dict"
-    opts["dictCode"] = dict_code
-    opts["showLabel"] = True
-    opts["options"] = []
-    extra["dictOptions"] = options if isinstance(options[0], dict) else []
+from desform_utils import init_api, check_code_available
+init_api('<api_base>', '<token>')
+result = check_code_available('<code>')  # 只接受 1 个参数
+# True → 编码可用  |  False → 已占用，自动换一个编码重试
 ```
 
-### Step 2: 展示表单摘要并确认
+### 2. 识别字段并选择控件类型
 
-**必须展示以下内容，等待用户确认后再执行：**
+根据用户描述的关键词（也可能是图片），匹配对应的控件 type。
+
+> 详见 `references/desform-widget-types.md` — 完整的关键词到控件类型映射表。
+
+对于 radio/select/checkbox 控件，支持静态选项（默认）和系统字典两种数据源。
+
+> 详见 `references/desform-dict-config.md` — 字典配置方式、常用字典编码、Python 快捷函数用法。
+
+### 3. 展示表单摘要并确认
+
+展示以下内容，等待用户确认后再执行：
 
 ```
 ## 表单摘要
-
-- 表单名称：员工请假申请
-- 表单编码：yuan_gong_qing_jia_shen_qing
-- 目标环境：https://boot3.jeecg.com/jeecgboot
+- 表单名称：{name}
+- 表单编码：{code}（已通过校验）
+- 目标环境：{API_BASE}
 
 ### 字段列表
-
 | 序号 | 字段名称 | 控件类型 | 必填 | 说明 |
 |------|---------|---------|------|------|
-| 1 | 姓名 | input (单行文本) | 是 | 标题字段 |
-| 2 | 请假类型 | select (下拉选择) | 是 | 选项：事假/病假/年假 |
-| 3 | 开始日期 | date (日期) | 是 | |
-| 4 | 结束日期 | date (日期) | 是 | |
-| 5 | 请假天数 | integer (整数) | 是 | |
-| 6 | 请假原因 | textarea (多行文本) | 否 | |
-| 7 | 附件 | file-upload (文件上传) | 否 | |
+| 1 | ... | ... | ... | ... |
 
 确认以上信息正确？(y/n)
 ```
 
-### Step 2.5: 检查表单编码是否已存在（防覆盖规则）
+### 4. 防覆盖检查
 
-> **重要安全规则：** 在执行创建/保存操作之前，**必须**先通过 `get_form_id(code)` 检查表单编码是否已存在。
+用户确认后、执行创建前，通过 `get_form_id(code)` 检查编码是否已存在。这是防止误覆盖的最后一道安全网——编码校验只检查当前时刻，而从校验到执行之间可能有其他人创建了同编码表单。
 
-**检查方式：** 在临时脚本中调用 `get_form_id(code)` 或在创建脚本中加入检查逻辑。
+如果表单已存在：
+1. 告知用户：`表单 {code} 已存在 (ID={id})，是否要覆盖更新？`
+2. 用户确认后才执行覆盖（调用 `update_form`）
+3. 用户拒绝覆盖时，基于原编码生成 3~5 个新编码供选择
 
-**如果表单已存在：**
-1. **不允许默认覆盖**（不要直接执行 `create_form` 或 `update_form`）
-2. 必须明确告知用户：`表单 {code} 已存在 (ID={id})，是否要覆盖更新？`
-3. **只有用户明确确认后**才可以执行覆盖操作（调用 `update_form` 更新设计）
-4. 如果用户拒绝覆盖，基于原编码生成 3~5 个新编码供用户选择（如原编码 `oa_leave_apply`，可提供 `oa_leave_apply_v2`、`oa_leave_request`、`oa_leave_form`、`oa_staff_leave` 等），用户选定后再重新生成
+### 5. 生成 JSON 并调用 API
 
-**预置脚本的防覆盖：** 所有 `scripts/` 目录下的脚本都内置了 `--force` 参数检查，不加 `--force` 时检测到已存在会自动退出。
+使用 `scripts/desform_creator.py` + JSON 配置文件创建表单。这个脚本封装了完整的 JSON 构造逻辑（控件包裹、key/model 生成、跨控件引用等），比手动拼 JSON 更可靠，也更不容易出错。
 
-**动态脚本的防覆盖：** 手动编写的临时脚本中，在调用 `create_form` 之前加入检查：
-```python
-existing_id, _ = get_form_id(code)
-if existing_id:
-    print(f'表单 {code} 已存在 (ID={existing_id})，需要用户确认后才能覆盖')
-    sys.exit(1)
-```
-
-### Step 3: 生成 desformDesignJson 并调用 API
-
-用户确认后，执行以下步骤：
-
-#### 3.0 优先使用通用脚本 + JSON 配置（推荐方式）
-
-> **重要：优先使用 `scripts/desform_creator.py` 通用脚本 + JSON 配置文件的方式，只需生成少量 JSON 数据即可创建表单，避免每次编写大量 Python 代码。只有当通用脚本无法满足特殊需求时，才编写自定义临时脚本。**
-
-**脚本位置：** `scripts/desform_creator.py`
-
-**使用步骤：**
 1. 根据用户需求生成 JSON 配置文件（Write 到工作目录的临时 `.json` 文件）
-3. 用 Bash 执行脚本：`python "<skill目录>/scripts/desform_creator.py" --api-base <URL> --token <TOKEN> --config <config.json>`
-4. 删除临时 JSON 配置文件
+2. 执行脚本：`python "<skill目录>/scripts/desform_creator.py" --api-base <URL> --token <TOKEN> --config <config.json>`
+3. 删除临时 JSON 配置文件
 
-**脚本自动完成：**
-- 防覆盖检查（不加 `--force` 时检测到已存在自动退出）
-- 根据 JSON 配置构建所有控件
-- 调用 `create_form` 创建/保存表单设计
-- 输出菜单 SQL（如果 JSON 中配置了 `menuParent`）
+> 详见 `references/desform-json-config.md` — JSON 配置格式、字段定义、子表说明、完整示例。
 
-**JSON 配置格式：**
-```json
-{
-  "formName": "表单中文名称",
-  "formCode": "module_form_code",
-  "layout": "word",
-  "titleIndex": 0,
-  "fields": [
-    {"name": "字段名", "type": "控件类型", ...控件参数}
-  ],
-  "menuParent": "父菜单名称",
-  "menuIcon": "ant-design:appstore-outlined"
-}
-```
+**脚本自动处理的跨控件引用（无需手动配置）：**
+- **capital-money（大写金额）**：自动查找前面最近的 `money` 控件并关联其 key
+- **formula（公式）表达式**：支持使用字段中文名作为占位符（如 `$预算总额$`），自动解析为实际 model
+- **Word 布局下的 divider（分隔符）**：自动包裹在 `span=24`、`isWordStyle=true` 的 grid 容器中
 
-| JSON 字段 | 必填 | 默认值 | 说明 |
-|-----------|------|--------|------|
-| `formName` | 是 | - | 表单中文名称 |
-| `formCode` | 是 | - | 表单编码（英文，模块名前缀） |
-| `layout` | 否 | `"auto"` | 布局模式：`auto`/`half`/`full`/`word` |
-| `titleIndex` | 否 | `0` | 标题字段在 fields 中的索引 |
-| `fields` | 是 | - | 字段定义数组 |
-| `menuParent` | 否 | - | 生成菜单 SQL 的父菜单名称 |
-| `menuIcon` | 否 | `ant-design:appstore-outlined` | 父菜单图标 |
+### desformDesignJson 核心规则
 
-**字段定义（fields 数组中每个对象）：**
+无论使用脚本还是手动构造，都需要理解以下规则（脚本已自动处理，但理解它们有助于排查问题和生成正确的 JSON 配置）：
 
-每个字段只需 `name` + `type`，其余参数可选：
-
-```json
-{"name": "工程名称", "type": "input", "required": true}
-{"name": "工程类别", "type": "radio", "options": ["土建", "安装", "装饰"]}
-{"name": "验收日期", "type": "date"}
-{"name": "金额", "type": "money", "unit": "万元"}
-{"name": "自动编号", "type": "auto-number", "prefix": "GCYS"}
-{"name": "条码", "type": "barcode"}
-{"name": "定位", "type": "location"}
-{"name": "签字", "type": "hand-sign", "required": true}
-{"name": "---", "type": "divider", "text": "分隔标题"}
-{"name": "性别", "type": "radio", "dictCode": "sex",
- "options": [{"value": "1", "label": "男"}, {"value": "2", "label": "女"}]}
-```
-
-**支持的 type 及可选参数：**
-
-| type | 可选参数 | 说明 |
-|------|---------|------|
-| `input` | `required`, `placeholder`, `unique` | 单行文本 |
-| `textarea` | `required` | 多行文本 |
-| `number` | `required`, `unit`, `precision` | 数字 |
-| `integer` | `required`, `unit` | 整数 |
-| `money` | `required`, `unit` | 金额 |
-| `date` | `required`, `fmt` | 日期（fmt 默认 `yyyy-MM-dd`） |
-| `time` | `required` | 时间 |
-| `switch` | - | 开关 |
-| `slider` | - | 滑块 |
-| `rate` | - | 评分 |
-| `color` | - | 颜色 |
-| `radio` | `options`(必填), `required`, `dictCode` | 单选 |
-| `select` | `options`(必填), `required`, `multiple`, `dictCode` | 下拉 |
-| `checkbox` | `options`(必填), `required`, `dictCode` | 多选 |
-| `select-user` | `required`, `multiple` | 选人 |
-| `select-depart` | `required`, `multiple` | 选部门 |
-| `phone` | `required` | 手机 |
-| `email` | `required` | 邮箱 |
-| `area-linkage` | `required` | 省市级联 |
-| `file-upload` | `required` | 文件上传 |
-| `imgupload` | `required` | 图片上传 |
-| `hand-sign` | `required` | 手写签名 |
-| `auto-number` | `prefix` | 自动编号 |
-| `barcode` | `codeType`(`barcode`/`qrcode`) | 条码 |
-| `location` | `required` | 定位 |
-| `formula` | `mode`, `expression`, `decimal`, `unit` | 公式 |
-| `divider` | `text` | 分隔符（name 会被忽略，用 text） |
-| `editor` | `required` | 富文本 |
-| `markdown` | `required` | Markdown |
-| `link-record` | `sourceCode`, `titleField`, `showFields`, `showMode`, `showType` | 关联记录 |
-| `link-field` | `linkRecordKey`, `showField`, `fieldType`, `fieldOptions` | 他表字段 |
-
-**完整示例（工程竣工验收申请表）：**
-```json
-{
-  "formName": "工程竣工验收申请表",
-  "formCode": "eng_completion_acceptance",
-  "layout": "word",
-  "fields": [
-    {"name": "自动编号", "type": "auto-number", "prefix": "GCYS"},
-    {"name": "条码", "type": "barcode"},
-    {"name": "工程名称", "type": "input", "required": true},
-    {"name": "工程编号", "type": "input"},
-    {"name": "工程类别", "type": "radio", "options": ["土建工程", "安装工程", "装饰工程", "市政工程"]},
-    {"name": "建设单位", "type": "input"},
-    {"name": "工程地址", "type": "input"},
-    {"name": "施工单位", "type": "input"},
-    {"name": "开工时间", "type": "date"},
-    {"name": "完工时间", "type": "date"},
-    {"name": "工程量清单", "type": "textarea"},
-    {"name": "图片上传", "type": "imgupload"},
-    {"name": "定位", "type": "location"},
-    {"name": "验收类别", "type": "radio", "options": ["竣工验收", "分部验收", "专项验收"]},
-    {"name": "施工单位项目经理签字", "type": "hand-sign"},
-    {"name": "---", "type": "divider", "text": "广电工程完工验收报告"},
-    {"name": "工程名称(报告)", "type": "input"},
-    {"name": "工程编号(报告)", "type": "input"},
-    {"name": "建设单位(报告)", "type": "input"},
-    {"name": "施工单位(报告)", "type": "input"},
-    {"name": "开工时间(报告)", "type": "date"},
-    {"name": "完工时间(报告)", "type": "date"},
-    {"name": "验收时间", "type": "time"},
-    {"name": "验收类别(报告)", "type": "radio", "options": ["竣工验收", "分部验收", "专项验收"]},
-    {"name": "---", "type": "divider", "text": "竣工项目分项审查情况"},
-    {"name": "立项手续完整性", "type": "radio", "options": ["合格", "不合格", "整改后合格"]},
-    {"name": "项目主体组签字(立项)", "type": "hand-sign"},
-    {"name": "竣工资料完整性", "type": "radio", "options": ["合格", "不合格", "整改后合格"]},
-    {"name": "项目主体组签字(资料)", "type": "hand-sign"},
-    {"name": "施工工艺合规性", "type": "radio", "options": ["合格", "不合格", "整改后合格"]},
-    {"name": "项目主体组签字(工艺)", "type": "hand-sign"},
-    {"name": "技术指标达标情况", "type": "radio", "options": ["合格", "不合格", "整改后合格"]},
-    {"name": "项目主体组签字(技术)", "type": "hand-sign"},
-    {"name": "材料设备核定结果", "type": "radio", "options": ["合格", "不合格", "整改后合格"]},
-    {"name": "项目主体组签字(材料)", "type": "hand-sign"},
-    {"name": "工程量核量结果", "type": "radio", "options": ["合格", "不合格", "整改后合格"]},
-    {"name": "项目主体组签字(核量)", "type": "hand-sign"},
-    {"name": "验收问题清单", "type": "textarea"},
-    {"name": "验收结论", "type": "radio", "options": ["合格", "不合格", "整改后复验"]},
-    {"name": "技术部负责人签字", "type": "hand-sign"},
-    {"name": "施工单位签字", "type": "hand-sign"},
-    {"name": "分管领导组签字", "type": "hand-sign"}
-  ],
-  "menuParent": "工程验收管理"
-}
-```
-
-**调用示例：**
-```bash
-# 1. Write 工具生成 JSON 配置文件
-# 2. 执行脚本
-python "C:/Users/moe/.claude/skills/jeecg-desform/scripts/desform_creator.py" \
-    --api-base http://192.168.1.233:3100/jeecgboot \
-    --token eyJhbGciOiJIUzI1NiJ9... \
-    --config eng_acceptance.json
-
-# 如需覆盖已存在的表单
-python "C:/Users/moe/.claude/skills/jeecg-desform/scripts/desform_creator.py" \
-    --api-base http://192.168.1.233:3100/jeecgboot \
-    --token eyJhbGciOiJIUzI1NiJ9... \
-    --config eng_acceptance.json \
-    --force
-
-# 3. 删除临时 JSON 文件
-```
-
-#### 3.1 生成唯一标识
-
-- key 和 model 使用当前时间戳毫秒数 + 6 位随机数
-- 格式参见 `references/desform-design-json-schema.md`
-
-#### 3.2 构造 desformDesignJson
-
-阅读以下参考文件（按需）：
-- `references/desform-design-json-schema.md` — JSON Schema 结构、控件类型清单、通用字段（必读）
-- `references/desform-widget-options.md` — 每种控件的完整 options 配置（必读）
-- `references/desform-examples.md` — 常见表单模式示例 + Python 脚本模板（必读）
-- `references/desform-real-samples.md` — 真实业务表单案例（字典、半行、分区、公式、关联）
-
-核心要点：
-- 每个普通控件必须包裹在 `card` 容器中（除了 editor、markdown、divider、map、sub-table-design、link-record(多条/表格模式)、grid、tabs）
-- `config.titleField` 指向标题字段的 model（优先 input，也可以是 select-user 等其他控件）
+- 每个普通控件必须包裹在 `card` 容器中（除了 editor、markdown、divider、map、sub-table-design、link-record（showType='table' 或 isSubTable=true）、grid、tabs）
+- `config.titleField` 指向标题字段的 model
 - `config.hasWidgets` 必须列出所有使用到的控件 type（包括 card）
-- key 格式：`{timestamp}_{6位随机数}`（源码中实际是 randomKey，但时间戳格式也兼容）
-- model 格式：`{type}_{timestamp}_{6位随机数}`（type 中的 `-` 转为 `_`，如 `link_record_xxx`）
-- model 必须全局唯一（保存时会检查重复 model）
+- key 格式：`{timestamp}_{6位随机数}`，model 格式：`{type}_{timestamp}_{6位随机数}`
 
 **className / icon 易错控件（实测验证）：**
-- `link-record`: className=`form-link-record`, icon=**`icon-link`**（不是 `icon-link-record`）
-- `link-field`: className=`form-link-field`, icon=**`icon-field`**（不是 `icon-link-field`）
-- `sub-table-design`: className=**`form-sub-table`**, icon=**`icon-table`**（不是 `form-sub-table-design` / `icon-sub-table-design`）
+- `link-record`: className=`form-link-record`, icon=`icon-link`
+- `link-field`: className=`form-link-field`, icon=`icon-field`
+- `sub-table-design`: className=`form-sub-table`, icon=`icon-table`
 
 **link-record / link-field 关键配置：**
 - link-record 的 `advancedSetting.defaultValue.customConfig` 必须为 `true`
-- link-record 的 `allowView`、`allowEdit`、`allowAdd`、`allowSelect` 必须全部设为 `true`（4 个操作选项默认全部勾选）
-- link-record 的 `titleField` 必须填源表真实标题字段 model，`showFields` 填源表展示字段 model 列表
-- link-field **没有 `advancedSetting`**（与其他控件不同）
+- link-record 的 `allowView`、`allowEdit`、`allowAdd`、`allowSelect` 必须全部设为 `true`
+- link-field **没有 `advancedSetting`**
 - link-field 的 `linkRecordKey` 填 link-record 的 **key**（不是 model）
-- link-field 的 `fieldType` 必须填源字段的真实控件类型（不能一律写 `"input"`）
-- link-field 的 `fieldOptions` 需包含源字段类型相关的 options（如 select-user 需 `{"multiple": false, "customReturnField": "username"}`）
+
+> **多表互相关联场景**（2+ 个表单通过 link-record 互相引用）：
+> 阅读 `references/desform-cross-form-binding.md`，采用"先建表后关联"策略，避免循环依赖和 model 失效问题。
 
 **sub-table-design 关键配置：**
 - options 必须包含 `allowAdd: true`，否则子表没有"添加"按钮
-- 完整 options 见 `references/desform-widget-options.md`（showCheckbox、showNumber、operationMode 等缺一不可）
-- 子表内可放 link-record + link-field 实现行级关联选择
+- 完整 options 见 `references/desform-widget-options.md`
 
-**跨表单批量创建流程：**
-1. 先创建基础表单 → 2. 查询获取字段 model → 3. 构建业务表单时引用这些 model
+**降级方案：** 如果脚本执行失败，先向用户说明失败原因，经用户确认后可降级为手动构造 JSON。
+> 详见 `references/desform-fallback-manual-json.md` — 手动构造 desformDesignJson 的完整指南。
 
-#### 3.3 使用 Python 调用 API（必须用 Python，不要用 curl）
+### 6. 检查结果与权限
 
-**优先使用共通工具库 `desform_utils.py`**（位于 `scripts/desform_utils.py`）。
+- `success: true` → 表单创建成功，脚本会自动创建字段权限
+- `success: false` → 输出错误信息，参见 `references/desform-api-notes.md` 错误处理表
+- 权限创建失败不会阻断主流程（仅输出警告），可用 `scripts/desform_auth_retry.py --api-base <URL> --token <TOKEN> --code <form_code>` 重试
 
-**使用共通工具库的执行步骤：**
-```
-1. Write 工具 → 写入业务脚本 create_xxx.py（scripts/ 目录，import desform_utils）
-2. Bash 工具 → cd <skill目录>/scripts && python create_xxx.py
-3. Bash 工具 → rm create_xxx.py（清理临时脚本）
-```
-
-**共通工具库使用示例：**
-```python
-import sys
-sys.path.insert(0, r'{后端项目根目录}')
-from desform_utils import *
-
-init_api('https://boot3.jeecg.com/jeecgboot', 'your-token')
-
-# 简单表单（含字典用法）
-create_form('员工信息', 'employee_info', [
-    INPUT('姓名', required=True),
-    RADIO('性别', [{'value': '1', 'label': '男'}, {'value': '2', 'label': '女'}], dict_code='sex'),
-    PHONE('电话'),
-    EMAIL('邮箱'),
-    DEPART('部门'),
-    SELECT('职称', options=['教授', '副教授', '讲师', '助教']),
-    TEXTAREA('备注'),
-])
-
-# 带关联的表单
-form_id, title = create_form('客户信息', 'customer_info', [
-    INPUT('客户名称', required=True),
-    PHONE('电话'),
-])
-# 查询字段用于关联
-tf, fields = get_form_fields('customer_info')
-create_form('联系人', 'contact_info', [
-    INPUT('姓名', required=True),
-    LINK_RECORD('所属客户', 'customer_info', tf, [fields['客户名称']['model']]),
-])
-
-# 菜单SQL（ID 自动生成 UUID，只需传菜单名和子项）
-print(gen_menu_sql('CRM系统', [
-    ('客户信息', 'customer_info', 1),
-    ('联系人', 'contact_info', 2),
-]))
-
-# 查询表单
-form = query_form('customer_info')
-print(form['id'], form['updateCount'])
-
-# 修改已有表单设计（自动获取 updateCount）
-update_form('customer_info', [
-    INPUT('客户名称', required=True),
-    PHONE('电话'),
-    EMAIL('邮箱'),
-    TEXTAREA('备注'),
-])
-
-# 删除表单（支持 3 种方式）
-delete_form('customer_info')                    # 传 code，自动查找 ID
-delete_form('customer_info', '123456789')       # 传 code + 已知 ID，跳过搜索（最快）
-delete_form('123456789012345678')               # 只传 ID
-```
-
-**可用的快捷函数（大写命名）：**
-- 基础: `INPUT`, `TEXTAREA`, `NUMBER`, `INTEGER`, `MONEY`, `DATE`, `TIME`, `SWITCH`, `SLIDER`, `RATE`, `COLOR`
-- 选择: `RADIO`, `SELECT`, `CHECKBOX`（支持 dict_code 字典）
-- 系统: `USER`, `DEPART`, `PHONE`, `EMAIL`, `AREA`
-- 文件: `FILE`, `IMGUPLOAD`, `HANDSIGN`
-- 高级: `AUTONUMBER`, `FORMULA`, `LINK_RECORD`, `LINK_FIELD`
-- 不需要 card: `DIVIDER`, `EDITOR`, `MARKDOWN`
-- 子表内: `SUB_INPUT`, `SUB_INTEGER`, `SUB_NUMBER`, `SUB_MONEY`, `SUB_SELECT`, `SUB_DATE`, `SUB_LINK_RECORD`, `SUB_LINK_FIELD`, `SUB_FORMULA`
-- 容器: `make_card`, `make_sub_table`
-- API: `init_api`, `create_form`, `update_form`, `delete_form`, `query_form`, `get_form_id`, `get_form_fields`, `find_or_create_form`, `save_design`
-
-> **`create_form` 的 `layout` 参数：**
-> - `'auto'`（默认）：字段数 >= 6 时自动使用半行两列布局
-> - `'half'`：强制半行布局
-> - `'full'`：强制整行布局（不做半行处理）
-> - `'word'`：Word 风格布局（表格边框样式，见下方详细说明）
-> - textarea/editor/file-upload/imgupload 等宽控件自动保持整行
->
-> **Word 风格表单（`layout='word'`）：**
->
-> Word 风格模拟传统 Word 文档表格样式，适用于审批单、申请表等正式场景。
->
-> **实现原理（JeecgBoot 表单设计器内置支持）：**
-> - `formStyle: "word"` — 表单风格设为 Word（设计器右侧「表单属性」→「表单风格」→「Word风格」）
-> - 栅格布局 `grid`，className = `form-grid form-grid-word-theme` — 每行一个栅格容器
-> - 标签列：独立的 `text` 控件（16px、居中），放在栅格的第一列
-> - 控件列：实际控件设置 `hideTitle: true`（隐藏标题），放在栅格的第二列
-> - 顶部标题：独立的 `text` 控件（24px、加粗、居中），不使用内置 header
-> - 外部 CSS：加载 `/desform/expand/css/theme-word.css` 提供表格边框样式
-> - `showHeaderTitle: false`、`disabledAutoGrid: true`
->
-> **栅格 span 分配规则：**
-> - 两列行（半行控件配对）：标签1 span=6 + 控件1 span=6 + 标签2 span=4 + 控件2 span=8
-> - 单列行（textarea/file-upload 等宽控件）：标签 span=6 + 控件 span=18
->
-> **使用示例：**
-> ```python
-> create_form('提成申请单', 'oa_commission_apply', [
->     USER('申请人', required=True),
->     DEPART('部门', required=True),
->     DATE('申请日期', required=True),
->     INPUT('项目名称', required=True),
->     MONEY('合同金额', required=True),
->     MONEY('提成金额', required=True),
->     TEXTAREA('提成说明'),
->     FILE('附件'),
-> ], layout='word')
-> ```
->
-> **注意事项：**
-> - `_apply_word_layout` 会自动生成顶部标题 text、栅格行、text 标签
-> - hand-sign/textarea/file-upload/divider 等宽控件自动独占一行
-> - 标签列 flex 垂直居中对齐
->
-> **`gen_menu_sql` 的 `icon` 参数：**
-> - 默认值 `'ant-design:appstore-outlined'`，一级菜单自动带图标
-> - 可自定义：`gen_menu_sql('费用管理', [...], icon='ant-design:dollar-outlined')`
-- 字典: `query_dict(code)` 查询字典项, `search_dict(keyword)` 按名称/编码模糊搜索字典
-- SQL: `gen_menu_sql`
-
-**如果共通工具库不存在，则使用以下方式：**
-
-**重要限制（实战踩坑）：**
-1. **Windows 环境下 curl 发送中文/长JSON会出错**，必须使用 Python 的 urllib/requests 确保 UTF-8 编码
-2. **禁止使用 `python3 -c "..."` 内联方式**，因为 JSON 中的特殊字符会被 bash 解析出错
-3. **必须先用 Write 工具写入 `.py` 临时文件，再用 Bash 执行，最后删除临时文件**
-
-**执行步骤：**
-```
-1. Write 工具 → 写入 create_desform.py（项目根目录）
-2. Bash 工具 → python create_desform.py
-3. Bash 工具 → rm create_desform.py（清理）
-```
-
-**API 踩坑记录（实战验证）：**
-
-> **关键踩坑：**
-> 1. `POST /desform/add` 现已直接返回表单实体（含 ID），`desform_utils.py` 已优先从返回值获取 ID，旧版后端不返回时自动 fallback 到 list 搜索
-> 2. `GET /desform/queryByCode` **不可靠**（部分表单查不到），推荐用 `GET /desform/queryByIdOrCode?desformCode={code}`
-> 3. `queryByIdOrCode` 对新创建但未保存设计的表单也可能返回失败，此时需通过 list API 全量搜索
-> 4. list API 的 `desformCode` 过滤参数**不可靠**（有时匹配不到），必须全量搜索后手动精确匹配
-> 5. `PUT /desform/edit` 的 `updateCount` 必须传**当前数据库中的值**（不是 +1），后端会自动递增
-> 6. `DELETE /desform/deleteBatch` 是**逻辑删除**（放入回收站），表单 code 仍被占用
-> 7. `DELETE /desform/recycleBin/deleteByIds` 可彻底删除回收站中的表单，释放 code。`delete_form` 已封装完整流程，支持传 code 或 ID
-> 8. `PUT /desform/recycleBin/recoverByIds` 可从回收站恢复表单
-> 9. `DELETE /desform/recycleBin/empty` 清空回收站（在演示环境中可能不完全生效）
-> 10. **删除后重建时序问题：** 彻底删除表单后，code 释放可能有延迟。如果 `add` 返回 `该code已存在`，说明该 code 之前被另一个表单占用（同 code 可能存在多条记录）。此时应通过 list 全量搜索找到占用该 code 的表单，对其执行 `deleteBatch` + `recycleBin/deleteByIds` 彻底删除后再重建
-> 11. **`save_design` 报「未找到对应实体」：** 通常是因为使用了已被删除的旧表单 ID。`find_or_create_form` 可能返回旧 ID（缓存或竞态），此时需通过 list API 重新搜索获取最新有效 ID
->
-> **`create_form` vs `save_design` 使用区别：**
-> - **推荐始终使用 `create_form`**（一站式：查找/创建 + 保存设计），它会自动解包 tuple、确定标题字段、处理 updateCount
-> - `save_design` 是底层函数，签名为 `save_design(form_id, form_code, widgets, title_model, update_count)`
->   - `widgets` 参数需要传**解包后的 widget dict 列表**（不是 tuple），tuple 需先 `[w[0] for w in widgets_tuples]` 解包
->   - `title_model` 是标题字段的 model 字符串（不是 index），可通过 `widgets_tuples[0][2]` 获取
->   - 如需直接调用 `save_design`，务必先通过 `queryByIdOrCode` 获取最新 `updateCount`
->
-> **命名规则：**
-> - 表单编码使用英文命名（不用拼音），模块名作为前缀
-> - 格式：`{模块}__{实体}`，如 `crm_customer`、`crm_contact`、`oa_leave_apply`
-> - 同一模块的表单共享前缀，便于分组管理
->
-> **find_or_create_form 策略（desform_utils.py 中已实现）：**
-> 1. 先尝试 `POST /desform/add` 创建
-> 2. 若 add 成功且返回值含 ID → 直接使用（新版后端已支持）
-> 3. 若 add 成功但返回值无 ID → 通过 list API 全量搜索获取 ID（旧版兜底）
-> 4. 若 add 失败（code已存在）→ 尝试 `queryByIdOrCode` 获取 ID
-> 5. 若 queryByIdOrCode 也失败 → 通过 list API 全量搜索获取 ID
-
-#### 3.4 检查结果
-
-- `success: true` → 表单创建成功
-- `success: false` → 输出错误信息，检查 desformCode 是否重复等
-
-### Step 4: 输出结果
+### 7. 输出结果
 
 ```
 ## 表单创建成功
-
 - 表单ID：{id}
 - 表单名称：{desformName}
 - 表单编码：{desformCode}
@@ -616,139 +161,325 @@ delete_form('123456789012345678')               # 只传 ID
 请在表单设计器中查看：打开 JeecgBoot 后台 → 表单设计器 → 找到该表单
 ```
 
-**同时输出菜单 + 角色授权 SQL（用于将设计器表单加入系统菜单）：**
+同时输出菜单 + 角色授权 SQL（用于将表单设计器加入系统菜单）。
 
-`gen_menu_sql` 函数会同时生成 `sys_permission`（菜单）和 `sys_role_permission`（角色授权）的 SQL。
-**所有 ID（菜单 ID、授权记录 ID）均自动生成 32 位无横线 UUID，无需手动指定。**
+> 详见 `references/desform-menu-sql.md` — gen_menu_sql 输出格式、SQL 字段说明、本地自动执行规则。
 
-```python
-# 调用方式：只需传父菜单名称 + 子菜单列表
-sql = gen_menu_sql('物业管理', [
-    ('小区信息', 'pm_community', 1),
-    ('楼栋信息', 'pm_building', 2),
-    ('房屋信息', 'pm_house', 3),
-])
-print(sql)
-```
-
-生成的 SQL 格式（每条 INSERT 都带完整列名，避免列错位）：
-```sql
--- 父菜单（ID 自动生成 UUID）
-INSERT INTO sys_permission(id, parent_id, name, url, component, component_name, redirect, menu_type, perms, perms_type, sort_no, always_show, icon, is_route, is_leaf, keep_alive, hidden, hide_tab, description, status, del_flag, rule_flag, create_by, create_time, update_by, update_time, internal_or_external)
-VALUES ('{uuid}', NULL, '{parentName}', '/{uuid}', 'layouts/RouteView', NULL, NULL, 0, NULL, '1', 1.00, 0, NULL, 1, 0, 0, 0, 0, NULL, '1', 0, 0, 'admin', now(), NULL, NULL, 0);
-INSERT INTO sys_role_permission (id, role_id, permission_id, data_rule_ids, operate_date, operate_ip)
-VALUES ('{uuid}', '{roleId}', '{parentUuid}', NULL, now(), '127.0.0.1');
-
--- 子菜单（ID 自动生成 UUID）
-INSERT INTO sys_permission(id, parent_id, name, url, component, component_name, redirect, menu_type, perms, perms_type, sort_no, always_show, icon, is_route, is_leaf, keep_alive, hidden, hide_tab, description, status, del_flag, rule_flag, create_by, create_time, update_by, update_time, internal_or_external)
-VALUES ('{uuid}', '{parentUuid}', '{desformName}', '/online/desform/list/{desformCode}', 'super/online/desform/auto/AutoDesformDataList', 'AutoDesformDataList', NULL, 0, NULL, '1', 1.00, 0, NULL, 0, 1, 0, 0, 0, NULL, '1', 0, 0, 'admin', now(), NULL, NULL, 0);
-INSERT INTO sys_role_permission (id, role_id, permission_id, data_rule_ids, operate_date, operate_ip)
-VALUES ('{uuid}', '{roleId}', '{menuUuid}', NULL, now(), '127.0.0.1');
-```
-
-**菜单 SQL 关键字段说明：**
-
-| 字段 | 值 | 说明 |
-|------|-----|------|
-| id | 自动生成 32 位 UUID | 如 `d0ca42ae976a4dfbbff491e304858fe1` |
-| url | `/online/desform/list/{desformCode}` | 设计器表单数据列表路由，desformCode 是表单编码 |
-| component | `super/online/desform/auto/AutoDesformDataList` | 固定值，设计器表单自动数据列表组件 |
-| component_name | `AutoDesformDataList` | 固定值 |
-| is_route | `0` | 不走普通路由 |
-| is_leaf | `1` | 叶子节点 |
-| parent_id | `NULL` 或父菜单UUID | NULL=一级菜单，指定父UUID=子菜单 |
-
-**角色授权 SQL 说明：**
-
-| 字段 | 值 | 说明 |
-|------|-----|------|
-| id | 自动生成 32 位 UUID | 每条授权记录独立 UUID |
-| role_id | `f6817f48af4fb3af11b9e8bf182f618b` | 默认角色 ID（desform_utils.py 中 ROLE_ID 常量），可通过参数覆盖 |
-| permission_id | 对应的菜单 UUID | 关联 sys_permission.id |
-
-> **重要：输出菜单 SQL 时，必须直接使用 `gen_menu_sql` 函数的完整输出，不要手动缩写或省略列名，否则会因列错位导致执行报错。**
-
-### 本地环境自动执行菜单 SQL 规则
-
-**判断条件：** `init_api` 传入的 api_base 以 `http://127.0.0.1` 或 `http://localhost` 开头（不区分大小写）。
-
-**自动执行方式：** 在 `gen_menu_sql` 生成 SQL 后，通过 Bash 工具逐条执行 MySQL 命令：
-
-```bash
-# 先检查菜单是否已存在，避免重复插入
-mysql -h127.0.0.1 -P3306 -uroot -proot jeecgboot3 -e "SELECT id FROM sys_permission WHERE id='{menuId}'"
-# 不存在则执行插入（包括 sys_permission 和 sys_role_permission）
-mysql -h127.0.0.1 -P3306 -uroot -proot jeecgboot3 -e "INSERT INTO sys_permission(...) VALUES (...);"
-mysql -h127.0.0.1 -P3306 -uroot -proot jeecgboot3 -e "INSERT INTO sys_role_permission(...) VALUES (...);"
-```
-
-**注意事项：**
-- 将 `gen_menu_sql` 的每条 INSERT 语句拆分后逐条通过 MySQL CLI 执行
-- 执行前先检查父菜单 ID 是否已存在，避免重复插入
-- 如果 MySQL 执行失败，回退为输出 SQL 让用户手动执行，不中断整体流程
-- 数据库连接参数默认 `mysql -h127.0.0.1 -P3306 -uroot -proot jeecgboot3`，与 jeecg-codegen 保持一致
-- 输出结果中标注 `菜单 SQL：已自动执行 ✓`
+当 `api_base` 以 `http://127.0.0.1` 或 `http://localhost` 开头时，通过 MySQL CLI 自动执行菜单 SQL。
 
 ---
 
-## 编辑已有表单
+## 更新已有表单
 
-如果用户要修改已有表单，需提供表单 ID 或编码，然后：
-1. 查询现有表单设计 JSON
-2. 根据用户需求修改 JSON
-3. 调用 `PUT /desform/edit` 保存（注意带上正确的 `updateCount`）
+所有更新相关的函数都在 `scripts/desform_utils.py` 中。
+
+### 更新流程
+
+1. 获取现有表单信息：`get_form_fields(code)`
+2. 分析用户需求，确定操作类型（添加/修改/删除/整体重设计）
+3. 展示变更摘要（新增/修改/删除的字段列表），等待用户确认
+4. 执行操作
+5. 自动同步权限
+
+### 整体重设计
+
+如果用户要全面修改已有表单：
+1. 查询现有表单设计 JSON：`query_form(code)` 或 `get_form_fields(code)`
+2. 根据用户需求重新组装控件列表
+3. 调用 `update_form(code, new_widgets)` 保存（自动获取 `updateCount`）
+
+### 字段级操作
+
+如果用户只是添加/修改/删除个别字段：
+- **添加字段**：`add_widget(code, widget)` — 向已有表单追加控件
+- **修改字段属性**：`update_widget(code, key_or_model, changes_dict)` — 修改指定控件属性
+- **删除字段**：`delete_widget(code, key_or_model)` — 删除指定控件
+- 操作后自动同步权限：`sync_auth(code, design_list, form_id)`
 
 ---
+
+## 复制表单
+
+`copy_form(source_code, new_code)` 可快速复制已有表单的设计 JSON 创建新表单。适用于基于现有表单创建类似表单（如复制"请假申请"改造为"出差申请"）。
+
+流程：
+1. 用户提供源表单编码和新表单编码
+2. 校验新编码可用性（`check_code_available(new_code)`）
+3. 调用 `copy_form(source_code, new_code)` 完成复制
+4. 如需修改，使用 `update_form` 或字段级操作调整
 
 ## 删除表单
 
-`delete_form` 已封装完整的删除流程（查找 → 逻辑删除 → 物理删除），支持 3 种调用方式：
+`delete_form` 已封装完整的删除流程（查找 → 逻辑删除 → 物理删除），支持传 code 或 ID。
+
+> 详见 `references/desform-api-notes.md` — 删除流程、注意事项。
+
+## 视图与移动端视图
+
+创建视图（PC 子视图、移动端视图）时，优先使用 `scripts/desform_view_creator.py` 通用脚本，支持复制主视图或自定义字段两种模式。
+
+> 详见 `references/desform-view-config.md` — 创建流程、JSON 配置格式、移动端优化规则、踩坑汇总。
+
+## 表单数据操作（CRUD）
+
+使用 `scripts/desform_data_utils.py` 对已有表单进行数据新增、查询、编辑、删除。
+
+> 详见 `references/desform-data-utils.md` — 完整函数列表和用法。
+
+**数据新增流程：**
+1. 先获取字段 model 映射：`get_form_fields(code)` 返回 `(titleField, {字段名: {model, key, type}, ...})`
+2. 构造数据字典：key 为字段的 `model`（如 `input_1774607211242_327900`），value 为字段值
+3. 调用 `add_data(code, data_dict)` 提交
 
 ```python
-from desform_utils import *
-init_api('https://boot3.jeecg.com/jeecgboot', 'your-token')
+from desform_utils import init_api, get_form_fields
+from desform_data_utils import add_data
 
-# 方式1：传 code（自动查找 ID，优先 queryByIdOrCode 快速查找）
-delete_form('edu_teacher')
+init_api(api_base, token)
+title_field, fields_map = get_form_fields('form_code')
+# fields_map 结构: {"姓名": {"model": "input_xxx", "key": "xxx", "type": "input"}, ...}
 
-# 方式2：传 code + 已知 ID（跳过搜索，最快）
-delete_form('edu_teacher', '2032994312457920514')
-
-# 方式3：只传 ID（纯数字且长度>15 自动识别为 ID）
-delete_form('2032994312457920514')
+add_data('form_code', {
+    fields_map['姓名']['model']: '张三',
+    fields_map['手机号']['model']: '13800138001',
+})
 ```
-
-**内部执行流程：**
-1. 确定表单 ID（传了 ID 直接用，传 code 则优先 `queryByIdOrCode` 快速查找，查不到再 fallback 到 list 全量搜索）
-2. `DELETE /desform/deleteBatch?ids={id}` — 逻辑删除（放入回收站）
-3. `DELETE /desform/recycleBin/deleteByIds?ids={id}` — 物理删除
-
-**删除注意事项：**
-- **不能跳过逻辑删除：** `recycleBin/deleteByIds` 只删除 `del_flag=1` 的记录，必须先执行 `deleteBatch`
-- **同一 code 可能存在多条记录：** 传 code 时会自动处理多条记录全部删除
-- **批量删除时传 ID 更快：** 创建时已获取 ID，删除时直接传入可跳过查询
-
----
 
 ## 错误处理
 
-| 错误 | 解决方案 |
-|------|---------|
-| Token 过期（401/认证失败） | 提示用户重新获取 X-Access-Token |
-| `该code已存在` | **不要直接覆盖**，提示用户确认是否覆盖（参见 Step 2.5 防覆盖规则），用户确认后再用 `update_form` 更新设计 |
-| `未找到对应实体` | 表单数据不一致（存在于 list 但无法编辑），需用 `deleteBatch` + `recycleBin/deleteByIds` 彻底删除后重建 |
-| `表单编码过长` | desformCode 缩短到 200 字符以内 |
-| `当前版本已过时，请刷新重试` | updateCount 传值错误，必须传当前值（通过 queryByIdOrCode 或 list 获取） |
-| `add` 返回 `result: null` | 旧版后端行为，`desform_utils.py` 已自动 fallback 到 list 搜索；新版后端已直接返回实体 |
-| `queryByCode` 返回 false | 该接口不可靠，改用 `queryByIdOrCode` 或 list 全量搜索 |
-| 中文乱码 | 确认使用 Python urllib（不要用 curl） |
-| 连接超时 | 确认后端地址可达，检查网络 |
+> 详见 `references/desform-api-notes.md` — 完整错误处理表。
+
+---
+
+## OA 审批应用一键生成（表单 + 流程 + 授权）
+
+> 当用户说"创建审批单"、"创建报销单"、"做一个OA表单带流程"、"面试申请"、"请假申请"等，使用本章节一次性完成 **表单设计 → 流程创建 → 流程发布 → 表单关联 → 角色授权**。
+
+### OA 交互流程
+
+#### OA Step 0: 解析用户需求
+
+从用户描述中提取：
+
+| 信息 | 默认值 | 示例 |
+|------|--------|------|
+| 应用名称 | 用户指定 | "费用报销单" |
+| 表单编码 | 英文命名，`oa_` 前缀 | `oa_expense_reimbursement` |
+| 表单字段 | 从描述中解析 | 申请人、金额、附件等 |
+| 流程节点 | 从描述中解析 | 提交→部门审批→财务审核→结束 |
+| 审批人 | 从描述中解析 | 角色/指定人/表达式 |
+
+#### OA Step 1: 展示应用摘要并确认
+
+**必须展示以下内容，等待用户确认后再执行：**
+
+```
+## OA 应用摘要
+
+- 应用名称：费用报销单
+- 表单编码：oa_expense_reimbursement
+- 目标环境：http://localhost:8080/jeecgboot
+
+### 表单字段
+
+| 序号 | 字段名称 | 控件类型 | 必填 | 说明 |
+|------|---------|---------|------|------|
+| 1 | 申请人 | select-user | 是 | 标题字段 |
+| 2 | 报销金额 | money | 是 | |
+| ... | ... | ... | ... | ... |
+
+### 流程节点
+
+| 序号 | 节点名称 | 类型 | 审批人 |
+|------|---------|------|--------|
+| 1 | 开始 | startEvent | - |
+| 2 | 提交申请 | userTask (草稿) | ${applyUserId} |
+| ... | ... | ... | ... |
+
+### 连线
+
+开始 → 提交 → 审批 → 结束
+
+确认以上信息正确？(y/n)
+```
+
+#### OA Step 2: 一键执行创建
+
+用户确认后，使用 `scripts/desform_oa.py` 脚本一次性完成全部操作。
+
+**使用步骤：**
+1. 根据用户需求生成 JSON 配置文件（Write 到工作目录的临时 `.json` 文件）
+2. 用 Bash 执行脚本：
+```bash
+python "<skill目录>/scripts/desform_oa.py" \
+    --api-base <后端地址> \
+    --token <TOKEN> \
+    --config <config.json>
+```
+3. 删除临时 JSON 配置文件
+
+**脚本自动完成：**
+1. 创建设计器表单（调用 desform_creator）
+2. 创建 BPMN 流程（调用 bpmn_creator）
+3. 发布流程
+4. 关联表单到流程
+5. 设置草稿节点表单可编辑 + 表单地址
+6. 查询已有授权 → 追加新表单ID → 保存授权给管理员角色
+
+### OA JSON 配置格式
+
+```json
+{
+  "appName": "费用报销单",
+  "form": {
+    "formName": "费用报销单",
+    "formCode": "oa_expense_reimbursement",
+    "layout": "word",
+    "titleIndex": 2,
+    "fields": [
+      {"name": "报销单号", "type": "auto-number", "prefix": "BXBX"},
+      {"name": "---", "type": "divider", "text": "基本信息"},
+      {"name": "申请人", "type": "select-user", "required": true},
+      {"name": "所在部门", "type": "select-depart", "required": true},
+      {"name": "申请日期", "type": "date", "required": true},
+      {"name": "报销类别", "type": "select", "required": true, "options": ["差旅费", "交通费", "办公用品"]},
+      {"name": "---", "type": "divider", "text": "费用明细"},
+      {"name": "报销金额", "type": "money", "required": true, "unit": "元"},
+      {"name": "费用说明", "type": "textarea"},
+      {"name": "发票/凭证", "type": "imgupload", "required": true},
+      {"name": "附件", "type": "file-upload"},
+      {"name": "---", "type": "divider", "text": "审批信息"},
+      {"name": "部门负责人意见", "type": "oa-approval-comments"},
+      {"name": "财务审核意见", "type": "oa-approval-comments"}
+    ]
+  },
+  "process": {
+    "processName": "费用报销审批流程",
+    "processKey": "oa_expense_reimbursement_process",
+    "typeId": "oa",
+    "nodes": [
+      {"id": "start", "type": "startEvent", "name": "开始"},
+      {"id": "task_draft", "type": "userTask", "name": "提交报销申请", "draft": true,
+       "assignee": {"type": "expression", "value": "applyUserId"}},
+      {"id": "task_dept", "type": "userTask", "name": "部门负责人审批",
+       "assignee": {"type": "role", "value": "manager"}},
+      {"id": "task_finance", "type": "userTask", "name": "财务审核",
+       "assignee": {"type": "role", "value": "finance"}},
+      {"id": "end", "type": "endEvent", "name": "结束"}
+    ],
+    "flows": [
+      {"id": "flow_1", "source": "start", "target": "task_draft"},
+      {"id": "flow_2", "source": "task_draft", "target": "task_dept"},
+      {"id": "flow_approve", "source": "task_dept", "target": "task_finance", "name": "通过"},
+      {"id": "flow_reject", "source": "task_dept", "target": "end", "name": "拒绝"},
+      {"id": "flow_end", "source": "task_finance", "target": "end"}
+    ]
+  },
+  "auth": {
+    "roleId": "f6817f48af4fb3af11b9e8bf182f618b",
+    "authMode": "role"
+  }
+}
+```
+
+### OA 表单字段类型
+
+支持所有 desform 标准控件类型（见上方 Step 1），额外增加 OA 专用类型：
+
+| type | 说明 |
+|------|------|
+| `oa-approval-comments` | 审批意见组件（grid 6:18布局，禁用状态，由流程节点控制启用） |
+
+> **审批意见组件规则：** 当字段名包含"意见"、"签字"、"审批"等关键词（如"部门负责人意见"、"财务审核签字"），**必须**使用 `oa-approval-comments` 类型，**不要**使用 `hand-sign` 或 `textarea`。
+
+### OA 审批人（assignee）类型
+
+| type 值 | value 含义 | 示例 |
+|---------|-----------|------|
+| `assignee` | 固定用户名 | `"admin"` |
+| `expression` | 表达式变量名 | `"applyUserId"` |
+| `candidateUsers` | 多候选人 | `"admin,jeecg"` |
+| `role` | 角色编码 | `"manager"` |
+| `dept` | 部门ID | `"6d35e179..."` |
+| `approvalRole` | 审批角色编码 | `"finance_approver"` |
+
+### OA 流程分支规则
+
+> **重要：** 生成流程 JSON 配置时，必须根据表单字段决定分支方式：
+> - **表单有 `result` 等可用于条件判断的字段** → 使用 `exclusiveGateway` + `conditions` 条件分支
+> - **表单没有 `result` 字段** → 使用**手工分支**（从 userTask 直接引出多条无条件的 sequenceFlow）
+>
+> **手工分支使用前提：** 仅在通过/拒绝后还需要经过不同的后续处理节点时才使用。如果审批后只有结束节点，不需要手工分支，直接连到结束即可。
+
+### 常见 OA 应用模板
+
+#### 费用报销单
+- 字段：报销单号、申请人、部门、日期、报销类别、金额、说明、发票、附件、部门负责人意见(审批意见)、财务审核意见(审批意见)
+- 流程：提交 → 部门审批 →(手工分支: 通过/拒绝)→ 财务审核 → 结束
+
+#### 请假申请单
+- 字段：申请人、部门、日期、请假类型、开始/结束日期、天数、说明、附件、部门负责人意见(审批意见)
+- 流程：提交 → 部门审批 → 结束（审批后只有结束节点，不需要手工分支）
+
+#### 采购申请单
+- 字段：申请人、部门、日期、采购物品、数量、预算金额、供应商、说明、附件、部门负责人意见(审批意见)、总经理意见(审批意见)
+- 流程：提交 → 部门审批 →(手工分支: 通过/拒绝)→ 总经理审批 → 结束
+
+#### 出差申请单（含 callActivity 子流程）
+- 字段：申请人、部门、出差地点、开始/结束日期、天数、事由、预算、附件、部门负责人意见(审批意见)、总监审批意见(审批意见)
+- 主流程：提交 → 部门审批 →(手工分支: 同意/不同意)→ 总监审批 → 借款子流程(callActivity) → 结束
+- **注意：** 需先用 `jeecg-bpmn` 的 `bpmn_creator.py` 创建子流程，再创建主流程
+
+---
+
+---
 
 ## 参考文档
 
-- `scripts/desform_creator.py` — **通用表单创建脚本**，优先使用此脚本 + JSON 配置文件
-- `scripts/desform_utils.py` — **共通工具库**（控件工厂、API 封装、布局引擎）
+### 脚本工具
+
+| 脚本 | 用途 |
+|------|------|
+| `scripts/desform_creator.py` | 通用表单创建脚本，优先使用 |
+| `scripts/desform_view_creator.py` | 通用视图创建脚本（PC/移动端） |
+| `scripts/desform_utils.py` | 共通工具库（控件工厂、API 封装、布局引擎、字段权限） |
+| `scripts/desform_data_utils.py` | 数据操作工具库（CRUD、批量、回收站） |
+| `scripts/desform_auth_retry.py` | 字段权限重试（仅权限自动创建失败时使用） |
+
+### 创建/更新表单时阅读
+
+- `references/desform-json-config.md` — JSON 配置格式、字段定义、子表说明、完整示例
+- `references/desform-widget-types.md` — 用户描述关键词 → 控件 type 映射表
+- `references/desform-dict-config.md` — 字典数据源配置（静态选项、系统字典、Python 用法）
+- `references/desform-python-utils.md` — desform_utils.py 使用指南、快捷函数、layout 参数
+- `references/desform-api-notes.md` — API 踩坑记录、错误处理、命名规则
+- `references/desform-menu-sql.md` — 菜单 SQL 生成、字段说明、本地自动执行
+
+### 高级功能（按需阅读）
+
+- `references/desform-link-record.md` — 涉及关联记录 + 他表字段时阅读
+- `references/desform-cross-form-binding.md` — 多表单互相关联时阅读（跨表 link-record/isSubTable/link-field/twoWayModel）
+- `references/desform-sub-table-types.md` — 涉及子表时阅读（内部子表 vs 外部子表）
+- `references/desform-formula-function.md` — 涉及公式计算时阅读（内置函数库、自定义 JS 函数、日期计算）
+- `references/desform-default-value.md` — 涉及默认值时阅读（compose/function/javascript/linkage 四种类型）
+- `references/desform-validation-rules.md` — 涉及校验规则时阅读（rules/defaultRules/pattern/unique）
+- `references/desform-option-datasource.md` — 涉及选项数据源时阅读（静态/系统字典/关联表单/远程函数）
+- `references/desform-js-enhance.md` — 涉及 JS 增强时阅读（自定义 JavaScript、API 方法、事件监听）
+- `references/desform-layout.md` — 涉及布局模式时阅读（auto/half/full/word 四种模式的说明和适用场景）
+- `references/desform-css-enhance.md` — 涉及 CSS 增强时阅读（自定义样式、Word 风格定制）
+- `references/desform-layout-controls.md` — 涉及复杂布局时阅读（AutoGrid/Card/Grid/Tabs）
+- `references/desform-linkage-query.md` — 涉及查询工作表时阅读（linkage 类型默认值）
+- `references/desform-online-binding.md` — 涉及关联 Online 表单时阅读（字段映射/子表/数据同步）
+- `references/desform-external-link.md` — 涉及外链表单时阅读（公共填报、免登录访问、外链授权管理）
+- `references/desform-view-config.md` — 涉及视图时阅读（JSON 配置、移动端优化、踩坑汇总）
+
+### 降级/排障
+
+- `references/desform-fallback-manual-json.md` — 脚本失败时手动构造 JSON 的完整指南
 - `references/desform-design-json-schema.md` — JSON Schema 结构、控件类型清单、通用字段
 - `references/desform-widget-options.md` — 每种控件的完整 options 配置
+
+### 示例参考
+
 - `references/desform-examples.md` — 常见表单模式示例 + Python 脚本模板
 - `references/desform-real-samples.md` — 真实业务表单案例（字典、半行、分区、公式、关联）

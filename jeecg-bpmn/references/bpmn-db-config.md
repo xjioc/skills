@@ -49,7 +49,7 @@
 | `form_deal_style` | 表单处理风格 | `default` |
 | `flow_status_col` | 流程状态字段 | 通常为 `bpm_status` |
 | `trigger_action` | 触发动作 | `add`/`update`/`add\|update`（tableEvent 时用） |
-| `report_print_url` | 打印模板URL | 可选 |
+| `report_print_url` | 积木报表打印URL（仅 formType=3 有效） | 格式：`{{DOMAIN_URL}}/jmreport/view/{报表ID}?id={{DATAID}}&token={{TOKEN}}&procInstId={{PROCINSTID}}` |
 
 **form_type 表单类型：**
 
@@ -70,8 +70,8 @@
 | `process_id` | 关联流程ID | 外键 |
 | `process_node_code` | 节点ID（对应 XML 中的 userTask id） | 如 `task_apply` |
 | `process_node_name` | 节点名称 | 如 `部门经理审批` |
-| `model_and_view` | PC端表单路径 | 如 `super/bpm/process/components/OnlineFormOpt` |
-| `model_and_view_mobile` | 移动端表单路径 | 可选 |
+| `model_and_view` | PC端表单路径 | **开启可编辑时必须设置**，见下方说明 |
+| `model_and_view_mobile` | 移动端表单路径 | **开启可编辑时必须设置**，见下方说明 |
 | `node_timeout` | 超时提醒（小时） | 0=不提醒 |
 | `form_edit_status` | 表单是否可编辑 | `0`=只读, `1`=可编辑 |
 | `cc_status` | 允许抄送 | `0`=关, `1`=开 |
@@ -83,6 +83,15 @@
 | `reject_status` | 允许驳回 | `0`=关, `1`=开 |
 | `allow_counter_sign_add_user` | 会签允许加人 | `0`=关, `1`=开 |
 | `node_config_json` | 节点扩展配置（JSON） | 包含通知设置、审批人配置等 |
+
+**重要：form_edit_status=1 时必须同时设置表单地址**
+
+当节点开启表单可编辑（`form_edit_status=1`）时，必须同时设置 `model_and_view` 和 `model_and_view_mobile`，否则发起人无法正确打开表单编辑页面。
+
+| 表单类型 | model_and_view (PC) | model_and_view_mobile (移动端) |
+|---------|---------------------|-------------------------------|
+| 设计器表单(desform) | `{{DOMAIN_URL}}/desform/edit/{formCode}/${BPM_DES_DATA_ID}?token={{TOKEN}}&taskId={{TASKID}}&skip=false` | 同PC |
+| Online表单 | `super/bpm/process/components/OnlineFormOpt` | `check/onlineForm/flowedit` |
 
 ## 4. ext_act_process_node_auth — 字段权限配置
 

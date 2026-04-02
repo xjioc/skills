@@ -10,6 +10,31 @@ description: Use when user asks to create/design a big screen (大屏), full-scr
 > **本 skill 专门处理大屏（bigScreen）模式**：全屏展示，绝对定位（像素坐标），深色主题，适用于监控室/展厅/展示墙。
 > 仪表盘（看板）请使用 `jimubi-dashboard` skill。
 
+## 按需加载指南
+
+本 skill 采用分层加载：核心规则始终在上下文中，专题文档按需读取。
+
+| 场景 | 读取文件 |
+|------|---------|
+| 创建/绑定/修改数据集（SQL/API/文件） | `references/dataset-guide.md`（**仅自定义脚本时需要**；使用 `dataset_ops.py` / `comp_ops.py --dataset-name` / `comp_ops.py --create-sql` / `comp_ops.py --sql-params` 预置脚本时**无需读取**，脚本已封装全部逻辑，含 FreeMarker 查询参数支持） |
+| SQL 数据集使用存储过程（CALL） | 直接用 `proc_ops.py bindcomp`，**无需读任何文档**（一键完成：pymysql 创建存储过程 + 创建数据集 + 绑定组件；自动从数据源 API 获取数据库连接信息） |
+| 从模板复制创建大屏 | 直接用 `template_ops.py copy`，**无需读任何文档** |
+| 模板复制遇到问题时 | `references/template-copy-guide.md` |
+| 地图组件（JAreaMap 等） | `references/map-guide.md` |
+| 签名接口 / 数据源管理 / NoSQL 数据源 | `references/signing-datasource-guide.md`（含 MongoDB/ES/Redis 创建流程、dbUrl 格式、SQL 前缀语法、已知问题） |
+| 组件联动 / 钻取 | 直接用 `linkage_ops.py`，**无需读任何文档**（参数说明见下方「快捷操作：linkage_ops.py」章节）。仅遇到复杂问题时读 `references/linkage-drill-guide.md` |
+| 组件外部链接跳转 | 直接用 `link_ops.py`，**无需读任何文档** |
+| 组件组合（JGroup） | `references/group-guide.md` |
+| 修改页面配置（背景/水印/宽高） | `references/page-config-guide.md` |
+| 字典翻译（jimu_dict） | `references/dict-guide.md` |
+| 组件右键操作（图层排序/复制/删除/锁定） | `references/rightclick-actions-guide.md` |
+| 遇到奇怪问题时查阅 | `references/pitfalls.md` |
+| 组件样式配置路径 | `references/bi-comp-option-config.md`（**仅当 SKILL.md 中未列出目标组件的配置路径时才读取**；JStatsSummary/JCapsuleChart/JGauge/JProgress/JColorBlock/JScrollBoard 等常用组件的配置路径已内联在 SKILL.md「常用组件配置路径速查」章节，无需读 600 行文档） |
+| 完整组件类型清单 | `references/bi-component-types.md` |
+| 新增组件默认尺寸/数据/option | `references/core-configs/component-defaults.md`（82+ 组件的 w/h/chartData/option 默认值速查） |
+| 组件创建流程（addPageComp） | `references/core-configs/addPageComp-logic.md`（newItem 结构、位置计算、保存逻辑） |
+| 组件菜单分类树 | `references/core-configs/menu-hierarchy.md`（完整 menuData 层级 + 统计）。**全组件批量生成时无需读取**，SKILL.md 组件速查表已包含全部 compType→中文名映射，脚本中直接硬编码 categories 列表即可 |
+
 ## 大屏特征
 
 - **布局**：绝对定位，坐标和尺寸单位为**像素**（如 x=50, y=280, w=860, h=380）
@@ -18,95 +43,733 @@ description: Use when user asks to create/design a big screen (大屏), full-scr
 - **装饰元素**：常用 JDragBorder（边框）、JDragDecoration（装饰条）增强视觉效果
 - **典型分辨率**：1920×1080
 
+### 图层背景色规则（强制）
+
+> **严禁将图层背景色设为红色或任何非透明颜色（除非用户明确指定）。** 用户未指定背景色时，`config.background` 和 `config.borderColor` 必须设为 `#FFFFFF00`（透明）。
+
+| 规则 | 说明 |
+|------|------|
+| **默认值** | `config.background = '#FFFFFF00'`，`config.borderColor = '#FFFFFF00'` |
+| **严禁使用 `rgba(0,0,0,0)`** | Ant Design 颜色选择器将其解析为**红色**（色相 0°=红色） |
+| **唯一正确的透明写法** | `#FFFFFF00`（带 alpha 通道的十六进制透明白色） |
+| **何时设为非透明** | 仅当用户明确指定了具体背景颜色时 |
+
 ## 前置条件
 
-用户必须提供：
-1. **API 地址**：JeecgBoot 后端地址（如 `https://api3.boot.jeecg.com`）
-2. **X-Access-Token**：JWT 登录令牌（从浏览器 F12 获取）
+用户必须提供 API 地址和 X-Access-Token。
+
+## 执行效率规则（强制）
+
+### 简单操作直接执行，禁止多余探索
+
+**对所有大屏操作（包括创建新大屏、组件增删改查），必须跳过以下步骤直接执行：**
+- 禁止触发 brainstorming 流程
+- 禁止启动 Explore 子代理去探索源码
+- 禁止启动子代理去读 data.ts 默认配置（skill 文档已包含完整信息）
+- 禁止启动子代理去分析模板 JSON 结构（template_ops.py 已封装全部逻辑）
+- 禁止用 Read 工具读取模板 JSON 文件（92KB+，严重浪费 token）
+- 禁止读取 template-copy-guide.md（template_ops.py copy 已实现全部流程）
+- 禁止展示设计摘要等待确认（除非用户明确要求确认）
+- 禁止使用预置脚本时读取 dataset-guide.md（`dataset_ops.py` / `comp_ops.py --dataset-name` / `comp_ops.py --create-sql` / `comp_ops.py --sql-params` / `proc_ops.py bindcomp` 已封装全部数据集逻辑含存储过程+FreeMarker 参数支持，读 557 行文档浪费 ~5000 token）
+- 禁止执行预置脚本前先 `--help` 查看用法（skill 文档已包含完整参数说明）
+- 禁止存储过程场景手动写 pymysql 脚本再调 comp_ops.py（`proc_ops.py bindcomp` 一条命令搞定全部流程）
+
+**正确做法：直接使用预置脚本（`template_ops.py`、`comp_ops.py`、`dataset_ops.py`）完成，1-2 轮工具调用。**
+
+### 模板创建快速路径（强制，token 节省 90%+）
+
+**创建整个大屏时，必须走以下快速路径，禁止自定义脚本：**
+
+```
+轮次1: cp template_ops.py + bi_utils.py（1 条 Bash 命令）
+轮次2: py template_ops.py copy ... --replace '{...}' --board-data '{...}' && echo URL | clip.exe && rm（1 条 Bash 命令）
+```
+
+**替换字典构建规则：** 根据用户行业需求，直接构建 `--replace` JSON，无需分析模板内容。各模板中的占位文本是固定的：
+
+**模板1：大数据可视化展示平台（通用/销售/综合类）**
+
+| 占位文本 | 替换为行业术语 |
+|---------|--------------|
+| 大数据可视化展示平台 | 行业大屏标题 |
+| 总金额 | 行业核心指标1名称 |
+| 数量 | 行业核心指标2名称 |
+| 数量结算率 / 金额结算率 等 | 行业百分比指标 |
+| 2017年 / 2018年 | 近两年年份 |
+| 结算率 | 行业趋势指标 |
+| 年度数据 / 图例数据 | 行业分组标签 |
+| 图例1/2/3/4 | 行业分类项 |
+| 行1列1~行5列3 | 轮播表业务数据 |
+
+**模板2：北京科技数字化云平台（科技/能源/电力/IoT/设备监控类）**
+
+| 占位文本 | 替换为行业术语 |
+|---------|--------------|
+| 北京科技数字化云平台 | 行业大屏标题 |
+| 网关管理/云组态/设备管理/动态数据/人员管理/监控管理/人员定位/能源管理 | 顶部8个导航菜单项 |
+| 功耗总量 | 核心指标标题 |
+| 电能耗 / 水能耗 | 双翻牌器标签 |
+| 17563 / 11163 | 双翻牌器数值 |
+| kw/h | 翻牌器单位 |
+| 近七日电能耗 / 近七日水能耗 | 左侧双柱状图标题 |
+| 一号~五号机房功率 | 5个仪表盘标题 |
+| 设备功率信息 | 中间仪表盘区域标题 |
+| 设备列表 / 信息 | 右侧面板标题 |
+| 站点号：0001 / 设备状态：正常 / 环境温度：36摄氏度 / 在线设备：20 台 | 右侧4行信息文本 |
+| 近七日设备在线数 | 右下折线图标题 |
+| 基础折线图 | 折线图标题 |
+| 1号~5号机房 / 0374~0378 / 正常 | 滚动表格数据 |
+| 功率 / 编号 / 设备名 / 设备状态 | 数据字段名 |
+
+**示例（风力发电行业，使用北京科技数字化云平台模板）：**
+```bash
+py template_ops.py copy $API_BASE $TOKEN \
+  --template "北京科技数字化云平台_1014376428645961728.json" \
+  --name "风力发电智慧监控平台" \
+  --bg-image "/img/bg/bg4.png" \
+  --replace '{"北京科技数字化云平台":"风力发电智慧监控平台","网关管理":"风机管理","云组态":"SCADA系统","设备管理":"机组管理","动态数据":"实时数据","人员管理":"运维管理","监控管理":"故障监控","人员定位":"风场巡检","能源管理":"发电管理","功耗总量":"发电总量","电能耗":"发电量","水能耗":"上网电量","17563":"58260","11163":"42850","kw/h":"万kWh","设备列表":"风机列表","信息":"风场信息","站点号：0001":"风场编号：WF-001","设备状态：正常":"风机状态：正常运行","环境温度：36摄氏度":"平均风速：8.5m/s","在线设备：20 台":"在线风机：126 台","近七日设备在线数":"近七日风机在线数","设备功率信息":"风机功率信息","近七日电能耗":"近七日发电量","近七日水能耗":"近七日弃风量","一号机房功率":"A区风机功率","二号机房功率":"B区风机功率","三号机房功率":"C区风机功率","四号机房功率":"D区风机功率","五号机房功率":"E区风机功率","基础折线图":"风机在线趋势","1号机房":"A区-01号风机","2号机房":"B区-03号风机","3号机房":"C区-07号风机","4号机房":"D区-12号风机","5号机房":"E区-05号风机","0374":"WF-A01","0375":"WF-B03","0376":"WF-C07","0377":"WF-D12","0378":"WF-E05","正常":"运行中","功率":"功率(MW)","编号":"风机编号","设备名":"风机名称","设备状态":"运行状态"}'
+```
+
+### 存储过程快速路径（强制，2 轮完成）
+
+**存储过程任务必须走 `proc_ops.py bindcomp`，禁止手动 pymysql + comp_ops.py 分步执行：**
+
+```
+轮次1: Read 凭据 + Bash: cp proc_ops.py comp_ops.py bi_utils.py default_configs.json（并行）
+轮次2: py proc_ops.py bindcomp ... && rm proc_ops.py comp_ops.py bi_utils.py default_configs.json && echo URL | clip.exe
+```
+
+**示例（查询 demo 表）：**
+```bash
+py proc_ops.py bindcomp "http://192.168.1.66:8080/jeecg-boot" "$TOKEN" \
+  --page "PAGE_ID" --comp "JCommonTable" --title "Demo数据表格" \
+  --x 50 --y 280 --w 900 --h 450 \
+  --proc-name "sp_query_demo" \
+  --proc-sql "SELECT id, name, sex, age, birthday, salary_money, email FROM demo ORDER BY create_time DESC" \
+  --fields "id:String,name:String,sex:String,age:String,birthday:String,salary_money:String,email:String" \
+  --dict "sex=sex"
+```
+
+**带参数的存储过程：**
+```bash
+py proc_ops.py bindcomp ... \
+  --proc-name "sp_query_demo_by_sex" \
+  --proc-params "IN p_sex varchar(10)" \
+  --proc-sql "SELECT id, name, sex, age FROM demo WHERE sex = p_sex ORDER BY create_time DESC" \
+  --fields "id:String,name:String,sex:String,age:String"
+```
+
+`proc_ops.py bindcomp` 自动完成：从数据源 API 获取 DB 连接信息 → pymysql 创建存储过程 → 验证 CALL → 调用 comp_ops.py 创建数据集+绑定组件。**无需读 dataset-guide.md，无需手写 pymysql 脚本。**
+
+**使用前准备（需额外复制 comp_ops.py + default_configs.json，因为 bindcomp 内部调用 comp_ops.py）：**
+```bash
+cp "C:/Users/25067/.claude/skills/jimubi-bigscreen/references/scripts/proc_ops.py" .
+cp "C:/Users/25067/.claude/skills/jimubi-bigscreen/references/scripts/comp_ops.py" .
+cp "C:/Users/25067/.claude/skills/jimubi-bigscreen/references/bi_utils.py" .
+cp "C:/Users/25067/.claude/skills/jimubi-bigscreen/references/scripts/default_configs.json" .
+# 执行完后清理
+rm proc_ops.py comp_ops.py bi_utils.py default_configs.json
+```
+
+### 多字段页面配置修改必须合并（强制）
+
+修改 2 个及以上页面属性时，禁止逐个调用 page_ops.py，必须编写合并脚本（1 次 query + 修改所有字段 + 1 次 edit）。详见 `references/page-config-guide.md`。
+
+### 所有大屏操作以耗时最少为第一优先级（强制）
+
+1. 用户说什么就做什么，不反复权衡
+2. 优先用预置脚本，能一条命令解决的不写自定义脚本
+3. 多个独立操作必须并行执行
+4. 复杂组件从 `default_configs.json` 加载配置
+5. 最少工具调用轮次（理想 2 轮：准备 + 执行清理）
+6. API 凭据已在上下文中时不重复读取
+
+**耗时目标：**
+
+| 操作类型 | 目标耗时 | 做法 |
+|---------|---------|------|
+| 单组件增/删/改/查 | ≤30s | comp_ops.py 一条命令（cp + 执行 + rm，共 2 轮） |
+| 数据集 + 单组件 | ≤45s | comp_ops.py --create-sql 或 dataset_ops.py + comp_ops.py --dataset-name |
+| 复合操作（数据集 + 多组件） | ≤60s | 并行 Bash 调用 |
+| 模板复制创建大屏 | ≤60s | template_ops.py copy --replace |
+| 存储过程 + 单组件 | ≤45s | proc_ops.py bindcomp 一条命令（cp + 执行 + rm，共 2 轮） |
+| 页面配置修改（≥2项） | ≤30s | 合并脚本一次完成 |
+| 全组件批量生成（95个） | ≤5s | 自定义脚本：1次query + 批量add_component(内存) + 1次save。**严格 2 轮：轮次1 Read凭据 ‖ Bash(cp) ‖ Write(脚本) 并行，轮次2 py+clip+rm 一条命令** |
+
+### 全组件批量生成快速路径（强制）
+
+**用户要求"生成全组件"时，必须走自定义批量脚本，禁止逐个调用 comp_ops.py add（95次API调用 vs 2次）。**
+
+**核心原则：**
+1. **必须用 `bi_utils.add_component()`**：它正确处理 config 结构（flat dict → JSON string），自动设置 `size`/`chart`/`turnConfig` 等字段
+2. **先 `_page_components[page_id] = []` 清空缓存，再批量 add_component，最后一次 save_page**
+3. **config 是 flat dict**（chartData/option/dataType/background 同级），由 add_component 内部 `json.dumps` 为字符串
+4. **chartData 必须在传入 add_component 前序列化为 JSON 字符串**
+5. **option.title 可能是 str 类型**（部分 default_configs.json 中如此），设置前需检查类型并转为 dict
+6. **排除天气预报（JWeatherForecast）、装饰边框（JDragBorder）、装饰条（JDragDecoration）**：这些是纯装饰/特殊组件，不算业务组件
+7. **componentName 必须使用中文名称，禁止用 compType（如 JBar）作为图层名**：参照 `menu-hierarchy.md` 中的组件中文名（如 JBar→基础柱形图、JPie→饼图、JStatsSummary_1→统计概览(卡片式)），脚本中需维护 `key→中文名` 映射表
+8. **组件必须按网格布局，禁止堆叠，禁止生成分类标题组件**：所有组件扁平排列（flat list），4 列网格（COLS=4，COMP_W=440，MARGIN=20），逐行递增 y 坐标，确保无重叠。**分类（柱形图/饼图/折线图/...）仅用于代码中的注释分组，不要为每个分类生成 JText 标题组件**——分类标题不是业务组件，用户在设计器中会看到多余的文本图层
+9. **生成后必须同步修改页面高度（desJson.height）**：95 个组件总高度远超默认 1080px（实际约 7800px+）。**页面宽高存储在 `desJson.height`/`desJson.width` 中，不是 `pageConfig`**。必须在 save_page 后计算组件最大 `y+h`，通过 `_request('GET', '/drag/page/queryById')` 获取完整页面实体，解析 `desJson`（可能为 None/空字符串/JSON字符串），设置 `height = max_bottom + 50`，再 `_request('POST', '/drag/page/edit')` 保存
+
+**脚本模板（2轮完成）：**
+```
+轮次1: Read 凭据 + Bash: cp bi_utils.py + default_configs.json + Write 脚本
+轮次2: py 脚本 && echo URL | clip.exe && rm 清理
+```
+
+**关键代码结构：**
+```python
+import bi_utils, json, urllib.request
+bi_utils.API_BASE = API_BASE
+bi_utils.TOKEN = TOKEN
+
+defaults = json.load(open('default_configs.json', 'r', encoding='utf-8'))
+
+# 创建页面 + 清空缓存
+page_id = bi_utils.create_page('全组件大屏', style='bigScreen', theme='dark',
+                                background_image='/img/bg/bg4.png')
+bi_utils._page_components[page_id] = []
+
+# 扁平网格布局（4列，无分类标题组件）
+COLS, COMP_W, COMP_H, MARGIN = 4, 440, 300, 20
+START_Y = 100  # 顶部标题区下方
+
+# all_comps = [(key, compType, name), ...] 扁平列表，分类仅作注释
+added = 0
+for key, comp_type, name in all_comps:
+    if key not in defaults:
+        continue
+    cfg = json.loads(json.dumps(defaults[key]))  # deep copy
+    w, h = min(cfg.pop('w', COMP_W), COMP_W), min(cfg.pop('h', COMP_H), COMP_H)
+    cfg.setdefault('background', '#FFFFFF00')
+    cfg.setdefault('borderColor', '#FFFFFF00')
+    if 'chartData' in cfg and not isinstance(cfg['chartData'], str):
+        cfg['chartData'] = json.dumps(cfg['chartData'], ensure_ascii=False)
+    opt = cfg.get('option', {})
+    if isinstance(opt, str):
+        try: opt = json.loads(opt); cfg['option'] = opt
+        except: opt = {}; cfg['option'] = opt
+    opt_title = opt.get('title')
+    if isinstance(opt_title, str):
+        opt['title'] = {'text': name, 'show': True}
+    elif isinstance(opt_title, dict):
+        opt_title['text'] = name
+    col, row = added % COLS, added // COLS
+    x = MARGIN + col * (COMP_W + MARGIN)
+    y = START_Y + row * (COMP_H + MARGIN)
+    bi_utils.add_component(page_id, comp_type, name, x, y, w, h, cfg)
+    added += 1
+
+bi_utils.save_page(page_id)  # 一次保存
+
+# ⚠️ 同步修改页面高度（desJson.height，不是 pageConfig）
+total_height = current_y + 50
+raw = bi_utils._request('GET', '/drag/page/queryById', params={'id': page_id})
+p = raw['result']
+des = json.loads(p['desJson']) if p.get('desJson') and isinstance(p['desJson'], str) else (p.get('desJson') if isinstance(p.get('desJson'), dict) else {})
+des['height'] = total_height
+des.setdefault('width', 1920)
+p['desJson'] = json.dumps(des, ensure_ascii=False)
+bi_utils._request('POST', '/drag/page/edit', data=p)
+```
+
+**⚠️ 严禁在批量场景下自行构造 comp dict 并 insert 到 template**（config 必须是 JSON 字符串且包含 size/chart/turnConfig 等必要字段，手动构造容易漏字段导致"暂无数据"）
+
+**反模式检查清单（出现任何一条就说明在浪费时间）：**
+- **⚠️ 直接调用 bi_utils.add_xxx() + save_page() 添加组件**（会覆盖已有组件！必须用 comp_ops.py add）
+- **⚠️ 在源码中搜索组件默认配置**（comp_ops.py add 已自动处理，Grep/Read config.ts 浪费大量 token）
+- 内心在纠结"这个数据适不适合这种图表"
+- 在犹豫用 comp_ops.py 还是自定义脚本（默认用预置脚本）
+- 在手写超过 30 行的 config JSON（应从 default_configs.json 加载）
+- 两个独立操作串行执行而非并行
+- 同一会话中重复读取 API 凭据文件
+- 在执行前展开长篇分析或设计讨论
+- 启动子代理去探索源码或读取配置文件
+- **用 Read 工具读取模板 JSON 文件**（template_ops.py 已封装，无需看原文）
+- **启动子代理分析模板中有哪些组件**（占位文本是固定的，见上方表格）
+- **template_ops.py copy 能完成时却手写 Python 脚本**（多写 100+ 行 = 浪费 4k+ token）
+- **⚠️ 绑定已有数据集前单独调 dataset_ops.py 查询**（comp_ops.py add --dataset-name 已内置自动查询，直接用即可）
+- **dataset_ops.py list --search**（不存在的参数，会报错浪费轮次）
+- **读凭据和复制脚本串行执行**（应并行：Read 凭据 + Bash cp 同一轮）
+- **⚠️ 使用预置脚本时读取 dataset-guide.md**（`dataset_ops.py` / `comp_ops.py --dataset-name` / `comp_ops.py --create-sql` / `comp_ops.py --sql-params` 已封装全部数据集逻辑含 FreeMarker 参数，无需读 557 行指南文档，浪费 ~5000 token）
+- **执行预置脚本前先 `--help` 查看用法**（skill 文档已包含完整参数说明，额外一轮 --help 调用纯属浪费）
+- **⚠️ Bash 中用 shell 变量传递 API_BASE/TOKEN 给 py 脚本**（Git Bash 下 `VAR=xxx && py script "$VAR"` 变量可能为空，必须直接内联字面值作为参数）
+- **⚠️ 存储过程场景手动 pymysql + comp_ops.py 分步执行**（`proc_ops.py bindcomp` 一条命令完成全流程：获取DB连接→创建SP→创建数据集→绑定组件，分步执行浪费 4+ 轮）
+- **⚠️ 存储过程场景读取 dataset-guide.md**（`proc_ops.py` 已封装全部逻辑，无需读 557 行文档）
+- **⚠️ FreeMarker 动态SQL通过 bash `--create-sql` 直接传递**（`${age}` 被 shell 解释为空变量，`<#if>` 的 `>` 被解释为重定向，SQL 会被截断。必须用 `--sql-file` 写入文件）
+- **⚠️ FreeMarker 判空用 `age??` 或 `age?length`**（JimuReport 只支持内置 `isNotEmpty()` 函数，标准 FreeMarker 判空语法不生效）
+- **⚠️ 修改组件配置时读取 `bi-comp-option-config.md`（600行）**（SKILL.md「常用组件配置路径速查」已内联 JStatsSummary/JCapsuleChart/JGauge/JProgress/JColorBlock/JScrollBoard 的完整配置路径表，只有这些组件之外的冷门组件才需读取该文件，浪费 ~6000 token）
+- **⚠️ `comp_ops.py edit` 多属性写成位置参数**（多属性必须每个一个 `--set`：`--set "k1=v1" --set "k2=v2"`，不是 `--set "k1=v1" "k2=v2"`）
+- **⚠️ 用户明确指定组件名/类型时仍先 `comp_ops.py list`**（用户说"统计概览"/"胶囊图"/"柱状图"等明确组件名时，直接 `comp_ops.py edit --name "xxx"` 或 `--type "JXxx"`，跳过 list，省一轮调用。仅当用户描述模糊如"那个图表"时才需 list 确认）
+- **⚠️ 批量添加组件时手动构造 comp dict 而非用 bi_utils.add_component()**（手动构造的 config 缺少 size/chart/turnConfig 等必要字段，且 config 必须是 JSON 字符串不是 dict，导致全部"暂无数据"。必须用 `bi_utils.add_component()` 处理结构转换）
+- **⚠️ 批量添加 95 个组件却逐个调 comp_ops.py add**（每次调用 = 1次query + 1次save = 2次API请求，95个组件 = 190次请求。正确做法：自定义脚本 1次query + 内存批量add + 1次save = 2次请求，0.6s完成）
+- **⚠️ 批量生成时用 compType 作为图层名**（如 componentName='JBar'，用户在设计器看不懂。必须用 `menu-hierarchy.md` 中的中文名：JBar→基础柱形图、JPie→饼图、JStatsSummary_1→统计概览(卡片式) 等，脚本中维护 key→中文名映射表）
+- **⚠️ 全组件生成时为每个分类生成 JText 标题组件**（分类如"柱形图"、"饼状图"等仅用于代码注释分组，不应渲染为 JText 组件。用户在设计器中会看到 20 个多余的文本图层，且占用额外高度。组件应扁平排列，分类仅作注释）
+- **⚠️ 全组件生成时包含装饰边框/装饰条/天气预报**（JDragBorder 13种 + JDragDecoration 12种 = 25个纯装饰组件，JWeatherForecast 需特殊API，都不是业务数据组件，应排除）
+- **⚠️ 全组件批量生成时读取 menu-hierarchy.md**（SKILL.md 组件速查表已包含全部 compType→中文名映射，脚本中直接硬编码 categories 列表即可，读 253 行文档浪费 ~2500 token + 1 轮调用）
+- **⚠️ 全组件批量生成超过 2 轮工具调用**（必须严格 2 轮：轮次1 = Read凭据 ‖ Bash(cp bi_utils.py + default_configs.json) ‖ Write(脚本) 三者并行；轮次2 = `py 脚本 && echo URL | clip.exe && rm 清理` 一条命令。cp 和 Write 串行、执行和清理分开都是浪费）
+- **⚠️ 任何场景下 cp 依赖文件和 Write 脚本串行执行**（cp 和 Write 是独立操作，必须在同一轮并行发出，串行多花 1 轮）
 
 ## 交互流程
 
 ### Step 0: 解析用户需求
 
-| 信息 | 默认值 | 示例 |
-|------|--------|------|
-| 页面名称 | 用户指定 | "销售数据大屏" |
-| 主题 | dark | dark |
-| 背景图 | `/img/bg/bg4.png` | 可自定义 |
-| 组件列表 | 从描述中解析 | 销售额(数字)、订单趋势(折线图)、区域分布(地图) |
+| 信息 | 默认值 |
+|------|--------|
+| 页面名称 | 用户指定 |
+| 主题 | dark |
+| 背景图 | `/img/bg/bg4.png` |
+| 组件列表 | 从描述中解析 |
+
+### Step 0.5: 模板匹配（优先使用模板布局）
+
+**生成整个大屏时，必须先匹配模板，复用已有布局。**
+
+**模板目录**：`references/templates/bigScreen/`（10 个经典大屏模板 JSON）
+
+**模板名→文件名索引（直接使用，禁止 Glob 搜索）：**
+
+| 模板名称 | 文件名 |
+|---------|--------|
+| 乡村振兴普惠金融服务平台 | `乡村振兴普惠金融服务平台_1024608431274250240.json` |
+| 北京市污水排放总量 | `北京市污水排放总量_1022392593179791360.json` |
+| 北京科技数字化云平台 | `北京科技数字化云平台_1014376428645961728.json` |
+| 医院实时数据监控 | `医院实时数据监控_1011800681234354176.json` |
+| 旅游数据分析中心大屏 | `旅游数据分析中心大屏_1016994272231608320.json` |
+| 杭州房地产市场宏观监控 | `杭州房地产市场宏观监控_1024545852833189888.json` |
+| 警务监控系统 | `警务监控系统_1024545264544305152.json` |
+| 车辆分布图 | `车辆分布图_1017325669831987200.json` |
+| 集团综合数据大屏 | `集团综合数据大屏_1151069555267260416.json` |
+| 香山公园客流大数据 | `香山公园客流大数据_1027085484978388992.json` |
+
+| 用户需求关键词 | 推荐模板 |
+|---------------|---------|
+| 销售/订单/交易/通用/综合/驾驶舱 | 集团综合数据大屏 |
+| 医院/医疗/医药/机构/校园/人员管理 | 医院实时数据监控 |
+| 监控/安防/警务 | 警务监控系统 |
+| 旅游/公园/客流 | 旅游数据分析中心大屏、香山公园客流大数据 |
+| 房地产/城市/环境 | 杭州房地产市场宏观监控、北京市污水排放总量 |
+| 科技/数字化/IoT/能源/电力/风电/光伏 | 北京科技数字化云平台 |
+| 金融/银行/乡村 | 乡村振兴普惠金融服务平台 |
+| 车辆/交通/地图 | 车辆分布图 |
+
+**模板选择优先级（强制，按顺序匹配）：**
+
+1. **精确匹配** → 从上方关键词表找到直接对应的模板，使用「模板复制方式」创建大屏，保留布局和装饰，仅替换业务数据和标题文字
+2. **备选三模板** → 没有精确匹配时，从以下三个模板中选最合适的：
+   - `北京科技数字化云平台`（科技/工业/设备/IoT/能源类）
+   - `北京市污水排放总量`（环境/城市/数据监测类）
+   - `医院实时数据监控`（机构/人员/综合管理类）
+3. **兜底模板** → 以上都不合适时，才选择 `集团综合数据大屏`
+
+模板复制的详细流程（ID 映射、JTabToggle/JGroup 引用更新、边界检查等）见 `references/template-copy-guide.md`。
+
+> **重要**：只有在用户明确要求"不使用模板"或"从零创建"时，才跳过模板匹配，直接使用 bi_utils 默认组件函数逐个添加。
 
 ### Step 1: 识别组件并选择类型
 
-阅读 `references/bi-component-types.md` 获取完整组件类型清单。
+**完整组件名称→类型速查（按分类）：**
 
-**常用大屏组件速查：**
+> 用户说组件名时直接查此表获取 compType，**禁止 Grep 搜索源码**。
 
-| 用户描述关键词 | 组件 component | 说明 |
-|---------------|---------------|------|
-| 数字/KPI/指标 | `JNumber` | 数字指标卡 |
-| 翻牌器/数字动画 | `JCountTo` | 数字翻牌器 |
-| 柱状图 | `JBar` | 基础柱状图 |
-| 横向柱状图 | `JHorizontalBar` | 水平柱状图 |
-| 堆叠柱状图 | `JStackBar` | 堆叠柱状图 |
-| 折线图/趋势 | `JLine` | 折线图 |
-| 曲线图 | `JSmoothLine` | 平滑曲线 |
-| 柱线混合 | `JMixLineBar` | 柱状+折线混合 |
-| 饼图 | `JPie` | 饼图 |
-| 环形图 | `JRing` | 环形图 |
-| 玫瑰图 | `JRose` | 南丁格尔玫瑰图 |
-| 仪表盘/表盘 | `JGauge` | 仪表盘表盘 |
-| 水球图 | `JLiquid` | 水球图 |
-| 进度条 | `JProgress` | 进度条 |
-| 雷达图 | `JRadar` | 雷达图 |
-| 漏斗图 | `JFunnel` | 漏斗图 |
-| 词云 | `JWordCloud` | 词云图 |
-| 地图/区域地图 | `JAreaMap` | 区域地图 |
-| 飞线地图/迁徙 | `JFlyLineMap` | 飞线地图 |
-| 热力地图 | `JHeatMap` | 热力地图 |
-| 滚动表格 | `JScrollTable` | 自动滚动表格 |
-| 排行榜/排名 | `JScrollRankingBoard` | 滚动排行榜 |
-| 文本/标题 | `JText` | 文本显示 |
-| 图片 | `JImg` | 图片 |
-| 视频 | `JVideoPlay` | 视频播放 |
-| 边框/装饰 | `JDragBorder` | 装饰边框（13种样式） |
-| 装饰条 | `JDragDecoration` | 装饰条（12种样式） |
-| 时钟 | `JCurrentTime` | 实时时钟 |
+**柱形图类：**
+
+| 组件名称 | compType | 添加方式 |
+|---------|----------|---------|
+| 基础柱形图 | `JBar` | `comp_ops.py add --comp JBar` |
+| 堆叠柱形图 | `JStackBar` | `comp_ops.py add --comp JStackBar` |
+| 动态柱形图 | `JDynamicBar` | `comp_ops.py add --comp JDynamicBar` |
+| 胶囊图 | `JCapsuleChart` | `comp_ops.py add --comp JCapsuleChart` |
+| 基础条形图 | `JHorizontalBar` | `comp_ops.py add --comp JHorizontalBar` |
+| 背景柱形图 | `JBackgroundBar` | `comp_ops.py add --comp JBackgroundBar` |
+| 对比柱形图 | `JMultipleBar` | `comp_ops.py add --comp JMultipleBar` |
+| 正负条形图 | `JNegativeBar` | `comp_ops.py add --comp JNegativeBar` |
+| 百分比条形图 | `JPercentBar` | `comp_ops.py add --comp JPercentBar` |
+| 折柱图 | `JMixLineBar` | `comp_ops.py add --comp JMixLineBar` |
+
+**饼状图类：**
+
+| 组件名称 | compType | 添加方式 |
+|---------|----------|---------|
+| 饼图 | `JPie` | `comp_ops.py add --comp JPie` |
+| 南丁格尔玫瑰图 | `JRose` | `comp_ops.py add --comp JRose` |
+| 旋转饼图 | `JRotatePie` | `comp_ops.py add --comp JRotatePie` |
+
+**折线图类：**
+
+| 组件名称 | compType | 添加方式 |
+|---------|----------|---------|
+| 基础折线图 | `JLine` | `comp_ops.py add --comp JLine` |
+| 平滑曲线图 | `JSmoothLine` | `comp_ops.py add --comp JSmoothLine` |
+| 阶梯折线图 | `JStepLine` | `comp_ops.py add --comp JStepLine` |
+| 面积图 | `JArea` | `comp_ops.py add --comp JArea` |
+| 对比折线图 | `JMultipleLine` | `comp_ops.py add --comp JMultipleLine` |
+| 双轴图 | `DoubleLineBar` | `comp_ops.py add --comp DoubleLineBar` |
+
+**进度图类：**
+
+| 组件名称 | compType | 添加方式 |
+|---------|----------|---------|
+| 基础进度图 | `JCustomProgress` | `comp_ops.py add --comp JCustomProgress` |
+| 进度图 | `JProgress` | `comp_ops.py add --comp JProgress` |
+| 列表进度图 | `JListProgress` | `comp_ops.py add --comp JListProgress` |
+| 圆形进度图 | `JRoundProgress` | `comp_ops.py add --comp JRoundProgress` |
+| 水波图 | `JLiquid` | `comp_ops.py add --comp JLiquid` |
+
+**象形图类：**
+
+| 组件名称 | compType | 添加方式 |
+|---------|----------|---------|
+| 象形柱图 | `JPictorialBar` | `comp_ops.py add --comp JPictorialBar` |
+| 象形图 | `JPictorial` | `comp_ops.py add --comp JPictorial` |
+| 男女占比 | `JGender` | `comp_ops.py add --comp JGender` |
+
+**仪表盘类：**
+
+| 组件名称 | compType | 添加方式 |
+|---------|----------|---------|
+| 基础仪表盘 | `JGauge` | `comp_ops.py add --comp JGauge` |
+| 多色仪表盘 | `JColorGauge` | `comp_ops.py add --comp JColorGauge` |
+| 渐变仪表盘 | `JAntvGauge` | `comp_ops.py add --comp JAntvGauge` |
+| 半圆仪表盘 | `JSemiGauge` | `comp_ops.py add --comp JSemiGauge` |
+
+**散点图类：**
+
+| 组件名称 | compType | 添加方式 |
+|---------|----------|---------|
+| 普通散点图 | `JScatter` | `comp_ops.py add --comp JScatter` |
+| 象限图 | `JQuadrant` | `comp_ops.py add --comp JQuadrant` |
+| 气泡图 | `JBubble` | `comp_ops.py add --comp JBubble` |
+
+**漏斗图类：**
+
+| 组件名称 | compType | 添加方式 |
+|---------|----------|---------|
+| 普通漏斗图 | `JFunnel` | `comp_ops.py add --comp JFunnel` |
+| 金字塔漏斗图 | `JPyramidFunnel` | `comp_ops.py add --comp JPyramidFunnel` |
+| 3D金字塔 | `JPyramid3D` | `comp_ops.py add --comp JPyramid3D` |
+
+**雷达图类：**
+
+| 组件名称 | compType | 添加方式 |
+|---------|----------|---------|
+| 普通雷达图 | `JRadar` | `comp_ops.py add --comp JRadar` |
+| 圆形雷达图 | `JCircleRadar` | `comp_ops.py add --comp JCircleRadar` |
+
+**环形图类：**
+
+| 组件名称 | compType | 添加方式 |
+|---------|----------|---------|
+| 饼状环形图 | `JRing` | `comp_ops.py add --comp JRing` |
+| 多色环形图 | `JBreakRing` | `comp_ops.py add --comp JBreakRing` |
+| 基础环形图 | `JRingProgress` | `comp_ops.py add --comp JRingProgress` |
+| 动态环形图 | `JActiveRing` | `comp_ops.py add --comp JActiveRing` |
+| 玉珏图 | `JRadialBar` | `comp_ops.py add --comp JRadialBar` |
+
+**矩形图/3D图表：**
+
+| 组件名称 | compType | 添加方式 |
+|---------|----------|---------|
+| 矩形图 | `JRectangle` | `comp_ops.py add --comp JRectangle` |
+| 3D柱形图 | `JBar3d` | `comp_ops.py add --comp JBar3d` |
+| 3D分组柱形图 | `JBarGroup3d` | `comp_ops.py add --comp JBarGroup3d` |
+
+**表格/列表类：**
+
+| 组件名称 | compType | 添加方式 |
+|---------|----------|---------|
+| 轮播表 | `JScrollBoard` | `comp_ops.py add --comp JScrollBoard` |
+| 表格 | `JScrollTable` | `comp_ops.py add --comp JScrollTable` |
+| 发展历程 | `JDevHistory` | `comp_ops.py add --comp JDevHistory` |
+| 数据表格 | `JCommonTable` | `comp_ops.py add --comp JCommonTable` |
+| 数据列表 | `JList` | `comp_ops.py add --comp JList` |
+| 排行榜 | `JScrollRankingBoard` | `comp_ops.py add --comp JScrollRankingBoard` |
+| 个性排名 | `JFlashList` | `comp_ops.py add --comp JFlashList` |
+| 气泡排名 | `JBubbleRank` | `comp_ops.py add --comp JBubbleRank` |
+| 滚动列表 | `JScrollList` | `comp_ops.py add --comp JScrollList` |
+
+**统计/轮播类：**
+
+| 组件名称 | compType | 添加方式 |
+|---------|----------|---------|
+| 日历 | `JPermanentCalendar` | `comp_ops.py add --comp JPermanentCalendar` |
+| 卡片滚动 | `JCardScroll` | `comp_ops.py add --comp JCardScroll` |
+| 卡片轮播 | `JCardCarousel` | `comp_ops.py add --comp JCardCarousel` |
+| 统计概览(卡片) | `JStatsSummary` | `comp_ops.py add --comp JStatsSummary_1` |
+| 统计概览(背景) | `JStatsSummary` | `comp_ops.py add --comp JStatsSummary_2` |
+| 统计概览(高亮) | `JStatsSummary` | `comp_ops.py add --comp JStatsSummary_3` |
+
+**装饰类：**
+
+| 组件名称 | compType | 添加方式 |
+|---------|----------|---------|
+| 边框1~13 | `JDragBorder` | `comp_ops.py add --comp JDragBorder` |
+| 装饰1~12 | `JDragDecoration` | `comp_ops.py add --comp JDragDecoration` |
+| 图片 | `JImg` | `comp_ops.py add --comp JImg` |
+| 轮播图 | `JCarousel` | `comp_ops.py add --comp JCarousel` |
+| 图标 | `JCustomIcon` | `comp_ops.py add --comp JCustomIcon` |
+
+**文字类：**
+
+| 组件名称 | compType | 添加方式 |
+|---------|----------|---------|
+| 文本 | `JText` | `comp_ops.py add --comp JText` |
+| 翻牌器 | `JCountTo` | `comp_ops.py add --comp JCountTo` |
+| 颜色块 | `JColorBlock` | `comp_ops.py add --comp JColorBlock` |
+| 当前时间 | `JCurrentTime` | `comp_ops.py add --comp JCurrentTime` |
+| 数值 | `JNumber` | `comp_ops.py add --comp JNumber` |
+| 轨道环形文字 | `JOrbitRing` | `comp_ops.py add --comp JOrbitRing` |
+
+**字符云类：**
+
+| 组件名称 | compType | 添加方式 |
+|---------|----------|---------|
+| 字符云 | `JWordCloud` | `comp_ops.py add --comp JWordCloud` |
+| 图层字符云 | `JImgWordCloud` | `comp_ops.py add --comp JImgWordCloud` |
+| 闪动字符云 | `JFlashCloud` | `comp_ops.py add --comp JFlashCloud` |
+
+**地图类：**
+
+| 组件名称 | compType | 添加方式 |
+|---------|----------|---------|
+| 散点地图 | `JBubbleMap` | `comp_ops.py add --comp JBubbleMap` |
+| 飞线地图 | `JFlyLineMap` | `comp_ops.py add --comp JFlyLineMap` |
+| 柱形地图 | `JBarMap` | `comp_ops.py add --comp JBarMap` |
+| 时间轴飞线地图 | `JTotalFlyLineMap` | `comp_ops.py add --comp JTotalFlyLineMap` |
+| 柱形排名地图 | `JTotalBarMap` | `comp_ops.py add --comp JTotalBarMap` |
+| 热力地图 | `JHeatMap` | `comp_ops.py add --comp JHeatMap` |
+| 区域地图 | `JAreaMap` | `comp_ops.py add --comp JAreaMap`（读 `references/map-guide.md`） |
+| 高德地图 | `JGaoDeMap` | `comp_ops.py add --comp JGaoDeMap` |
+
+**视频类：**
+
+| 组件名称 | compType | 添加方式 |
+|---------|----------|---------|
+| 播放器 | `JVideoPlay` | `comp_ops.py add --comp JVideoPlay` |
+| RTMP播放器 | `JVideoJs` | `comp_ops.py add --comp JVideoJs` |
+
+**其他类：**
+
+| 组件名称 | compType | 添加方式 |
+|---------|----------|---------|
+| 选项卡 | `JSelectRadio` | `comp_ops.py add --comp JSelectRadio` |
+| 导航切换 | `JTabToggle` | `comp_ops.py add --comp JTabToggle` |
+| 表单 | `JForm` | `comp_ops.py add --comp JForm` |
+| Iframe | `JIframe` | `comp_ops.py add --comp JIframe` |
+| 按钮 | `JRadioButton` | `comp_ops.py add --comp JRadioButton` |
+| 富文本 | `JDragEditor` | `comp_ops.py add --comp JDragEditor` |
+| 通用组件 | `JCommon` | `comp_ops.py add --comp JCommon` |
+| 自定义组件 | `JCustomEchart` | `comp_ops.py add --comp JCustomEchart` |
+| 统计进度图 | `JTotalProgress` | `comp_ops.py add --comp JTotalProgress` |
+| 透视表 | `JPivotTable` | `comp_ops.py add --comp JPivotTable` |
+| 排行榜(自定义) | `JRankingList` | `comp_ops.py add --comp JRankingList` |
+
+**天气预报（特殊，不支持 comp_ops.py）：**
+
+| 组件名称 | compType | 添加方式 |
+|---------|----------|---------|
+| 天气预报(滚动版) | `JWeatherForecast` | 自定义脚本（template=11） |
+| 天气预报(横线版) | `JWeatherForecast` | 自定义脚本（template=34） |
+| 天气预报(带背景) | `JWeatherForecast` | 自定义脚本（template=21） |
+| 天气预报(好123版) | `JWeatherForecast` | 自定义脚本（template=12） |
+| 天气预报(温度计版) | `JWeatherForecast` | 自定义脚本（template=27） |
+| 天气预报(列表文字版) | `JWeatherForecast` | 自定义脚本（template=94） |
+
+### JWeatherForecast 天气预报组件（特殊组件，需自定义脚本）
+
+> **comp_ops.py 不支持 JWeatherForecast**，必须用自定义脚本直接操作 template 数组添加。
+> **dataType 必须为 1**（自动获取天气数据），不是 0。chartData 为 `"[]"`。
+
+| 版本 | template 值 | 默认尺寸 (w×h) | fontColor | bgColor |
+|------|------------|----------------|-----------|---------|
+| 滚动版 | 11 | 311×47 | #fff | #ffffff00 |
+| 横线版 | 34 | 300×30 | #fff | #ffffff00 |
+| 带背景 | 21 | 415×131 | #000 | #ffffff00 |
+| 好123版 | 12 | 318×61 | #fff | #ffffff00 |
+| 温度计版 | 27 | 400×266 | #fff | #ffffff |
+| 列表文字版 | 94 | 257×47 | #fff | #ffffff00 |
+
+**添加模板（直接复制修改 template 和坐标即可）：**
+```python
+import sys, json
+sys.path.insert(0, '.')
+import bi_utils
+bi_utils.API_BASE = API_BASE
+bi_utils.TOKEN = TOKEN
+
+page = bi_utils.query_page(PAGE_ID)
+tmpl = page.get('template', [])
+
+comp = {
+    "i": bi_utils._gen_uuid(),
+    "component": "JWeatherForecast",
+    "componentName": "天气预报-滚动版",
+    "x": 50, "y": 280, "w": 311, "h": 47,
+    "dataType": 1,
+    "chartData": "[]",
+    "config": {
+        "background": "#FFFFFF00",
+        "borderColor": "#FFFFFF00",
+        "card": {"title": ""},
+        "option": {
+            "city": "",
+            "template": 11,  # 改这个值切换版本
+            "num": 2,
+            "fontSize": 16,
+            "fontColor": "#fff",
+            "bgColor": "#ffffff00",
+            "url": ""
+        }
+    },
+    "dataMapping": {}
+}
+
+tmpl.insert(0, comp)
+bi_utils._page_components[PAGE_ID] = tmpl
+bi_utils.save_page(PAGE_ID)
+```
 
 ### Step 2: 展示设计摘要并确认
 
-**必须展示，等待用户确认后再执行：**
+**可跳过确认直接执行的情况：**
+- 用户说「直接生成」「不用确认」
+- 模板名称与需求精确匹配
+- 同一会话中已确认过类似方案
 
+### 快捷操作：comp_ops.py（增删改查）
+
+> **⚠️ 添加/编辑/删除组件必须使用 comp_ops.py，严禁直接调用 bi_utils.add_xxx() + save_page()。**
+> 原因：bi_utils.add_component() 内部将 `_page_components[page_id]` 初始化为空列表，save_page 时会用空列表覆盖页面已有的全部组件，造成不可恢复的数据丢失。comp_ops.py 会先加载已有模板再操作，安全无损。
+
+**使用前准备（comp_ops.py add 专用，需额外复制 default_configs.json）：**
+```bash
+cp "C:/Users/25067/.claude/skills/jimubi-bigscreen/references/scripts/comp_ops.py" .
+cp "C:/Users/25067/.claude/skills/jimubi-bigscreen/references/bi_utils.py" .
+cp "C:/Users/25067/.claude/skills/jimubi-bigscreen/references/scripts/default_configs.json" .
+# 执行完后清理
+rm comp_ops.py bi_utils.py default_configs.json
 ```
-## 大屏设计摘要
 
-- 页面名称：销售数据大屏
-- 主题：dark
-- 背景图：/img/bg/bg4.png
+**核心命令：**
+```bash
+# 查看组件
+py comp_ops.py list $API_BASE $TOKEN $PAGE_ID
 
-### 组件列表
+# 删除组件
+py comp_ops.py delete $API_BASE $TOKEN $PAGE_ID --name "组件名"
 
-| 序号 | 组件名称 | 组件类型 | 位置(x,y) | 尺寸(w×h) | 数据源 |
-|------|---------|---------|-----------|----------|--------|
-| 1 | 今日销售额 | JNumber | (50,50) | 400×200 | 静态数据 |
-| 2 | 销售趋势 | JLine | (50,280) | 860×380 | 静态数据 |
+# 编辑组件属性（单属性）
+py comp_ops.py edit $API_BASE $TOKEN $PAGE_ID --name "组件名" --set "option.title.text=新标题"
 
-确认以上信息正确？(y/n)
+# 编辑组件属性（多属性：每个属性一个 --set）
+py comp_ops.py edit $API_BASE $TOKEN $PAGE_ID --name "胶囊图" --set "option.showValue=true" --set "option.unit=333"
+
+# 添加组件（静态数据）
+py comp_ops.py add $API_BASE $TOKEN $PAGE_ID --comp "JBar" --title "柱形图" --x 50 --y 500 --w 450 --h 300
+
+# 一键：创建SQL数据集 + 字典翻译 + 添加图表
+py comp_ops.py add $API_BASE $TOKEN $PAGE_ID --comp "JPie" --title "男女比例" --x 735 --y 365 --w 450 --h 350 --create-sql "SELECT sex as name, COUNT(*) AS value FROM demo WHERE sex IS NOT NULL GROUP BY sex" --ds-name "男女比例统计" --fields "name:String,value:String" --dict "name=sex"
+
+# 移动/缩放组件
+py comp_ops.py move $API_BASE $TOKEN $PAGE_ID --name "组件名" --x 100 --y 200
+```
+
+**四种数据模式：**
+
+| 模式 | 参数 | 说明 |
+|------|------|------|
+| 静态数据（默认） | 无额外参数 | 从 `default_configs.json` 加载默认配置 |
+| 绑定已有数据集 | `--dataset-name "名称"` | 内置自动查询数据集、设 dataType=2，**无需单独调 dataset_ops.py 查询** |
+| 一键创建SQL+绑定 | `--create-sql "SQL"` | 创建数据集+绑定+字典，支持 `--dict`、`--fields` |
+| 带查询参数的SQL | `--create-sql` + `--sql-params` | `comp_ops.py add --sql-file sql.txt --sql-params "age:年龄::"` 或自定义 Python 脚本 |
+
+**⚠️ 带 FreeMarker 动态参数的 SQL 必须用 `--sql-file`，禁止通过 bash 命令行传递。** 原因：`${age}` 会被 shell 解释为变量（值为空），`<#if>` 中的 `>` 会被解释为重定向，导致 SQL 被截断或参数丢失。
+
+**动态SQL查询参数完整示例（强制规范）：**
+
+```bash
+# Step 1: 将含 FreeMarker 语法的 SQL 写入文件
+cat > sql.txt << 'SQLEOF'
+SELECT sex as name, COUNT(*) AS value FROM demo WHERE sex IS NOT NULL
+<#if isNotEmpty(age)>
+  AND age = '${age}'
+</#if>
+GROUP BY sex
+SQLEOF
+
+# Step 2: 用 --sql-file + --sql-params 创建
+py comp_ops.py add $API_BASE $TOKEN $PAGE_ID \
+  --comp "JPie" --title "男女比例" --x 735 --y 365 --w 450 --h 350 \
+  --sql-file sql.txt --ds-name "男女比例统计" \
+  --fields "name:String,value:String" --dict "name=sex" \
+  --sql-params "age:年龄::"
+
+# Step 3: 清理
+rm sql.txt
+```
+
+**FreeMarker 动态条件语法规则（强制）：**
+
+| 规则 | 正确写法 | 错误写法 |
+|------|---------|---------|
+| 参数判空 | `<#if isNotEmpty(age)>` | ~~`<#if age?? && age?length gt 0>`~~ |
+| 参数占位 | `'${age}'` | ~~`#{age}`~~（`#{}` 是系统变量专用） |
+| 条件结束 | `</#if>` | - |
+| 系统变量 | `#{sys_user_code}` | ~~`${sys_user_code}`~~（`${}` 和 `#{}` 不可混用） |
+
+**`--sql-params` 格式**：`paramName:paramTxt:defaultValue:dictCode`（后三项可省略，多个逗号分隔）
+
+| 示例 | 说明 |
+|------|------|
+| `"age:年龄::"` | 年龄参数，无默认值，无字典 |
+| `"sex:性别:1:sex"` | 性别参数，默认值 1，字典编码 sex |
+| `"age:年龄::,sex:性别:1:sex"` | 多参数逗号分隔 |
+
+**SQL 含 `!=` 等特殊字符时**：同样禁止通过 bash 传递，必须用 `--sql-file` 或写 Python 脚本在内部定义 SQL。
+
+**自定义脚本添加图表的强制规则：**
+1. **图表 config 必须从 `default_configs.json` 深拷贝**：`json.loads(json.dumps(defaults['JPie']))`，再覆盖动态数据字段。禁止手写 option/series 配置
+2. **字典翻译用 jimu_dict**：`/jmreport/dict/*` API，不是 `/sys/dict/*`（系统字典需签名且表不同）
+3. **dictOptions 从 `getAllChartData` 获取**：创建数据集后调 `getAllChartData`，将返回的 `dictOptions` 写入组件 config，禁止手动构建
+4. **datasetItemList 中绑定 dictCode**：如 `{'fieldName': 'name', ..., 'dictCode': 'sex'}` 实现字段级字典翻译
+
+### 全部预置脚本一览
+
+| 脚本 | 功能 | 常用命令 |
+|------|------|---------|
+| `comp_ops.py` | 组件增删改查 | `list`, `delete`, `edit`, `add`, `move` |
+| `page_ops.py` | 页面配置 | `info`, `set-bg`, `set-bgimg`, `set-theme`, `watermark`, `rename` |
+| `dataset_ops.py` | 数据集管理 | `list`, `create-sql`, `create-api`, `edit`, `test`, `delete`, `bind` |
+| `template_ops.py` | 模板操作 | `list`, `preview`, `search`, `copy` |
+| `linkage_ops.py` | 联动/钻取 | `show`, `add-linkage`, `remove-linkage`, `add-drill` |
+| `link_ops.py` | 外部链接跳转 | `show`, `set`, `remove` |
+| `map_ops.py` | 地图数据 | `list`, `check`, `upload`, `add-map` |
+| `style_ops.py` | 批量样式 | `show-colors`, `set-title-color`, `set-palette`, `batch-edit` |
+| `backup_ops.py` | 备份恢复 | `export`, `import`, `clone`, `diff` |
+| `datasource_ops.py` | 数据源管理（JDBC + NoSQL） | `list`, `detail`, `create`, `test`。**create 参数：** `--db`（非 --db-name）、`--user`（非 --username）；**test 不支持 --name**，只能用 `--id` 或直接传连接参数。**支持 NoSQL：** `--db-type mongodb/redis/es`，自动生成 `host:port/db` 格式的 dbUrl（不带协议前缀），dbDriver 自动置空。**NoSQL 数据集 SQL 语法：** MongoDB 表名加 `mongo.` 前缀（`select * from mongo.表名`），ES 加 `es.` 前缀 |
+| `group_ops.py` | 组合管理 | `list`, `create`, `ungroup` |
+| `dict_ops.py` | 字典管理 | `list`, `create`, `items`, `bind` |
+| `proc_ops.py` | 存储过程管理 | `create`, `list`, `drop`, `bindcomp`（一键：创建存储过程+数据集+组件）。**前置条件：`py -m pip install pymysql`**，通过 pymysql 直连数据库执行 DDL |
+
+**通用使用流程：**
+```bash
+cp "C:/Users/25067/.claude/skills/jimubi-bigscreen/references/scripts/脚本名.py" .
+cp "C:/Users/25067/.claude/skills/jimubi-bigscreen/references/bi_utils.py" .
+# 执行命令...
+rm 脚本名.py bi_utils.py
 ```
 
 ### Step 3: 调用 API 创建大屏
 
-**优先使用共通工具库 `bi_utils.py`**（两个位置均有副本）：
-- Skills 目录（权威副本）：`C:\Users\zhang\.claude\skills\jimubi-bigscreen\references\bi_utils.py`
-- 后端项目根目录（运行副本）：`{后端项目根目录}\bi_utils.py`
+**执行步骤（最少 2 轮工具调用）：**
 
-> 如果后端项目根目录没有 `bi_utils.py`，先从 skills 目录复制过去再使用。
-
-**执行步骤：**
+**方式一：template_ops.py copy（模板场景，最优）：**
 ```
-1. 确认后端项目根目录有 bi_utils.py（没有则从 skills 复制）
-2. Write 工具 → 写入业务脚本 create_xxx_screen.py（项目根目录）
-3. Bash 工具 → cd {后端项目根目录} && python create_xxx_screen.py
-4. Bash 工具 → rm create_xxx_screen.py（清理临时脚本）
+轮次1: cp template_ops.py + bi_utils.py
+轮次2: 执行 copy --replace && echo URL | clip.exe && rm
+```
+
+**方式二：自定义脚本（复杂逻辑）：**
 ```
 
 ---
@@ -123,7 +786,7 @@ description: Use when user asks to create/design a big screen (大屏), full-scr
 
 ```python
 import sys, json
-sys.path.insert(0, r'{后端项目根目录}')
+sys.path.insert(0, r'E:\workspace-cc-jeecg\jeecg-boot-framework-2026')
 from bi_utils import *
 import bi_utils
 
@@ -176,529 +839,304 @@ bi_utils._page_components[page_id] = template_components
 save_page(page_id)
 ```
 
-### 模板复制踩坑记录
+**默认配置与数据加载规则：**
 
-| 问题 | 原因 | 解决方案 |
-|------|------|---------|
-| **页签切换不工作** | JTabToggle 的 `compVals` 引用了旧组件 ID | 必须建立 ID 映射，更新 `config.option.items[].compVals` |
-| **JGroup 内部组件异常** | JGroup 的 `props.elements` 内也有 ID 交叉引用 | 序列化后批量替换旧 ID |
-| **新增组件不显示** | config 格式不完整或被头部背景图遮挡 | 用模板中已有的同类组件 config 作参考；设 `orderNum: 300` 提高层级 |
+| 数据场景 | 是否读 data.ts |
+|---------|---------------|
+| 动态数据（SQL/API, dataType=2） | 不需要，chartData='[]'，option 在脚本中构建 |
+| 静态数据 + 用户未指定数据 | 需要，从 data.ts 读取 compConfig |
+| 静态数据 + 用户指定了数据 | 不需要 |
 
-### 替换业务数据
+**数据集「先查后建」规则（强制）：** 指定名称时先查询是否已存在同名数据集，存在则复用。
 
-对整个 template JSON 字符串做批量文本替换，可高效替换所有标题、标签、数值：
+**Git Bash 注意事项：**
+- `python3 xxx.py 2>/dev/null || py xxx.py`（Windows 兼容）
+- `/` 开头路径会被转换，脚本内部赋值不受影响
+- `!=` 等特殊字符不要通过 bash 传递
 
-```python
-# 序列化为字符串
-tpl_str = json.dumps(tpl_data['template'], ensure_ascii=False)
+## 大屏标题规则
 
-# 批量替换
-replacements = {
-    '集团业务综合管理平台': '招商银行经营管理驾驶舱',
-    '新成业务板块': '零售金融业务',
-    '合同': '业务单',
-    # ... 更多映射
-}
-for old, new in replacements.items():
-    tpl_str = tpl_str.replace(old, new)
+- `option.card.title` 必须为空字符串（避免双重标题）
+- 页面主标题用 `add_text()`，fontSize≥40，fontWeight='bold'，letterSpacing=5
 
-# 解析回 list
-template_components = json.loads(tpl_str)
-```
+## 常用组件配置路径速查（内联）
 
-### 向已有大屏新增组件
+> 以下组件的 option 路径已内联，修改时**直接使用，无需读取 `bi-comp-option-config.md`**。
 
-> **关键：新增组件的 config 必须从模板中同类组件复制，不要自己拼装。**
+### JStatsSummary（统计概览）
 
-```python
-# 从其他模板中找到参考组件的 config
-# 例如 JWeatherForecast 用 template=11 样式
-weather = {
-    'component': 'JWeatherForecast',
-    'componentName': '今日天气',
-    'visible': True,
-    'i': bi_utils._gen_uuid(),
-    'x': 15, 'y': 15, 'w': 300, 'h': 50,
-    'orderNum': 300,  # 高层级，不被背景图遮挡
-    'config': {
-        'size': {'width': 300, 'height': 50},
-        'w': 300, 'dataType': 1, 'h': 50,
-        'option': {
-            'template': 11, 'bgColor': '', 'city': '',
-            'num': 1, 'fontSize': 16, 'fontColor': '#ffffff', 'url': '',
-        },
-    },
-}
+| 说明 | 配置路径 | 示例值 |
+|------|---------|--------|
+| 卡片最小宽度 | `option.card.minWidth` | 250 |
+| 卡片圆角 | `option.card.borderRadius` | 16 |
+| 卡片边框宽度 | `option.card.borderWidth` | 1 |
+| 卡片边框颜色 | `option.card.borderColor` | #0f66ff59 |
+| 卡片阴影 | `option.card.shadow` | 0 16px 48px #0b76ff59 |
+| 卡片模糊度 | `option.card.blur` | 24 |
+| 卡片内边距(垂直) | `option.card.padding.vertical` | 24 |
+| 卡片内边距(水平) | `option.card.padding.horizontal` | 24 |
+| 卡片填充类型 | `option.card.fill.type` | none/color/gradient/image |
+| 卡片填充颜色 | `option.card.fill.color` | #0b2b63 |
+| 卡片填充渐变启用 | `option.card.fill.gradient.enabled` | true/false |
+| 卡片填充渐变起始色 | `option.card.fill.gradient.startColor` | #05336a |
+| 卡片填充渐变结束色 | `option.card.fill.gradient.endColor` | #0bb2ff |
+| 卡片填充图片 | `option.card.fill.image.url` | /img/xxx.png |
+| 外层间距 | `option.layout.gap` | 16 |
+| 外层内边距 | `option.layout.padding.top/right/bottom/left` | 16 |
+| 外层排列方式 | `option.layout.justify` | space-between |
+| 外层圆角 | `option.layout.borderRadius` | 0 |
+| 外层边框宽度 | `option.layout.borderWidth` | 0 |
+| 外层填充类型 | `option.layout.fill.type` | none/color/gradient/image |
+| 外层填充颜色 | `option.layout.fill.color` | #0b2b63 |
+| 数值字号 | `option.sections.top.value.fontSize` | 34 |
+| 数值字重 | `option.sections.top.value.fontWeight` | 600 |
+| 数值颜色 | `option.sections.top.value.fontColor` | #d8f1ff |
+| 单位字号 | `option.sections.top.value.unit.fontSize` | 18 |
+| 标签字号 | `option.sections.bottom.label.fontSize` | 14 |
+| 标签颜色 | `option.sections.bottom.label.fontColor` | #9ed3ff |
 
-# JCurrentTime 用模板中已有的完整 config
-# 先从模板中读取：
-for comp in tpl_data['template']:
-    if comp.get('component') == 'JCurrentTime':
-        ref_config = comp.get('config', {})
-        break
+### JCapsuleChart（胶囊图）
 
-clock = {
-    'component': 'JCurrentTime',
-    'componentName': '实时日期',
-    'visible': True,
-    'i': bi_utils._gen_uuid(),
-    'x': 1580, 'y': 15, 'w': 320, 'h': 40,
-    'orderNum': 300,
-    'config': ref_config,  # 直接用模板的 config
-}
+| 说明 | 配置路径 | 示例值 |
+|------|---------|--------|
+| 显示数值 | `option.showValue` | true/false |
+| X轴名称 | `option.unit` | 个 |
 
-# 查询页面、追加组件、保存
-page = query_page(page_id)
-tmpl = page.get('template', [])
-if isinstance(tmpl, str): tmpl = json.loads(tmpl)
-tmpl.append(weather)
-tmpl.append(clock)
-bi_utils._page_components[page_id] = tmpl
-save_page(page_id)
-```
+### JGauge（仪表盘）
 
----
+| 说明 | 配置路径 |
+|------|---------|
+| 刻度值显隐 | `option.series[0].axisLabel.show` |
+| 刻度值颜色 | `option.series[0].axisLabel.color` |
+| 刻度线显隐 | `option.series[0].axisTick.show` |
+| 分割线显隐 | `option.series[0].splitLine.show` |
+| 分割线颜色 | `option.series[0].splitLine.lineStyle.color` |
+| 指标字号 | `option.series[0].detail.fontSize` |
 
-## 推荐方式：使用默认组件函数创建大屏（效果最佳）
+### JProgress（进度条-ECharts）
 
-> **重要：优先使用 bi_utils 的默认组件函数（add_chart、add_number、add_text、add_ranking 等）逐个添加组件，只填充业务数据。** bi_utils 内置了经过验证的大屏样式预设（深色配色、轴标签颜色、card 配置等），生成效果稳定且美观，远优于模板复制后批量替换的方式。
+| 说明 | 配置路径 |
+|------|---------|
+| 显示标题 | `option.yAxis.axisLabel.show` |
+| 标题字体颜色 | `option.yAxis.axisLabel.color` |
 
-**大屏创建示例：**
-```python
-import sys
-sys.path.insert(0, r'{后端项目根目录}')
-from bi_utils import *
+### JColorBlock（色块指标卡）
 
-init_api('https://api3.boot.jeecg.com', 'your-token')
+| 说明 | 配置路径 |
+|------|---------|
+| 行数 | `option.lineNum` |
+| 边距 | `option.padding` |
 
-# 创建大屏（style='bigScreen'，像素坐标）
-page_id = create_page('销售数据大屏', style='bigScreen', theme='dark',
-                       background_image='/img/bg/bg4.png')
+### JScrollBoard（轮播表）
 
-# 添加组件（坐标和尺寸单位为像素）
-add_number(page_id, '今日销售额', x=50, y=50, w=400, h=200,
-           value=128560, prefix='¥', suffix='元')
+| 说明 | 配置路径 |
+|------|---------|
+| 悬浮暂停 | `option.hoverPause` |
+| 等待时间 | `option.waitTime` |
 
-add_chart(page_id, 'JLine', '销售趋势', x=50, y=280, w=860, h=380,
-          categories=['1月','2月','3月','4月','5月','6月'],
-          series=[{'name':'销售额', 'data':[820,932,901,934,1290,1330]}])
+## 图层顺序机制
 
-add_chart(page_id, 'JBar', '部门业绩', x=950, y=280, w=860, h=380,
-          categories=['研发部','销售部','市场部','运营部'],
-          series=[{'name':'业绩', 'data':[320,302,341,374]}])
+**核心：`template` 数组索引决定 z-index，不是 orderNum。** 索引 0 = 最顶层。
 
-add_chart(page_id, 'JPie', '客户来源', x=50, y=700, w=500, h=350,
-          pie_data=[
-              {'name':'直接访问', 'value':335},
-              {'name':'邮件营销', 'value':310},
-              {'name':'联盟广告', 'value':234},
-          ])
+### 新增组件必须置顶（强制）
 
-add_table(page_id, '销售明细', x=600, y=700, w=700, h=350,
-          columns=['日期','客户','金额','状态'],
-          data=[
-              {'日期':'2026-03-01','客户':'A公司','金额':'50000','状态':'已完成'},
-              {'日期':'2026-03-02','客户':'B公司','金额':'32000','状态':'进行中'},
-          ])
-
-# 添加装饰元素
-add_border(page_id, x=30, y=30, w=440, h=240, border_type=1, color='#00BAFF')
-add_decoration(page_id, x=660, y=20, w=600, h=60, deco_type=5, color='#00BAFF')
-
-save_page(page_id)
-print(f'大屏创建成功！ID: {page_id}')
-```
-
-**大屏样式特点（bi_utils.py 自动应用）：**
-- 背景：透明 `rgba(0,0,0,0)`
-- 文字颜色：白色 `#ffffff`
-- 轴标签：白色 `#ffffff`
-- 网格线：`rgba(255,255,255,0.1)`
-- 表格：深色背景 + 白色文字
-
-## 大屏标题规则（重要）
-
-### card.title 必须为空
-
-大屏模式下，所有图表组件的 `option.card.title` 必须为空字符串 `''`。图表标题只通过 `option.title.text` 显示（ECharts 内部标题）。
-
-**原因：** card.title 会在组件顶部生成一个单独的卡片头部条（白色背景），与深色大屏背景严重冲突，且与 ECharts 的 option.title 形成双重标题。`bi_utils.py` 已自动处理此逻辑——大屏模式下 `_make_card()` 始终将 card.title 设为空。
-
-### 大屏页面标题用 JText
-
-大屏页面的主标题（如 "CRM 数据大屏"）使用 `add_text()` 组件，推荐配置：
-- **fontSize**: 40 以上（大屏标题要醒目）
-- **fontWeight**: `'bold'`
-- **letterSpacing**: 5（增加间距，提升视觉效果）
-- **color**: 白色 `#ffffff`
+> **新添加的组件必须插入到 `template` 数组的索引 0 位置（即最顶层），确保不会被已有组件遮挡。**
+> `bi_utils.add_component()` 已使用 `insert(0, comp)` 实现自动置顶。自定义脚本操作模板时也必须用 `insert(0, comp)` 而非 `append(comp)`。
 
 ```python
-add_text(page_id, 'CRM 数据大屏', x=560, y=15, w=800, h=60,
-         font_size=42, color='#ffffff', font_weight='bold',
-         text_align='center', letter_spacing=5)
+# 置顶
+element = tmpl.pop(target_idx)
+tmpl.insert(0, element)
+# 保存
+bi_utils._page_components[PAGE_ID] = tmpl
+save_page(PAGE_ID)
 ```
 
-### JText 正确的 config 格式
+## 可用快捷函数（bi_utils.py）
 
-`add_text()` 内部使用的 config 结构（从真实模板验证）：
-```python
-config = {
-    'dataType': 1,
-    'chartData': {'value': '显示文本'},  # 注意：是 dict 不是字符串
-    'option': {
-        'body': {
-            'color': '#ffffff',
-            'fontSize': 42,
-            'fontWeight': 'bold',
-            'letterSpacing': 5,
-            'text': '',
-            'marginTop': 0,
-            'marginLeft': 0,
-        },
-        'textAlign': 'center',
-        'card': {'title': '', ...},
-    },
-}
-```
+**页面管理：** `create_page`, `query_page`, `list_pages`, `save_page`, `delete_page`, `recover_page`, `copy_page`
 
-### 不要用 JDragDecoration 做标题装饰
+**添加组件：** `add_number`, `add_chart`(JBar/JLine/JPie/JRing/JRose/JFunnel/JRadar/JHorizontalBar/JSmoothLine/JStackBar/JMixLineBar), `add_table`, `add_scroll_table`, `add_ranking`, `add_text`, `add_image`, `add_gauge`, `add_liquid`, `add_countdown`, `add_border`, `add_decoration`, `add_current_time`, `add_word_cloud`, `add_color_block`, `add_progress`, `add_total_progress`, `add_component`
 
-JDragDecoration 的各种 type（红色虚线条、红绿色段等）与大屏标题区域不搭配。真实的大屏模板中，标题区域只用 JText 或 JImg，不使用 JDragDecoration。JDragBorder 和 JDragDecoration 适合用在图表区域的边框装饰。
+## Step 4: 输出结果
 
-### Step 4: 输出结果
+**必须将预览地址作为单独一行返回，并用 clip.exe 复制到剪贴板。**
 
 ```
 ## 大屏创建成功
 
 - 页面ID：{id}
 - 页面名称：{name}
-- 模式：大屏（bigScreen）
-- 预览地址：{API_BASE}/drag/page/view/{id}
 - 组件数量：{count} 个
 
-请在大屏设计器中查看：打开 JeecgBoot 后台 → 大屏设计器 → 找到该页面
+预览地址：
+{API_BASE}/drag/share/view/{id}?token={TOKEN}&tenantId=2
 ```
 
----
-
-## 数据集管理（动态数据源）
-
-大屏组件支持三种数据类型（`config.dataType`）：
-- `1` — 静态数据（直接写在 `chartData` 中）
-- `2` — 动态数据（从数据集获取，支持 SQL / API / JSON / WebSocket）
-- `4` — 表单数据（从表单关联字段查询）
-
-### 数据集 API 端点
-
-| 端点 | 方法 | 说明 |
-|------|------|------|
-| `/drag/onlDragDatasetHead/add` | POST | 创建数据集 |
-| `/drag/onlDragDatasetHead/edit` | POST | 编辑数据集（需要 `sign` 字段） |
-| `/drag/onlDragDatasetHead/delete?id=xxx` | DELETE | 删除数据集 |
-| `/drag/onlDragDatasetHead/list` | GET | 分页查询数据集列表 |
-| `/drag/onlDragDatasetHead/getAllChartData` | POST | 执行数据集查询（获取图表数据） |
-| `/drag/onlDragDatasetHead/queryFieldBySql` | POST | 解析 SQL 返回字段列表 |
-| `/drag/onlDragDatasetHead/queryFieldByApi` | POST | 解析 API 返回字段列表 |
-
-### 数据集实体结构（OnlDragDatasetHead）
-
-```python
-{
-    'name': '数据集名称',
-    'code': '数据集编码',          # 可选，唯一标识
-    'dataType': 'sql',             # sql / api / json / singleFile / FILES
-    'dbSource': '707437208002265088',  # 数据库源 ID（SQL 类型必填！）
-    'querySql': 'SELECT ...',      # SQL 语句（SQL 类型）或 API 地址（API 类型）
-    'apiMethod': 'get',            # HTTP 方法（API 类型用）
-    'izAgent': '0',                # 是否代理：'0'=直连, '1'=服务端代理
-    'content': '',                 # 描述
-    'parentId': '',                # 父级分类 ID
-    'datasetItemList': [           # 字段列表（注意：不是 onlDragDatasetItemList）
-        {'fieldName': 'name', 'fieldTxt': '名称', 'fieldType': 'String', 'izShow': 'Y', 'orderNum': 0},
-        {'fieldName': 'value', 'fieldTxt': '数值', 'fieldType': 'String', 'izShow': 'Y', 'orderNum': 1}
-    ],
-    'datasetParamList': [          # 参数列表（注意：不是 onlDragDatasetParamList）
-        {'paramName': 'sex', 'paramTxt': '性别', 'paramValue': '1', 'dictCode': 'sex'}
-    ]
-}
+```bash
+echo -n "{完整URL}" | clip.exe
 ```
 
-### 创建 SQL 数据集
+## bi_utils 使用规则（强制）
+
+### 初始化方式
 
 ```python
-import sys, json
-sys.path.insert(0, r'{后端项目根目录}')
+# 正确：直接赋值模块级全局变量
+bi_utils.API_BASE = 'http://...'
+bi_utils.TOKEN = '...'
+
+# 错误：没有 init() 方法
+# bi_utils.init(API_BASE, TOKEN)  # ← AttributeError
+```
+
+### 页面数据与组件字段映射（query_page 返回值）
+
+| 正确字段 | 常见误猜 | 说明 |
+|---------|---------|------|
+| `page['template']` | ~~`page['pageTemplate']`~~ | 组件列表，**已经是 list**，无需 `json.loads` |
+| `comp['i']` | ~~`comp['id']`~~ | 组件唯一标识（UUID） |
+| `comp['componentName']` | ~~`comp['label']`~~, ~~`comp['name']`~~ | 组件显示名称（中文） |
+| `comp['component']` | - | 组件类型（JBar, JText 等） |
+| `comp['pageCompId']` | - | 后端数据库 ID |
+| `comp['isLock']` | - | 锁定状态（true/false） |
+
+### 自定义脚本操作模板的正确模式
+
+```python
 import bi_utils
-bi_utils.init_api('http://api3.boot.jeecg.com', 'your-token')
+bi_utils.API_BASE = '...'
+bi_utils.TOKEN = '...'
+PAGE_ID = '...'
 
-# 创建 SQL 数据集（dbSource 必填！）
-result = bi_utils._request('POST', '/drag/onlDragDatasetHead/add', data={
-    'name': '用户男女比例统计',
-    'code': 'user_sex_ratio',
-    'dataType': 'sql',
-    'dbSource': '707437208002265088',   # 本地 MySQL 数据源 ID
-    'querySql': "SELECT sex as name, COUNT(*) AS value FROM demo WHERE sex IS NOT NULL AND sex != '' GROUP BY sex",
-    'apiMethod': 'GET',
-    'datasetItemList': [
-        {'fieldName': 'name', 'fieldTxt': 'name', 'fieldType': 'String', 'izShow': 'Y', 'orderNum': 0},
-        {'fieldName': 'value', 'fieldTxt': 'value', 'fieldType': 'String', 'izShow': 'Y', 'orderNum': 1}
-    ],
-    'datasetParamList': []
-})
-dataset_id = result['result']['id']
+page = bi_utils.query_page(PAGE_ID)
+tmpl = page.get('template', [])  # 已经是 list，不需要 json.loads
 
-# 测试数据集
-test = bi_utils._request('POST', '/drag/onlDragDatasetHead/getAllChartData', data={'id': dataset_id})
-print(json.dumps(test, ensure_ascii=False))
-# 返回: {"success":true, "result":{"data":[{"name":"1","value":6},{"name":"2","value":5}]}}
+# 按组件名查找（字段是 componentName，不是 label/name）
+target_idx = next(i for i, c in enumerate(tmpl) if c.get('componentName') == '目标名称')
+
+# 修改后保存
+bi_utils._page_components[PAGE_ID] = tmpl
+bi_utils.save_page(PAGE_ID)
 ```
 
-### 创建 API 数据集
+### Windows Python 命令
 
-```python
-result = bi_utils._request('POST', '/drag/onlDragDatasetHead/add', data={
-    'name': '产品销量排行榜',
-    'code': 'product_sales',
-    'dataType': 'api',
-    'dbSource': None,                   # API 类型不需要数据库源
-    'querySql': 'https://api.jeecg.com/mock/31/graphreport/aiproducttest',  # API 地址存在 querySql 字段
-    'apiMethod': 'get',
-    'izAgent': '0',                     # '0'=前端直连, '1'=后端代理（跨域时用）
-    'datasetItemList': [
-        {'fieldName': 'name', 'fieldTxt': 'name', 'fieldType': 'String', 'izShow': 'Y', 'orderNum': 0},
-        {'fieldName': 'value', 'fieldTxt': 'value', 'fieldType': 'String', 'izShow': 'Y', 'orderNum': 1}
-    ],
-    'datasetParamList': []
-})
-dataset_id = result['result']['id']
+- 用 `py` 不是 `python`（Git Bash 下 `python` 找不到）
+
+### 快捷操作：linkage_ops.py（组件联动/钻取）
+
+> **组件联动 = 点击源组件，将参数传递给目标组件的数据集查询参数，目标组件自动刷新数据。**
+
+**使用前准备：**
+```bash
+cp "C:/Users/25067/.claude/skills/jimubi-bigscreen/references/scripts/linkage_ops.py" .
+cp "C:/Users/25067/.claude/skills/jimubi-bigscreen/references/bi_utils.py" .
+# 执行完后清理
+rm linkage_ops.py bi_utils.py
 ```
 
-### 组件绑定数据集（dataType=2）
+**核心命令：**
+```bash
+# 查看页面所有联动配置
+py linkage_ops.py show $API_BASE $TOKEN $PAGE_ID
 
-组件的 `config` 中需要设置以下字段来绑定数据集：
+# 添加联动（--mapping 格式：src=tgt，多个逗号分隔）
+py linkage_ops.py add-linkage $API_BASE $TOKEN $PAGE_ID --source "源组件名" --target "目标组件名" --mapping "value=age"
+py linkage_ops.py add-linkage $API_BASE $TOKEN $PAGE_ID --source "柱形图" --target "饼图" --mapping "name=name,value=keyword"
 
-```python
-config = {
-    'dataType': 2,                      # 2=动态数据
-    'dataSetId': dataset_id,            # 数据集 ID
-    'dataSetName': '数据集名称',
-    'dataSetType': 'sql',               # sql / api / json / websocket
-    'dataSetApi': 'SELECT ...',         # SQL 语句或 API 地址
-    'dataSetMethod': 'get',             # HTTP 方法
-    'dataSetIzAgent': '1',              # SQL 类型用 '1'（走后端代理），API 直连用 '0'
-    'dataMapping': [                    # 字段映射（关键！）
-        {'filed': '维度', 'mapping': 'name'},   # 注意：filed 不是 field（系统拼写）
-        {'filed': '数值', 'mapping': 'value'},
-        # {'filed': '分组', 'mapping': 'type'},  # 多系列图表需要
-    ],
-    'chartData': '[]',                  # 动态数据时可为空数组
-    'option': { ... }                   # ECharts 配置
-}
+# 删除联动
+py linkage_ops.py remove-linkage $API_BASE $TOKEN $PAGE_ID --source "源组件名" --target "目标组件名"
+
+# 添加钻取
+py linkage_ops.py add-drill $API_BASE $TOKEN $PAGE_ID --source "源组件名" --target "目标组件名" --mapping "name=category"
 ```
 
-### 标准字段映射规则
+**⚠️ 易错点（强制记忆）：**
 
-| 映射标签（filed） | 标准字段（key） | 说明 |
-|-------------------|----------------|------|
-| `维度` / `名称` | `name` | 图表类目/维度 |
-| `数值` | `value` | 图表数值 |
-| `分组` | `type` | 多系列区分字段 |
-| `文本` | `label` | 文本标签 |
+| 错误写法 | 正确写法 | 说明 |
+|---------|---------|------|
+| `--param "value:age"` | `--mapping "value=age"` | 参数名是 `--mapping` 不是 `--param` |
+| `--mapping "value:age"` | `--mapping "value=age"` | 映射用 `=` 分隔，不是 `:` |
+| `--mapping "a=b c=d"` | `--mapping "a=b,c=d"` | 多个映射用逗号分隔 |
 
-### 组件绑定数据集完整示例（SQL 饼图）
+**联动前提：** 目标组件必须已绑定数据集，且数据集 SQL 中有对应的查询参数（如 `${age}`）。
 
-```python
-pie_comp = {
-    'component': 'JPie',
-    'componentName': '男女比例',
-    'visible': True,
-    'i': bi_utils._gen_uuid(),
-    'x': 750, 'y': 700, 'w': 450, 'h': 350,
-    'orderNum': 300,
-    'config': {
-        'dataType': 2,
-        'w': 450, 'h': 350,
-        'size': {'width': 450, 'height': 350},
-        'dataSetId': dataset_id,
-        'dataSetName': '用户男女比例统计',
-        'dataSetType': 'sql',
-        'dataSetApi': "SELECT sex as name, COUNT(*) AS value FROM demo ...",
-        'dataSetMethod': 'GET',
-        'dataSetIzAgent': '1',
-        'dataMapping': [
-            {'filed': '维度', 'mapping': 'name'},
-            {'filed': '数值', 'mapping': 'value'}
-        ],
-        'chartData': '[]',
-        'option': { ... }
-    }
-}
+### 快捷操作：link_ops.py（外部链接跳转）
+
+> **组件外部链接 = 点击图表跳转到外部 URL，并将点击参数带到链接地址上。**
+
+**使用前准备：**
+```bash
+cp "C:/Users/25067/.claude/skills/jimubi-bigscreen/references/scripts/link_ops.py" .
+cp "C:/Users/25067/.claude/skills/jimubi-bigscreen/references/bi_utils.py" .
+# 执行完后清理
+rm link_ops.py bi_utils.py
 ```
 
-### 组件绑定数据集完整示例（API 柱形图）
+**核心命令：**
+```bash
+# 查看页面所有外部链接配置
+py link_ops.py show $API_BASE $TOKEN $PAGE_ID
 
-```python
-bar_comp = {
-    'component': 'JBar',
-    'componentName': '销量排行',
-    'visible': True,
-    'i': bi_utils._gen_uuid(),
-    'x': 1350, 'y': 700, 'w': 540, 'h': 350,
-    'orderNum': 300,
-    'config': {
-        'dataType': 2,
-        'w': 540, 'h': 350,
-        'size': {'width': 540, 'height': 350},
-        'dataSetType': 'api',
-        'dataSetApi': 'https://api.jeecg.com/mock/31/graphreport/aiproducttest',
-        'dataSetMethod': 'get',
-        'dataSetIzAgent': '0',          # API 直连不走代理
-        'dataMapping': [
-            {'filed': '维度', 'mapping': 'name'},
-            {'filed': '数值', 'mapping': 'value'}
-        ],
-        'chartData': '[]',
-        'option': { ... }
-    }
-}
+# 设置外部链接（按名称/类型/ID 三选一定位组件）
+py link_ops.py set $API_BASE $TOKEN $PAGE_ID --name "饼图名" --url "https://www.baidu.com/s?wd=\${name}&value=\${value}"
+py link_ops.py set $API_BASE $TOKEN $PAGE_ID --type "JPie" --url "https://example.com/detail?category=\${name}"
+py link_ops.py set $API_BASE $TOKEN $PAGE_ID --id "538804ec..." --url "https://www.baidu.com/s?wd=\${name}" --target "_self"
+
+# 删除外部链接
+py link_ops.py remove $API_BASE $TOKEN $PAGE_ID --name "饼图名"
 ```
 
-### 数据集踩坑记录
+**URL 参数占位符（来自 ECharts 点击事件 params）：**
 
-| 问题 | 原因 | 解决方案 |
-|------|------|---------|
-| **"数据源不存在"** | SQL 数据集未设置 `dbSource` | 必须指定 `dbSource`（如 `707437208002265088`） |
-| **字段列表不生效** | 用了 `onlDragDatasetItemList` | 正确字段名是 `datasetItemList` |
-| **编辑数据集 510 权限错误** | 缺少 `sign` 字段 | 编辑时需传 `sign: 'E19D6243CB1945AB4F7202A1B00F77D5'` |
-| **dataMapping 的 filed 拼写** | 系统中 `filed` 不是 `field` | 必须用 `filed`（少一个 d），这是系统设计 |
-| **API 类型跨域** | 前端直连外部 API 遇到 CORS | 设置 `izAgent: '1'` 走后端代理 |
-| **SQL 参数替换** | 需要动态参数 | SQL 中用 `#{paramName}`（系统变量）或 `${paramName}`（FreeMarker） |
-| **SQL 最大返回 1000 条** | 后端限制 | `getChartData` 方法限制最大 1000 条记录 |
+| 占位符 | 含义 | 示例 |
+|--------|------|------|
+| `${name}` | 维度名称 | 饼图扇区名、柱子 x 轴标签 |
+| `${value}` | 数值 | 饼图扇区值、柱子高度 |
+| `${type}` | 系列名称 | 多系列图表的系列标识 |
 
-### 数据库源 ID 参考
+**打开方式（--target）：** `_blank`（新窗口，默认）、`_self`（当前窗口）
 
-| 环境 | dbSource / dbCode | 说明 |
-|------|-------------------|------|
-| api3.boot.jeecg.com 主库 | `707437208002265088` | 默认 MySQL 数据库 |
+**技术原理：** 组件 config 中 `linkType='url'` + `turnConfig={url:'...', type:'_blank'}`。点击时前端从 ECharts params 中提取 name/value/type，替换 URL 中的 `${...}` 占位符后执行跳转。参考文档：https://help.jimureport.com/biScreen/base/interactive/jumpto
 
-> **注意**：不同环境的 dbSource ID 不同，部署到新环境时需要通过 `/sys/dataSource/list` 查询可用的数据源列表。
-
----
-
-## 编辑已有大屏
-
-```python
-from bi_utils import *
-init_api('https://api3.boot.jeecg.com', 'your-token')
-
-page = query_page(page_id)
-print(page['name'], page['updateCount'])
-
-add_chart(page_id, 'JBar', '新增图表', x=0, y=500, w=600, h=300,
-          categories=['A','B','C'], series=[{'name':'值','data':[10,20,30]}])
-save_page(page_id)
-```
-
----
-
-## 删除大屏
-
-```python
-from bi_utils import *
-init_api('https://api3.boot.jeecg.com', 'your-token')
-
-delete_page(page_id)                # 软删除
-delete_page(page_id, physical=True) # 硬删除
-recover_page(page_id)               # 恢复
-```
-
----
-
-## 修改组件样式
-
-阅读 `references/bi-comp-option-config.md` 获取每种组件的完整配置项路径。
-
-**关键规则：**
-- 颜色使用色值（`#000000`），不用英文单词
-- customColor 格式：`[{color1:'#xxx',color:'#xxx'}]`（适用于 JPie/JLine/JBar 等 20+ 组件）
-- 柱体颜色：`option.series[index].itemStyle.color`
-
-```python
-import sys, json
-sys.path.insert(0, r'{后端项目根目录}')
-from bi_utils import *
-import bi_utils
-
-init_api('https://api3.boot.jeecg.com', 'your-token')
-
-page_id = 'xxx'
-page = query_page(page_id)
-tmpl = page.get('template', [])
-if isinstance(tmpl, str):
-    tmpl = json.loads(tmpl)
-
-for comp in tmpl:
-    config_str = comp.get('config', '{}')
-    config = json.loads(config_str) if isinstance(config_str, str) else config_str
-    if comp.get('component') == 'JBar':
-        option = config.get('option', {})
-        option['series'][0]['itemStyle'] = {'color': '#FF0000'}
-        config['option'] = option
-        comp['config'] = json.dumps(config, ensure_ascii=False)
-
-bi_utils._page_components[page_id] = tmpl
-save_page(page_id)
-```
-
----
-
-## 可用的快捷函数
-
-**API 初始化：**
-- `init_api(api_base, token)` — 初始化 API 地址和 Token
-
-**页面管理：**
-- `create_page(name, style='bigScreen', theme='dark', background_image, type_id, design_type)` — 创建大屏
-- `query_page(page_id)` — 查询页面详情
-- `list_pages(style='bigScreen')` — 列表查询
-- `save_page(page_id)` — 保存设计
-- `delete_page(page_id, physical)` — 删除
-- `recover_page(page_id)` — 恢复
-- `copy_page(page_id)` — 复制
-
-**添加组件（像素坐标）：**
-- `add_number(page_id, title, x, y, w, h, value, prefix, suffix)` — 数字指标
-- `add_chart(page_id, chart_type, title, x, y, w, h, categories, series, pie_data)` — 图表
-- `add_table(page_id, title, x, y, w, h, columns, data)` — 数据表格
-- `add_scroll_table(page_id, title, x, y, w, h, columns, data)` — 滚动表格
-- `add_ranking(page_id, title, x, y, w, h, data)` — 排行榜
-- `add_text(page_id, title, x, y, w, h, content, font_size, color)` — 文本
-- `add_image(page_id, title, x, y, w, h, src)` — 图片
-- `add_gauge(page_id, title, x, y, w, h, value, max_val, unit, color)` — 仪表盘表盘
-- `add_liquid(page_id, title, x, y, w, h, value, color)` — 水球图
-- `add_countdown(page_id, title, x, y, w, h, value, font_size, color)` — 翻牌器
-- `add_border(page_id, x, y, w, h, border_type, color)` — 装饰边框
-- `add_decoration(page_id, x, y, w, h, deco_type, color)` — 装饰条
-- `add_component(page_id, component, title, x, y, w, h, config)` — 通用组件
-
----
-
-## API 踩坑记录
+## 核心踩坑速查
 
 | 问题 | 说明 |
 |------|------|
-| `POST /drag/page/add` 返回值 | 返回完整实体含 ID，`result.id` 即页面 ID |
-| `POST /drag/page/edit` 乐观锁 | 必须传 `updateCount`（当前数据库值） |
-| Windows curl 中文问题 | 必须用 Python urllib/requests |
-| 坐标单位 | 大屏用**像素**坐标 |
-| 组件 config 分离 | config 存在 onl_drag_page_comp 表 |
-| **chartData 必须是 JSON 字符串** | `config.chartData` 的值必须是 `json.dumps(...)` 后的字符串，不能是原生 list/dict |
-| **图表标题去重** | 大屏和仪表盘的图表组件 `option.card.title` 都应为空字符串，标题仅通过 `option.title.text` 显示 |
-| **多系列 chartData 格式** | 多系列图表需要 `type` 字段区分：`[{"name":"1月","value":10,"type":"系列A"}]` |
-| **HTTPS 连接问题** | api3.boot.jeecg.com 使用 HTTP 协议，`init_api` 时用 `http://` |
-| **模板复制后页签切换失效** | 复制模板时必须建立旧→新 ID 映射，更新 JTabToggle 的 `compVals` 和 JGroup 的 `props.elements` 内引用 |
-| **新增组件不显示** | config 不完整或被背景图遮挡。必须从模板中同类组件复制 config，并设 `orderNum: 300` 提高层级 |
-| **JGroup 子组件存储位置** | JGroup 的子组件在 `comp.props.elements` 数组中（不是 config.chartData 也不是 group 字段） |
+| **⚠️ 严禁直接 bi_utils.add_xxx + save_page** | `add_component` 初始化空列表，save_page 会覆盖已有组件造成数据丢失。必须用 `comp_ops.py add` |
+| `POST /drag/page/edit` 乐观锁 | 必须传 `updateCount` |
+| **chartData 必须是 JSON 字符串** | `json.dumps(...)` 后的字符串 |
+| **dataMapping 的 filed 拼写** | `filed` 不是 `field`（少一个 d） |
+| **严禁 `rgba(0,0,0,0)`** | 用 `#FFFFFF00` |
+| **background 字段位置** | `config` 顶层（与 `option` 同级） |
+| **图表标题去重** | `card.title=''`，只用 `option.title.text` |
+| **图层顺序** | 数组索引 0=最顶层，`orderNum` 不控制 z-index |
+| **⚠️ 新增组件必须置顶** | `bi_utils.add_component()` 已用 `insert(0, comp)` 自动置顶；自定义脚本也必须 `insert(0,...)` 而非 `append()`，否则新组件在最底层被遮挡 |
+| **新增组件不显示** | config 不完整或被遮挡，`insert(0,...)` 到数组开头 |
+| **组件 ID 字段是 `i` 不是 `id`** | `template` 数组中每个组件的唯一标识字段名为 `i` |
+| **组件名称是 `componentName`** | 不是 `label` 也不是 `name`，中文名在 `componentName` |
+| **模板数据在 `template` 字段** | `query_page` 返回的组件列表在 `template` 中，已是 list；`pageTemplate` 是空字符串 |
+| **bi_utils 无 init() 方法** | 直接赋值 `bi_utils.API_BASE` 和 `bi_utils.TOKEN` |
+| **Windows 用 `py` 不是 `python`** | Git Bash 下 `python` 命令不存在 |
+| **存储过程：JimuReport API 无法执行 DDL** | `getAllChartData` 用 `executeQuery()` 只支持 SELECT/CALL，CREATE PROCEDURE 会报错。必须通过 pymysql 直连数据库创建存储过程 |
+| **⚠️ FreeMarker 判空必须用 `isNotEmpty()`** | 正确：`<#if isNotEmpty(age)>`。错误：~~`<#if age?? && age?length gt 0>`~~（JimuReport 不支持标准 FreeMarker 语法，条件不生效） |
+| **⚠️ 带 FreeMarker 的 SQL 禁止 bash 命令行传递** | `${age}` 被 shell 解释为空变量，`<#if>` 的 `>` 被解释为重定向。必须用 `--sql-file` 写入文件或 Python 脚本内部定义 SQL |
+| **`${}` 和 `#{}` 不可混用** | `${param}` 是查询参数，`#{sys_user_code}` 是系统变量，混用导致解析失败 |
+| **存储过程：数据集 SQL 写 CALL 语法** | `querySql` 填 `CALL sp_name()` 或带参 `CALL sp_name('${param}')`，参数用 FreeMarker 语法 |
+| **存储过程：自定义脚本绑定组件缺字段** | 直接操作 config 会缺 `dataSetId`/`dataMapping`/`fieldOption`，导致组件显示静态数据。必须用 `comp_ops.py add --dataset-id` 或 `--create-sql "CALL ..."` |
+| **⚠️ JWeatherForecast 不能用 comp_ops.py** | 天气预报组件（JWeatherForecast）不在 comp_ops.py 支持范围内，必须用自定义脚本直接操作 template 数组添加。**dataType 必须为 1**（不是 0），option.template 值决定版本样式（11=滚动版, 34=横线版, 21=带背景, 12=好123版, 27=温度计版, 94=列表文字版）。**不要误用 JScrollList 等其他组件替代** |
+| **⚠️ 批量添加组件时手动构造 comp dict** | 必须用 `bi_utils.add_component()` 而非自行构造 `{'component':..., 'config':...}` 并 insert。手动构造会遗漏 `size`/`chart`/`turnConfig`/`linkageConfig` 等必要字段，且 config 必须是 JSON 字符串（不是 dict），否则全部组件显示"暂无数据" |
+| **⚠️ option.title 可能是 str 类型** | `default_configs.json` 中部分组件的 `option.title` 是字符串（如 `"基础折线图"`），直接 `option['title']['text'] = x` 会报 `TypeError: 'str' object does not support item assignment`。必须先检查类型：`if isinstance(title, str): title = {'text': title}` |
+| **全组件排除装饰类** | "生成全组件"时排除 JWeatherForecast（特殊API组件）、JDragBorder（13种装饰边框）、JDragDecoration（12种装饰条），这些是纯视觉装饰不是业务数据组件 |
+| **⚠️ componentName 必须用中文名** | 批量生成时图层名（componentName）必须使用 `menu-hierarchy.md` 中的中文名称（如"基础柱形图"、"饼图"、"统计概览(卡片式)"），禁止直接用 compType（如 JBar、JPie）作为图层名，否则用户在设计器中无法识别组件 |
+| **⚠️ 全组件生成禁止为分类生成 JText 标题** | 分类（柱形图/饼图/折线图/...）仅在代码中作注释分组，不要为每个分类生成 JText 组件作为标题。分类标题不是业务组件，会在设计器中产生 20 个多余文本图层，占用额外高度。组件应扁平排列在 all_comps 列表中 |
+| **⚠️ linkage_ops.py 参数名和格式** | 联动映射参数是 `--mapping`（不是 `--param`），格式是 `src=tgt`（等号分隔，不是冒号），多个用逗号：`--mapping "name=name,value=keyword"` |
+| **⚠️ 模板索引表只有 10 个实际文件** | SKILL.md 模板索引表只列实际存在的 10 个模板文件，禁止使用不存在的模板名（已修正，2026-04-01） |
+| **⚠️ template_ops.py copy 集团综合数据大屏报错** | 该模板所有组件 y<150，边界缩放 `min(... if y>=150)` 返回空序列。已修复：加 fallback 取全局最小 y（2026-04-01） |
+| **⚠️ JPyramid3D / JOrbitRing 默认尺寸太小** | 3D金字塔（JPyramid3D）和轨道环形文字（JOrbitRing）默认尺寸不够，生成时建议使用 **750×500**，否则显示效果不佳 |
+
+> 完整踩坑记录见 `references/pitfalls.md`
 
 ## 错误处理
 
@@ -706,15 +1144,18 @@ save_page(page_id)
 |------|---------|
 | Token 过期（401） | 重新获取 X-Access-Token |
 | `updateCount` 不匹配 | 重新查询页面获取最新值 |
-| 组件不显示 | 检查 dataType、chartData（必须是 JSON 字符串）、option 是否完整 |
-| 新增组件不显示 | **从模板中复制同类组件的完整 config**，不要自己拼装；设 `orderNum: 300` |
-| 布局错乱 | 确认使用像素坐标（不是栅格） |
+| 组件不显示 | 检查 dataType、chartData、option 完整性 |
 | 中文乱码 | 使用 Python（不要用 curl） |
-| 页签切换不工作 | 检查 JTabToggle 的 `compVals` 是否指向正确的 JGroup `i` 值 |
 
 ## 参考文档
 
 - `references/bi-component-types.md` — 完整组件类型清单
 - `references/bi-comp-option-config.md` — 组件样式配置路径
 - `references/bi_utils.py` — 工具库源码
-- `references/templates/bigScreen/` — 40 个大屏模板 JSON 参考
+- `references/core-configs/data.ts` — 组件面板菜单树 + 初始化 config（原始源码，353KB）
+- `references/core-configs/optionData.ts` — 组件属性面板配置项列表（原始源码，57KB）
+- `references/core-configs/component-defaults.md` — 82+ 组件默认配置速查（尺寸/chartData/option/dataMapping）
+- `references/core-configs/addPageComp-logic.md` — 组件创建流程（addPageComp 函数、newItem 结构、位置计算）
+- `references/core-configs/menu-hierarchy.md` — 组件菜单分类树（完整层级 + 统计）
+- `references/templates/bigScreen/` — 10 个大屏模板 JSON
+- `references/scripts/` — 12 个预置操作脚本 + default_configs.json

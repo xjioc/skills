@@ -227,8 +227,7 @@
 | dataType | 说明 |
 |----------|------|
 | 1 | 静态数据（chartData 中直接写入） |
-| 2 | API 接口（url 字段指定） |
-| 3 | SQL 查询（数据集配置） |
+| 2 | 动态数据（通过数据集获取，支持 SQL / API / WebSocket / JSON / 文件等类型） |
 | 4 | 关联表单数据 |
 
 ### JNumber 组件 config 示例

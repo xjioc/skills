@@ -502,6 +502,19 @@ INSERT INTO sys_permission (
 
 ### Step 8: 输出结果
 
+**本地环境自动执行菜单 SQL 规则：**
+如果 API_BASE 以 `http://127.0.0.1` 或 `http://localhost` 开头（不区分大小写），在生成菜单 SQL 后，自动通过 Bash 工具执行 MySQL 命令插入菜单：
+
+```bash
+# 先检查是否已存在，避免重复插入
+mysql -h127.0.0.1 -P3306 -uroot -proot jeecgboot3 -e "SELECT id FROM sys_permission WHERE id='{head_id}'"
+# 不存在则执行插入
+mysql -h127.0.0.1 -P3306 -uroot -proot jeecgboot3 -e "INSERT INTO sys_permission (...) VALUES (...);"
+```
+
+- 如果 MySQL 执行失败，回退为输出 SQL 让用户手动执行，不中断整体流程
+- 数据库连接参数默认 `mysql -h127.0.0.1 -P3306 -uroot -proot jeecgboot3`，与 jeecg-codegen 保持一致
+
 ```
 ## Online 图表创建成功
 
@@ -512,6 +525,7 @@ INSERT INTO sys_permission (
 - Y 轴：{yaxisField}
 - 字段数量：{N} 个
 - 目标环境：{API_BASE}
+- 菜单 SQL：{已自动执行 ✓ / 需手动执行}
 
 ### 菜单 SQL
 INSERT INTO sys_permission (...) VALUES (...);
@@ -519,7 +533,7 @@ INSERT INTO sys_permission (...) VALUES (...);
 ### 后续操作
 1. 打开 JeecgBoot 后台 → Online图表
 2. 找到该图表，点击「功能测试」预览效果
-3. 如需配置菜单，执行上方 SQL 或在后台手动添加
+3. 如菜单未自动执行，手动执行上方 SQL 或在后台手动添加
 4. 可在「编辑」中调整图表类型、字段等配置
 ```
 

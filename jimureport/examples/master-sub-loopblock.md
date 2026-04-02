@@ -1,17 +1,171 @@
-# 示例2：主子循环块
+# 主子循环块报表示例
 
-**类型：** 循环块报表（主子表循环）
-**特征：** `loopBlockList` 定义循环区域，每个单元格加 `"loopBlock":1`，主表 `#{brpuzpqacl.xxx}` + 子表 `#{flbaplxbnu.xxx}`
+主子循环块：主表每条记录循环渲染一个"卡片块"，块内包含主表信息 + 子表明细列表。
 
-## 关键配置
+---
 
-- `loopBlockList`：`[{"sci":0,"index":1,"eci":8,"sri":0,"eri":36,"db":"brpuzpqacl"}]`
-- 循环块内所有单元格标记 `"loopBlock":1`
-- 主表数据源：`brpuzpqacl`
-- 子表数据源：`flbaplxbnu`
+## 一、核心规则
 
-## 报表 JSON
+### 与普通主子表的区别
 
-```json
-{"loopBlockList":[{"sci":0,"index":1,"eci":8,"sri":0,"eri":36,"db":"brpuzpqacl"}],"querySetting":{"izOpenQueryBar":false,"izDefaultQuery":true},"recordSubTableOrCollection":{"record":[],"range":[],"group":[]},"printConfig":{"layout":"portrait","paginationShow":false,"printCallBackUrl":"","paper":"A4","isBackend":false,"width":210,"paginationLocation":"middle","definition":1,"marginX":10,"height":297,"marginY":10},"hidden":{"rows":[],"conditions":{"rows":{},"cols":{}},"cols":[]},"queryFormSetting":{"idField":"","useQueryForm":false,"dbKey":""},"dbexps":[],"toolPrintSizeObj":{"printType":"A4","widthPx":718,"heightPx":1047},"dicts":[],"fillFormToolbar":{"show":true,"btnList":["save","subTable_add","verify","subTable_del","print","close","first","prev","next","paging","total","last","exportPDF","exportExcel","exportWord"]},"freeze":"A1","dataRectWidth":682,"isViewContentHorizontalCenter":false,"autofilter":{},"validations":[],"cols":{"0":{"width":39},"1":{"width":73},"2":{"width":89},"3":{"width":101},"4":{"width":80},"8":{"width":29},"len":50},"area":false,"pyGroupEngine":false,"submitHandlers":[],"excel_config_id":"1171669477423927296","hiddenCells":[],"zonedEditionList":[],"rows":{"0":{"cells":{"0":{"loopBlock":1,"text":""},"1":{"loopBlock":1,"merge":[0,6],"style":8,"text":"订货商信息","height":0},"2":{"loopBlock":1,"text":""},"3":{"loopBlock":1,"text":""},"4":{"loopBlock":1,"text":""},"5":{"loopBlock":1,"text":""},"6":{"loopBlock":1,"text":""},"7":{"loopBlock":1,"text":""},"8":{"loopBlock":1,"text":""}},"height":57},"1":{"cells":{"0":{"loopBlock":1,"text":""},"1":{"loopBlock":1,"style":10,"text":"订单编号："},"2":{"loopBlock":1,"merge":[0,2],"style":42,"text":"#{brpuzpqacl.order_code}","height":0},"3":{"loopBlock":1,"text":""},"4":{"loopBlock":1,"text":""},"5":{"loopBlock":1,"text":""},"6":{"loopBlock":1,"text":""},"7":{"loopBlock":1,"text":""},"8":{"loopBlock":1,"text":""}},"height":34},"2":{"cells":{"0":{"loopBlock":1,"text":""},"1":{"loopBlock":1,"style":10,"text":"订单地址："},"2":{"loopBlock":1,"merge":[0,1],"style":42,"text":"#{brpuzpqacl.descc}","height":0},"3":{"loopBlock":1,"text":""},"4":{"loopBlock":1,"style":10,"text":"订单日期："},"5":{"loopBlock":1,"merge":[0,1],"style":43,"text":"#{brpuzpqacl.order_date}","height":0},"7":{"loopBlock":1,"text":""},"8":{"loopBlock":1,"text":""}},"height":34},"3":{"cells":{"0":{"loopBlock":1,"text":""},"1":{"loopBlock":1,"style":10,"text":"订单姓名："},"2":{"loopBlock":1,"merge":[0,1],"style":42,"text":"#{brpuzpqacl.create_by}","height":0},"3":{"loopBlock":1,"text":""},"4":{"loopBlock":1,"style":10,"text":"到货日期："},"5":{"loopBlock":1,"merge":[0,1],"style":42,"text":"#{brpuzpqacl.create_time}","height":0},"6":{"loopBlock":1,"text":""},"7":{"loopBlock":1,"text":""},"8":{"loopBlock":1,"text":""}},"height":31},"5":{"cells":{"0":{"loopBlock":1,"text":""},"1":{"loopBlock":1,"decimalPlaces":"4","merge":[0,6],"style":31,"text":"订单详情"},"8":{"loopBlock":1,"text":""}},"height":51},"6":{"cells":{"0":{"loopBlock":1,"text":""},"1":{"loopBlock":1,"style":15,"text":"商品编码"},"2":{"loopBlock":1,"style":15,"text":"商品名称"},"3":{"loopBlock":1,"style":15,"text":"销售时间"},"4":{"loopBlock":1,"style":15,"text":"销售数据量"},"5":{"loopBlock":1,"style":15,"text":"定价"},"6":{"loopBlock":1,"style":15,"text":"优惠价"},"7":{"loopBlock":1,"style":15,"text":"付款金额"},"8":{"loopBlock":1,"text":""}},"height":42},"7":{"cells":{"0":{"loopBlock":1,"text":""},"1":{"loopBlock":1,"style":18,"text":"#{flbaplxbnu.product_name}"},"2":{"loopBlock":1,"style":18,"text":"#{flbaplxbnu.product_name}"},"3":{"loopBlock":1,"style":18,"text":"#{flbaplxbnu.product_name}"},"4":{"loopBlock":1,"style":18,"text":"#{flbaplxbnu.num}"},"5":{"loopBlock":1,"decimalPlaces":"4","style":19,"text":"#{flbaplxbnu.price}"},"6":{"loopBlock":1,"decimalPlaces":"1","style":19,"text":"#{flbaplxbnu.price}"},"7":{"loopBlock":1,"style":18,"text":"#{flbaplxbnu.pro_type}"},"8":{"loopBlock":1,"text":""}}},"10":{"cells":{"0":{"loopBlock":1,"text":""},"1":{"loopBlock":1,"style":39,"text":"备注："}},"height":25},"11":{"cells":{"0":{"loopBlock":1,"text":""},"1":{"loopBlock":1,"merge":[0,6],"style":41,"text":"1、查看信息，在浏览器输入"?did=1"或"?did=2"","height":0}},"height":37},"len":102},"rpbar":{"show":true,"pageSize":"","btnList":[]},"name":"sheet1","styles":[{"border":{"top":["thin","#000"],"left":["thin","#000"],"bottom":["thin","#000"],"right":["thin","#000"]}},{"border":{"top":["thin","#000"],"left":["thin","#000"],"bottom":["thin","#000"],"right":["thin","#000"]},"align":"center"},{"border":{"top":["thin","#000"],"left":["thin","#000"],"bottom":["thin","#000"],"right":["thin","#000"]},"bgcolor":"#5b9cd6","align":"center"},{"font":{"size":18}},{"font":{"size":18,"bold":true}},{"align":"center"},{"align":"center","font":{"size":18,"bold":true}},{"bgcolor":"#5b9cd6","align":"center"},{"align":"center","font":{"size":18,"name":"宋体","bold":true}},{"bgcolor":"#5b9cd6","align":"center","font":{"name":"宋体"}},{"font":{"name":"宋体"}},{"bgcolor":"#5b9cd6","color":"#ffffff","align":"center","font":{"name":"宋体"}},{"border":{"top":["thin","#5b9cd6"],"left":["thin","#5b9cd6"],"bottom":["thin","#5b9cd6"],"right":["thin","#5b9cd6"]},"bgcolor":"#5b9cd6","color":"#ffffff","align":"center","font":{"name":"宋体"}},{"border":{"top":["thin","#5b9cd6"],"left":["thin","#5b9cd6"],"bottom":["thin","#5b9cd6"],"right":["thin","#5b9cd6"]},"font":{"name":"宋体"}},{"border":{"top":["thin","#bfbfbf"],"left":["thin","#bfbfbf"],"bottom":["thin","#bfbfbf"],"right":["thin","#bfbfbf"]}},{"border":{"top":["thin","#bfbfbf"],"left":["thin","#bfbfbf"],"bottom":["thin","#bfbfbf"],"right":["thin","#bfbfbf"]},"bgcolor":"#5b9cd6","color":"#ffffff","align":"center","font":{"name":"宋体"}},{"border":{"top":["thin","#bfbfbf"],"left":["thin","#bfbfbf"],"bottom":["thin","#bfbfbf"],"right":["thin","#bfbfbf"]},"font":{"name":"宋体"}},{},{"border":{"top":["thin","#bfbfbf"],"left":["thin","#bfbfbf"],"bottom":["thin","#bfbfbf"],"right":["thin","#bfbfbf"]},"align":"center","font":{"name":"宋体"}},{"border":{"top":["thin","#bfbfbf"],"left":["thin","#bfbfbf"],"bottom":["thin","#bfbfbf"],"right":["thin","#bfbfbf"]},"format":"number","align":"center","font":{"name":"宋体"}},{"border":{"top":["thin","#bfbfbf"],"left":["thin","#bfbfbf"],"bottom":["thin","#bfbfbf"],"right":["thin","#bfbfbf"]},"format":"normal","align":"center","font":{"name":"宋体"}}],"freezeLineColor":"rgb(185, 185, 185)","merges":["B1:H1","C2:E2","C3:D3","F3:G3","C4:D4","F4:G4","B6:H6","B12:H12"]}
+| 对比项 | 普通主子表 | 主子循环块 |
+|-------|----------|----------|
+| 主表绑定 | `${db.field}` 单值 | `#{db.field}` 列表（循环） |
+| 显示方式 | 一条主表记录 + 子表列表 | 多条主表记录，每条一个卡片 |
+| URL传参 | 需要 `?id=1` 指定 | 不需要，自动循环所有 |
+| loopBlockList | 不需要 | **必须配置** |
+| loopBlock标记 | 不需要 | **每个单元格必须加** `"loopBlock": 1` |
+| isPage | 主表可分页 | 主表 `"0"`（不分页） |
+
+### 关键配置
+
+1. **loopBlockList** — 定义循环块的行列范围和驱动数据集
+2. **每个单元格** — 必须加 `"loopBlock": 1`
+3. **间隔行** — 循环块末尾需要足够的空行作为卡片间隔
+4. **主子表联动** — 仍然需要 `link/saveAndEdit` 配置 linkType=4
+
+---
+
+## 二、完整创建流程
+
+### Step 1-2: 创建空报表 + 数据集
+
+与普通主子表相同，区别：
+- 主表 SQL 不需要 WHERE 条件（循环所有记录）
+- 主表 `isPage: "0"`（不分页）
+- 子表 SQL 需要 `WHERE order_fk_id = '${order_fk_id}'`
+- 子表 paramList 必须有参数（`searchFlag: 0`）
+
+```python
+# 主表 - 查全部，不分页
+main_db = {
+    "dbCode": "mainOrder", "dbChName": "订单主表",
+    "dbType": "0", "isPage": "0",
+    "dbDynSql": "select * from rep_demo_order_main",
+    "paramList": []  # 不需要参数
+}
+
+# 子表 - 按外键过滤
+sub_db = {
+    "dbCode": "subProduct", "dbChName": "订单商品",
+    "dbType": "0", "isPage": "0",
+    "dbDynSql": "select * from rep_demo_order_product where order_fk_id = '${order_fk_id}'",
+    # 子表参数必须有，searchFlag=0 不勾选查询
+    "paramList": [
+        {"paramName": "order_fk_id", "paramTxt": "订单外键", "paramValue": "", "widgetType": "String", "orderNum": 1, "searchFlag": 0, "searchMode": 1}
+    ]
+}
 ```
+
+### Step 3: 配置主子表联动
+
+```python
+parameter = json.dumps({
+    "main": "mainOrder", "sub": "subProduct",
+    "subReport": [{"mainField": "id", "subParam": "order_fk_id", "tableIndex": 1}]
+}, ensure_ascii=False)
+
+link_data = {
+    "mainReport": "mainOrder", "subReport": "subProduct",
+    "linkName": "订单主子循环块", "parameter": parameter,
+    "linkType": "4", "reportId": report_id
+}
+api_request('/jmreport/link/saveAndEdit', link_data)
+```
+
+### Step 4: 构造循环块 jsonStr
+
+**布局结构（每条主表记录循环渲染）：**
+
+```
+Row 1:  标题"订单信息"（合并6列）
+Row 2:  订单编号：#{主.code}  |  订单日期：#{主.date}
+Row 3:  创建人：#{主.by}      |  创建时间：#{主.time}
+Row 4:  描述：#{主.descc}
+Row 5:  空行分隔（5px）
+Row 6:  子标题"商品明细"
+Row 7:  子表表头（商品名称|数量|单价|类型|...）
+Row 8:  子表数据行 #{子.product_name} #{子.num} ...
+Row 9-30: 间隔空行（22行 x 25px = 550px间距）
+```
+
+**循环块内每个单元格必须加 `"loopBlock": 1`：**
+
+```python
+LB = 1  # loopBlock 标记
+
+rows_data = {
+    "1": {"cells": {
+        "1": {"text": "订单信息", "style": 5, "merge": [0, 5], "loopBlock": LB}
+    }, "height": 40},
+    "2": {"cells": {
+        "1": {"text": "订单编号：", "style": 6, "loopBlock": LB},
+        "2": {"text": "#{mainOrder.order_code}", "style": 7, "merge": [0, 1], "loopBlock": LB},
+        "4": {"text": "订单日期：", "style": 6, "loopBlock": LB},
+        "5": {"text": "#{mainOrder.order_date}", "style": 7, "merge": [0, 1], "loopBlock": LB}
+    }, "height": 30},
+    # ... 主表其他行（都加 loopBlock: LB）
+    "6": {"cells": {
+        "1": {"text": "商品明细", "style": 8, "merge": [0, 5], "loopBlock": LB}
+    }, "height": 34},
+    "7": {"cells": {
+        "1": {"text": "商品名称", "style": 4, "loopBlock": LB},
+        "2": {"text": "数量", "style": 4, "loopBlock": LB},
+        # ...
+    }, "height": 34},
+    "8": {"cells": {
+        "1": {"text": "#{subProduct.product_name}", "style": 2, "loopBlock": LB},
+        "2": {"text": "#{subProduct.num}", "style": 2, "loopBlock": LB},
+        # ...
+    }},
+    # 间隔空行（Row 9-30，每行25px）
+    **{str(i): {"cells": {
+        "1": {"text": " ", "loopBlock": LB}, "2": {"text": " ", "loopBlock": LB},
+        "3": {"text": " ", "loopBlock": LB}, "4": {"text": " ", "loopBlock": LB},
+        "5": {"text": " ", "loopBlock": LB}, "6": {"text": " ", "loopBlock": LB}
+    }, "height": 25} for i in range(9, 31)},
+    "len": 200
+}
+```
+
+### loopBlockList 配置
+
+```python
+# sci/eci: 列范围（0-based），sri/eri: 行范围（0-based），db: 主数据集code
+loop_block_list = [
+    {"sci": 1, "eci": 6, "sri": 1, "eri": 30, "index": 1, "db": "mainOrder"}
+]
+```
+
+| 字段 | 说明 |
+|------|------|
+| `sci` | 起始列（0-based），通常为1（B列） |
+| `eci` | 结束列（0-based） |
+| `sri` | 起始行（0-based），循环块第一行 |
+| `eri` | 结束行（0-based），**必须包含所有间隔空行** |
+| `index` | 循环块序号（从1开始） |
+| `db` | 驱动循环的**主表**数据集 dbCode |
+
+> **间隔行数决定卡片间距：** 参考示例用 20+ 行空行（每行25px）。`eri` 必须覆盖所有间隔行，否则间距不生效。
+
+### save 请求体关键字段
+
+```python
+save_data = {
+    # ... 标准字段 ...
+    "loopBlockList": loop_block_list,  # 循环块配置
+    "area": False,                     # 让系统自动计算
+    # ...
+}
+```
+
+---
+
+## 三、循环块 vs 普通主子表选择
+
+| 场景 | 推荐方式 |
+|------|---------|
+| 查看单条订单详情（URL传参） | 普通主子表（`${}`单值 + `#{}`列表） |
+| 打印所有订单（每条一页/一块） | **主子循环块**（loopBlock循环） |
+| 批量打印发货单/收据 | **主子循环块** |
+| 数据卡片式展示 | **主子循环块** |

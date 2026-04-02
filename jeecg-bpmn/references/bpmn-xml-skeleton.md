@@ -87,20 +87,67 @@
 
 ### 2.4 排他网关（exclusiveGateway）
 
+**重要规则：**
+1. 排他网关必须设置 `default` 属性指向一条默认流（无条件分支）
+2. 只有非默认分支才需要条件表达式
+3. 条件表达式**必须使用 `flowUtil.evaluateExpression`** + base64 编码的 JSON 条件（不要用简单的 `${variable > 3}` 写法）
+
 ```xml
-<bpmn2:exclusiveGateway id="gateway_xxx" name="网关名称" />
+<!-- default 属性指向默认流的 id -->
+<bpmn2:exclusiveGateway id="gateway_xxx" name="网关名称" default="flow_default" />
 ```
 
-带条件的连线：
+**条件表达式格式（`flowUtil.evaluateExpression`）：**
+
+条件 JSON 结构（需 base64 编码后传入）：
+```json
+[{
+  "logic": "and",
+  "conditions": [{
+    "operator": "gt",
+    "field": "integer_xxx_xxx",
+    "fieldType": "integer",
+    "fieldName": "请假天数",
+    "expectedValue": "3"
+  }]
+}]
+```
+
+支持的 operator 值：`eq`(等于), `ne`(不等于), `gt`(大于), `gte`(大于等于), `lt`(小于), `lte`(小于等于), `le`(小于等于), `in`(在列表中), `not_in`(不在列表中), `contains`(包含), `is_empty`(为空), `is_not_empty`(不为空)
+
+带条件的连线（使用 base64 编码条件）：
 ```xml
-<bpmn2:sequenceFlow id="flow_xxx" name="通过" sourceRef="gateway_xxx" targetRef="task_yyy">
-  <bpmn2:conditionExpression xsi:type="tFormalExpression"><![CDATA[${result == 1}]]></bpmn2:conditionExpression>
+<!-- 有条件分支 -->
+<bpmn2:sequenceFlow id="flow_xxx" name="大于3天" sourceRef="gateway_xxx" targetRef="task_yyy">
+  <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression">${flowUtil.evaluateExpression(execution, 'BASE64_ENCODED_JSON', 'and')}</bpmn2:conditionExpression>
 </bpmn2:sequenceFlow>
 
-<bpmn2:sequenceFlow id="flow_xxx" name="拒绝" sourceRef="gateway_xxx" targetRef="end">
-  <bpmn2:conditionExpression xsi:type="tFormalExpression"><![CDATA[${result == 0}]]></bpmn2:conditionExpression>
-</bpmn2:sequenceFlow>
+<!-- 默认流（无条件） -->
+<bpmn2:sequenceFlow id="flow_default" name="3天及以内(默认)" sourceRef="gateway_xxx" targetRef="end" />
 ```
+
+**Python 中生成 base64 条件：**
+```python
+import json, base64
+
+condition = json.dumps([{
+    "logic": "and",
+    "conditions": [{
+        "operator": "gt",
+        "field": "integer_xxx_xxx",      # 表单字段 model
+        "fieldType": "integer",           # 字段类型
+        "fieldName": "请假天数",           # 字段中文名
+        "expectedValue": "3"              # 比较值
+    }]
+}], ensure_ascii=False)
+b64 = base64.b64encode(condition.encode('utf-8')).decode('utf-8')
+# 在 XML 中使用: ${flowUtil.evaluateExpression(execution, '<b64>', 'and')}
+```
+
+> **踩坑警告：**
+> - `xsi:type` 的值必须是 `bpmn2:tFormalExpression`（带 `bpmn2:` 前缀），不要用 `tFormalExpression`
+> - 不要用 `<![CDATA[]]>` 包裹 `flowUtil.evaluateExpression`，直接写表达式即可
+> - 系统内置变量（如 `result`）的条件也推荐用 `flowUtil.evaluateExpression` 格式
 
 ### 2.5 并行网关（parallelGateway）
 

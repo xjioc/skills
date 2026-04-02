@@ -16,17 +16,25 @@
 
 只走一条路径，适用于"通过/拒绝"、"金额判断"等场景。
 
-```xml
-<bpmn2:exclusiveGateway id="gateway_result" name="审批结果" />
+**重要规则：**
+1. 必须设置 `default` 属性指向一条默认流（无条件分支）
+2. 条件表达式必须使用 `flowUtil.evaluateExpression` + base64 编码 JSON
+3. 默认流不带条件表达式
 
-<!-- 条件连线 -->
+```xml
+<!-- default 指向默认流 id -->
+<bpmn2:exclusiveGateway id="gateway_result" name="审批结果" default="flow_reject" />
+
+<!-- 有条件分支（使用 flowUtil.evaluateExpression + base64） -->
 <bpmn2:sequenceFlow id="flow_approve" name="通过" sourceRef="gateway_result" targetRef="task_next">
-  <bpmn2:conditionExpression xsi:type="tFormalExpression"><![CDATA[${result == 1}]]></bpmn2:conditionExpression>
+  <bpmn2:conditionExpression xsi:type="bpmn2:tFormalExpression">${flowUtil.evaluateExpression(execution, 'BASE64_ENCODED_JSON', 'and')}</bpmn2:conditionExpression>
 </bpmn2:sequenceFlow>
-<bpmn2:sequenceFlow id="flow_reject" name="拒绝" sourceRef="gateway_result" targetRef="end">
-  <bpmn2:conditionExpression xsi:type="tFormalExpression"><![CDATA[${result == 0}]]></bpmn2:conditionExpression>
-</bpmn2:sequenceFlow>
+
+<!-- 默认流（无条件） -->
+<bpmn2:sequenceFlow id="flow_reject" name="拒绝(默认)" sourceRef="gateway_result" targetRef="end" />
 ```
+
+base64 解码后的条件 JSON 格式见 `bpmn-advanced.md` 的 1.2 节。
 
 **BPMNShape：** 排他网关需要 `isMarkerVisible="true"`
 ```xml
@@ -58,6 +66,52 @@
 <bpmn2:sequenceFlow id="flow_join_a" sourceRef="task_a" targetRef="pgw_join" />
 <bpmn2:sequenceFlow id="flow_join_b" sourceRef="task_b" targetRef="pgw_join" />
 ```
+
+### 3.1 并行网关 JSON 配置（bpmn_creator.py）
+
+并行网关必须**成对使用**（分支 + 汇聚），连线**不带条件**。
+
+```json
+{
+  "processName": "同步网关流程",
+  "nodes": [
+    {"id": "start", "type": "startEvent", "name": "开始"},
+    {"id": "task_apply", "type": "userTask", "name": "提交申请",
+     "assignee": {"type": "expression", "value": "applyUserId"}},
+    {"id": "gw_fork", "type": "parallelGateway", "name": "并行分支"},
+    {"id": "task_manager", "type": "userTask", "name": "经理审批",
+     "assignee": {"type": "candidateUsersExpression", "value": "${flowNodeExpression.getDepartLeaders(applyUserId)}"}},
+    {"id": "task_director", "type": "userTask", "name": "总监审批",
+     "assignee": {"type": "candidateUsers", "value": "test"}},
+    {"id": "task_chairman", "type": "userTask", "name": "董事长审批",
+     "assignee": {"type": "assignee", "value": "qinfeng"}},
+    {"id": "gw_join", "type": "parallelGateway", "name": "并行汇聚"},
+    {"id": "task_hr", "type": "userTask", "name": "HR审批",
+     "assignee": {"type": "expression", "value": "applyUserId"}},
+    {"id": "end", "type": "endEvent", "name": "结束"}
+  ],
+  "flows": [
+    {"id": "f1", "source": "start", "target": "task_apply"},
+    {"id": "f2", "source": "task_apply", "target": "gw_fork"},
+    {"id": "f_p1", "source": "gw_fork", "target": "task_manager"},
+    {"id": "f_p2", "source": "gw_fork", "target": "task_director"},
+    {"id": "f_p3", "source": "gw_fork", "target": "task_chairman"},
+    {"id": "f_j1", "source": "task_manager", "target": "gw_join"},
+    {"id": "f_j2", "source": "task_director", "target": "gw_join"},
+    {"id": "f_j3", "source": "task_chairman", "target": "gw_join"},
+    {"id": "f_to_hr", "source": "gw_join", "target": "task_hr"},
+    {"id": "f_end", "source": "task_hr", "target": "end"}
+  ]
+}
+```
+
+**并行网关 JSON 要点：**
+- 分支和汇聚都用 `"type": "parallelGateway"`
+- 分支出线**不带 `conditions`**（所有分支无条件全部执行）
+- 汇聚入线也不带条件
+- 汇聚网关等全部分支完成后才继续到下一节点
+
+> 参考示例: `references/example/同步网关.bpmn`
 
 ---
 
@@ -98,7 +152,69 @@
 <bpmn2:sequenceFlow id="flow_join_3" sourceRef="task_deep" targetRef="igw_join" />
 ```
 
-### 4.2 包含网关 + 直通路径（来自生产环境：督办流程）
+### 4.2 包含网关 JSON 配置（bpmn_creator.py）
+
+包含网关必须**成对使用**（分支 + 汇聚），JSON 中需定义两个 `inclusiveGateway` 节点。
+
+```json
+{
+  "processName": "包含网关流程",
+  "nodes": [
+    {"id": "start", "type": "startEvent", "name": "开始"},
+    {"id": "task_draft", "type": "userTask", "name": "拟稿人",
+     "assignee": {"type": "expression", "value": "applyUserId"}},
+    {"id": "gw_split", "type": "inclusiveGateway", "name": "包含网关分支"},
+    {"id": "task_director", "type": "userTask", "name": "总监审批",
+     "assignee": {"type": "assignee", "value": "qinfeng"}},
+    {"id": "task_gm", "type": "userTask", "name": "总经理审批",
+     "assignee": {"type": "assignee", "value": "jeecg"}},
+    {"id": "task_chairman", "type": "userTask", "name": "董事长审批",
+     "assignee": {"type": "assignee", "value": "test"}},
+    {"id": "gw_join", "type": "inclusiveGateway", "name": "包含网关汇聚"},
+    {"id": "task_hr", "type": "userTask", "name": "人力审批",
+     "assignee": {"type": "assignee", "value": "admin"}},
+    {"id": "end", "type": "endEvent", "name": "结束"}
+  ],
+  "flows": [
+    {"id": "f1", "source": "start", "target": "task_draft"},
+    {"id": "f2", "source": "task_draft", "target": "gw_split"},
+    {"id": "f_cond1", "source": "gw_split", "target": "task_director",
+     "name": "数字>100 OR 类型=待办", "conditionLogic": "or",
+     "conditions": [
+       {"field": "number_xxx", "fieldType": "number", "fieldName": "数字", "operator": "gt", "value": "100"},
+       {"field": "select_xxx", "fieldType": "select", "fieldName": "类型", "operator": "eq", "value": "待办"}
+     ]},
+    {"id": "f_cond2", "source": "gw_split", "target": "task_gm",
+     "name": "类型=已办",
+     "conditions": [
+       {"field": "select_xxx", "fieldType": "select", "fieldName": "类型", "operator": "eq", "value": "已办"}
+     ]},
+    {"id": "f_cond3", "source": "gw_split", "target": "task_chairman",
+     "name": "数字<100",
+     "conditions": [
+       {"field": "number_xxx", "fieldType": "number", "fieldName": "数字", "operator": "lt", "value": "100"}
+     ]},
+    {"id": "f_join1", "source": "task_director", "target": "gw_join"},
+    {"id": "f_join2", "source": "task_gm", "target": "gw_join"},
+    {"id": "f_join3", "source": "task_chairman", "target": "gw_join"},
+    {"id": "f_to_hr", "source": "gw_join", "target": "task_hr"},
+    {"id": "f_end", "source": "task_hr", "target": "end"}
+  ]
+}
+```
+
+**包含网关 JSON 要点：**
+- 分支网关和汇聚网关都用 `"type": "inclusiveGateway"`
+- 分支出线必须带 `conditions`（条件表达式），汇聚入线不带
+- `conditionLogic`: `"and"`（默认，全部满足）或 `"or"`（任一满足）
+- `field` 值使用表单的真实字段 model（如 `number_1774577048534_617481`）
+- 脚本自动将条件编码为 `flowUtil.evaluateExpression` + base64
+
+> **注意：** 包含网关的条件可以让多条分支同时激活。例如「数字=50, 类型=待办」时，条件1（数字>100 OR 类型=待办）和条件3（数字<100）都满足，总监审批和董事长审批会同时进行。
+
+### 4.3 包含网关 + 直通路径（来自生产环境：督办流程）
+
+> 参考示例: `references/example/包含网关.bpmn`
 
 包含网关的一个分支可以直接连到汇聚网关（不经过任何任务），实现"无风险时跳过"的效果：
 

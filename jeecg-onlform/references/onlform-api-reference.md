@@ -40,9 +40,9 @@
 | tableTxt | string | 是 | - | 表描述 |
 | tableType | int | 是 | 1 | 1=单表, 2=主表, 3=子表 |
 | tableVersion | string | 是 | "1" | 版本号 |
-| idType | string | 是 | "UUID" | 主键策略: UUID/SEQUENCE/ID_WORKER |
+| idType | string | 是 | "UUID" | 主键策略: UUID/NATIVE(自增)/SEQUENCE(Oracle) |
 | formCategory | string | 否 | "temp" | 表单分类 |
-| formTemplate | string | 否 | "1" | PC表单模板 1=一列, 2=两列 |
+| formTemplate | string | 否 | "1" | PC表单模板 1=一列, 2=两列, 3=三列, 4=四列 |
 | themeTemplate | string | 否 | "normal" | 主题: normal/erp/innerTable/tab |
 | isCheckbox | string | 否 | "Y" | 是否显示复选框 |
 | isPage | string | 否 | "Y" | 是否分页 |
@@ -463,32 +463,41 @@
 
 ## 6. fieldValidType 校验规则
 
-| 值 | 说明 |
-|---|------|
-| `""` | 无校验 |
-| `only` | 唯一校验（需配合唯一索引） |
-| `m` | 手机号 |
-| `e` | 邮箱 |
-| `n` | 数字 |
-| `n6-16` | 6-16位数字 |
-| `*6-16` | 6-16位任意字符 |
-| `money` | 金额格式 |
-| `^正则$` | 自定义正则(如 `^[a-z\|A-Z]{2,10}$`) |
+| 值 | 说明 | 正则 |
+|---|------|------|
+| `""` | 无校验 | - |
+| `only` | 唯一校验（服务端 duplicateCheck） | - |
+| `z` | 整数 | `/^-?\d+$/` |
+| `n` | 纯数字(0-9) | `/^\d+$/` |
+| `s` | 纯字母(A-Z/a-z) | `/^[a-zA-Z]+$/` |
+| `s6-18` | 6-18位字母 | `/^[a-zA-Z]{6,18}$/` |
+| `n6-16` | 6-16位数字 | `/^\d{6,16}$/` |
+| `*6-16` | 6-16位任意字符 | `/^.{6,16}$/` |
+| `*` | 非空 | - |
+| `m` | 手机号 | `/^1[3-9]\d{9}$/` |
+| `e` | 邮箱 | RFC email |
+| `p` | 邮编(6位数字) | `/^\d{6}$/` |
+| `url` | URL格式 | `/^https?:\/\/.+/` |
+| `money` | 金额格式 | `/^\d+(\.\d{2})?$/` |
+| `^正则$` | 自定义正则 | 如 `^[a-z]{2,10}$` |
 
 ---
 
 ## 7. fieldDefaultValue 默认值表达式
 
-| 语法 | 说明 |
-|------|------|
-| `#{sysUserCode}` | 当前用户账号 |
-| `#{sysUserName}` | 当前用户姓名 |
-| `#{sysOrgCode}` | 当前用户部门编码 |
-| `#{date}` | 当前日期 |
-| `#{time}` | 当前时间 |
-| `${规则编码}` | 编码规则(自动流水号) |
-| `{{JS表达式}}` | 前端JS表达式 |
-| 纯字符串 | 直接赋值(如 "Y", "10") |
+| 语法 | 说明 | 仅新增时生效 |
+|------|------|-------------|
+| `#{date}` | 当前日期 YYYY-MM-DD | 是 |
+| `#{time}` | 当前时间 HH:mm:ss | 是 |
+| `#{datetime}` | 当前日期时间 YYYY-MM-DD HH:mm:ss | 是 |
+| `#{sysUserId}` | 当前用户ID | 是 |
+| `#{sysUserCode}` / `#{sys_user_code}` | 当前用户账号 | 是 |
+| `#{sysUserName}` | 当前用户姓名 | 是 |
+| `#{sysOrgCode}` / `#{sys_org_code}` | 当前用户部门编码 | 是 |
+| `${规则编码}` | 编码规则(自动流水号) | 是 |
+| `${规则编码?onl_watch=field1,field2}` | 编码规则+字段变更时重新触发 | 是 |
+| `{{JS表达式}}` | 前端JS表达式，如 `{{dayjs().format('YYYY')}}` | 是 |
+| 纯字符串 | 直接赋值(如 "Y", "10") | 所有操作 |
 
 ---
 
@@ -509,6 +518,65 @@
     "enableExternalLink": 0,
     "externalLinkActions": "add,edit,detail"
 }
+```
+
+---
+
+## 8.5 fieldExtendJson 扩展配置详解
+
+fieldExtendJson 是一个 **JSON 字符串**，不同控件有不同的扩展配置：
+
+### 文件/图片上传数量限制
+```json
+{"uploadnum": 3}
+```
+
+### 列表文本截断显示
+```json
+{"showLength": 50}
+```
+
+### Popup 多选模式
+```json
+{"popupMulti": true}
+```
+
+### 用户/部门选择器多选
+```json
+{"multiSelect": true}
+```
+
+### 自定义标签宽度
+```json
+{"labelLength": 8}
+```
+
+### 日期选择器变体（年/月/周/季度）
+```json
+{"picker": "year"}
+{"picker": "month"}
+{"picker": "week"}
+{"picker": "quarter"}
+```
+
+### Switch 开关值
+```json
+["Y","N"]
+["1","0"]
+```
+注意: switch 的 fieldExtendJson 是数组格式，不是对象。
+
+### 关联记录展示模式
+```json
+{"showType": "card", "multiSelect": false, "imageField": ""}
+{"showType": "select", "multiSelect": false, "imageField": ""}
+{"showType": "card", "multiSelect": true, "imageField": "avatar"}
+```
+
+### 排序规则
+```json
+{"orderRule": "asc"}
+{"orderRule": "desc"}
 ```
 
 ---
@@ -562,6 +630,22 @@ GET /online/cgform/api/getByHead?id={headId}
 GET /online/cgform/head/list?tableName={表名}&pageNo=1&pageSize=10
 ```
 返回 `result.records[0].id` 即为 headId。
+
+> **tableName 查询规则：**
+> - `tableName=ai_desquery_demo` → **精确查找**，只匹配完全一致的表名
+> - `tableName=*ai_desquery*` → **模糊查询**，用 `*` 通配符匹配包含该关键词的表名
+>
+> 编辑表单时建议用精确查找确保匹配到唯一表；探索性搜索时可用模糊查询。
+
+### 查询指定表的字段配置
+
+```
+GET /online/cgform/field/listByHeadId?headId={headId}
+```
+
+直接返回该表的字段列表（数组），无需过滤、无需分页。**优先使用此接口**。
+
+备选接口：`GET /online/cgform/field/list?headId={headId}&pageNo=1&pageSize=500`（返回所有表的字段混排，需用 `cgformHeadId == headId` 过滤，且需分页遍历）。
 
 ---
 
@@ -653,3 +737,319 @@ INSERT INTO sys_permission(
 | is_route | `0` | Online 组件不走普通路由 |
 | is_leaf | `1` | 必须是叶子节点 |
 | parent_id | `NULL` 或父菜单ID | NULL=一级菜单，指定父ID=子菜单 |
+
+---
+
+## 10.5 建表前查重（防止重复建表）
+
+```
+GET /sys/duplicate/check?tableName=onl_cgform_head&fieldName=table_name&fieldVal={要创建的表名}
+```
+
+在调用 `addAll` 创建新表单前，**必须先调用此接口检查表名是否已存在**，避免重复建表导致报错。
+
+| 参数 | 说明 |
+|------|------|
+| tableName | 固定为 `onl_cgform_head`（Online 表单配置表） |
+| fieldName | 固定为 `table_name`（检查的字段名） |
+| fieldVal | 要创建的表名（如 `ai_demo`） |
+
+返回 `success=true` 表示表名不存在可以创建，`success=false` 表示已存在。
+
+---
+
+## 11. 表单管理操作 API（删除/复制/导入）
+
+### 删除表单
+
+```
+DELETE /online/cgform/head/delete?id={headId}
+```
+删除表单配置**并删除对应的数据库表**。
+
+### 批量删除表单
+
+```
+DELETE /online/cgform/head/deleteBatch?ids={id1},{id2},{id3}
+```
+批量删除多个表单配置及对应数据库表。
+
+### 仅移除配置（保留数据库表）
+
+```
+DELETE /online/cgform/head/removeRecord?id={headId}
+```
+仅删除 Online 表单的配置记录，**不删除数据库中的实际表**。适用于想保留数据但不再通过 Online 管理的场景。
+
+### 复制表单（创建视图）
+
+```
+POST /online/cgform/head/copyOnline?code={headId}
+```
+复制一个 Online 表单配置，生成视图表。视图表名格式 `{原表名}${序号}`（如 `ai_demo$1`）。
+- 视图有独立的 headId，`physicId` 指向原表
+- 视图可独立修改字段显隐、控件类型，不影响原表
+- 视图列表通过 `copyType=1&physicId={原表headId}` 过滤
+
+### 复制表单含表（完整复制）
+
+```
+GET /online/cgform/head/copyOnlineTable/{headId}?tableName={新表名}
+```
+复制表单配置并创建独立的新表（完整复制，非视图）。复制后 `isDbSynch=N`，需手动调用同步数据库 API。
+
+### 导入数据库表 — 查询可用表
+
+```
+GET /online/cgform/head/queryTables
+```
+查询数据库中尚未被 Online 管理的表，返回可导入的表名列表。
+
+### 导入数据库表 — 执行导入
+
+```
+GET /online/cgform/head/transTables/{tableName}
+```
+将已有数据库表转换为 Online 表单配置（反向工程），自动识别字段类型和属性。
+
+---
+
+## 12. 索引查询 API
+
+```
+GET /online/cgform/index/listByHeadId?headId={headId}
+```
+查询指定表单的索引配置列表。
+
+---
+
+## 13. 自定义按钮 API
+
+### 按钮列表
+```
+GET /online/cgform/button/list/{headId}
+```
+
+### 新增按钮
+```
+POST /online/cgform/button/add
+```
+
+### 编辑按钮
+```
+PUT /online/cgform/button/edit
+```
+
+### 删除按钮
+```
+DELETE /online/cgform/button/delete?id={buttonId}
+```
+
+### 批量删除按钮
+```
+DELETE /online/cgform/button/deleteBatch?ids={id1},{id2}
+```
+
+### 内置按钮列表
+```
+GET /online/cgform/button/builtInList/{headId}
+```
+
+---
+
+## 14. 增强功能 API（JS/Java/SQL）
+
+### JS 增强
+```
+GET  /online/cgform/head/enhanceJs/{headId}     # 获取 JS 增强代码
+POST /online/cgform/head/enhanceJs/{headId}     # 保存 JS 增强代码
+```
+
+### Java 增强
+```
+GET    /online/cgform/head/enhanceJava/{headId}         # 获取 Java 增强列表
+POST   /online/cgform/head/enhanceJava                  # 新增 Java 增强
+PUT    /online/cgform/head/enhanceJava                  # 编辑 Java 增强
+DELETE /online/cgform/head/deleteBatchEnhanceJava?ids=   # 批量删除 Java 增强
+```
+
+### SQL 增强
+```
+GET    /online/cgform/head/enhanceSql/{headId}           # 获取 SQL 增强列表
+POST   /online/cgform/head/enhanceSql                    # 新增 SQL 增强
+PUT    /online/cgform/head/enhanceSql                    # 编辑 SQL 增强
+DELETE /online/cgform/head/deletebatchEnhanceSql?ids=    # 批量删除 SQL 增强
+```
+
+---
+
+## 15. 权限配置 API
+
+### 字段权限
+```
+GET  /online/cgform/api/authColumn/{cgformId}           # 获取字段权限
+POST /online/cgform/api/authColumn                      # 设置字段权限
+```
+
+### 按钮权限
+```
+GET  /online/cgform/api/authButton/{cgformId}           # 获取按钮权限
+POST /online/cgform/api/authButton                      # 启用按钮权限
+PUT  /online/cgform/api/authButton/{id}                 # 禁用按钮权限
+```
+
+### 数据权限
+```
+GET    /online/cgform/api/authData/{cgformId}            # 获取数据权限规则
+POST   /online/cgform/api/authData                      # 新增数据权限规则
+PUT    /online/cgform/api/authData                      # 编辑数据权限规则
+DELETE /online/cgform/api/authData/{id}                  # 删除数据权限规则
+```
+
+### 角色权限
+```
+POST /online/cgform/api/roleColumnAuth/{roleId}/{cgformId}  # 保存角色字段权限
+POST /online/cgform/api/roleButtonAuth/{roleId}/{cgformId}  # 保存角色按钮权限
+POST /online/cgform/api/roleDataAuth/{roleId}/{cgformId}    # 保存角色数据权限
+```
+
+---
+
+## 16. 代码生成 API
+
+### 生成代码
+```
+POST /online/cgform/api/codeGenerate
+```
+
+### 下载生成的代码
+```
+GET /online/cgform/api/downGenerateCode
+```
+
+### 预览生成的代码
+```
+GET /online/cgform/api/codeView
+```
+
+---
+
+## 17. 数据导入导出 API
+
+### 导入 Excel 数据
+```
+POST /online/cgform/api/importXls/{tableName}
+```
+Content-Type: multipart/form-data，上传 Excel 文件。
+
+### 导出 Excel 数据
+```
+GET /online/cgform/api/exportXlsOld/{headId}?paramsStr={JSON编码的查询参数}
+```
+
+| 参数 | 说明 |
+|------|------|
+| headId | 表单配置 ID（不是表名） |
+| paramsStr | URL 编码的 JSON 字符串，如 `{"hasQuery":"true","column":"id","order":"asc","pageNo":1,"pageSize":10}` |
+
+> **注意：该接口使用 chunked 流式输出，仅在浏览器环境下有效。通过 curl/python 等 CLI 工具调用会返回空内容（Content-Length: 0）。**
+
+**CLI 替代方案（CSV 导出）：** 通过 `getData` API 查询数据 + `getColumns` API 获取列定义，用 Python 生成 CSV 文件：
+```python
+# 1. 获取列定义
+cols = api_get(f'/online/cgform/api/getColumns/{HEAD_ID}')
+columns = cols['result']['columns']
+col_map = {c['dataIndex']: c['title'] for c in columns if c.get('dataIndex') and c['dataIndex'] != 'rowIndex'}
+
+# 2. 获取数据
+data = api_get(f'/online/cgform/api/getData/{HEAD_ID}?pageNo=1&pageSize=100&column=createTime&order=desc')
+records = data['result']['records']
+
+# 3. 写入 CSV（UTF-8-BOM 编码，Excel 可直接打开不乱码）
+import csv
+with open('export.csv', 'w', newline='', encoding='utf-8-sig') as f:
+    writer = csv.writer(f)
+    keys = list(col_map.keys())
+    writer.writerow([col_map[k] for k in keys])
+    for r in records:
+        row = [r.get(f'{k}_dictText', r.get(k, '')) or '' for k in keys]  # 优先用字典翻译值
+        writer.writerow(row)
+```
+
+---
+
+## 18. AI/AIGC API
+
+### AI 生成表单
+```
+POST /online/cgform/api/aigc
+```
+
+### AI 字段建议
+```
+GET /online/cgform/api/aigc/fields
+```
+
+### AI 生成 Mock 数据
+```
+POST /online/cgform/api/aigc/mock/data/{tableName}
+```
+
+---
+
+## 19. 表单数据运行时 API
+
+### 获取表数据（分页查询）
+```
+GET /online/cgform/api/getData/{tableName}?pageNo=1&pageSize=10&column=createTime&order=desc
+```
+
+### 获取表列定义
+```
+GET /online/cgform/api/getColumns/{tableName}
+```
+
+### 获取查询配置（Vue3）
+```
+GET /online/cgform/api/getQueryInfoVue3/{tableName}
+```
+
+### 获取树形数据
+```
+GET /online/cgform/api/getTreeData/{tableName}
+```
+
+### 获取表单项配置
+```
+GET /online/cgform/api/getFormItem/{headId}
+GET /online/cgform/api/getFormItemBytbname/{tableName}
+```
+
+### 获取 ERP 列（一对多子表列）
+```
+GET /online/cgform/api/getErpColumns/{tableName}
+```
+
+### 查询下拉选项
+```
+GET /online/cgform/api/querySelectOptions
+```
+
+### 执行自定义按钮
+```
+POST /online/cgform/api/doButton
+```
+支持 GET/POST/PUT/DELETE 多种方法。
+
+### 子表 CRUD
+```
+GET    /online/cgform/api/subform/list/{tableName}      # 查询子表数据
+POST   /online/cgform/api/subform/{id}                  # 新增子表记录
+PUT    /online/cgform/api/subform/{id}                  # 编辑子表记录
+DELETE /online/cgform/api/subform/{id}                  # 删除子表记录
+```
+
+### 唯一性校验
+```
+POST /online/cgform/api/checkOnlyTable
+```

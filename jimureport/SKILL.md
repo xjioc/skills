@@ -1,30 +1,19 @@
 ---
 name: jimureport
-description: Use when user asks to create/edit JiMu reports (积木报表), visual reports of any type, or says "创建积木报表", "积木报表", "jmreport", "做一个可视化报表", "Excel报表", "数据填报", "打印报表", "分组报表", "循环报表", "积木设计器", "create jimureport", "visual report", "print report". Also triggers when user describes report requirements involving data reports, print reports (tickets, certificates, prescriptions), grouped reports (horizontal/vertical grouping with subtotals), loop reports (loopBlock detail iteration), data entry/fill forms, Excel-like layouts, data binding with #{}, or multi-sheet reports. Supports generating reports from screenshots — when user provides a screenshot/image of a report and asks to reproduce it (e.g., "按照截图生成报表", "照着这个图片做报表", "根据截图创建报表", "generate report from screenshot", "recreate this report").
+description: 积木报表生成器 — 自然语言描述报表需求或提供截图，自动生成积木报表（支持数据报表、打印报表、分组报表、循环报表、数据填报等全类型）。Use when user says "积木报表", "jmreport", "Excel报表", "数据填报", "可视化报表", "打印报表", "分组报表", "循环报表", "按照截图生成报表", "创建积木报表", "做一个可视化报表", "积木设计器", "create jimureport", "visual report". Also triggers when user describes report requirements involving Excel-like layouts, data binding with #{}, or multi-sheet reports, or provides a screenshot to generate a report.
 ---
 
 # JeecgBoot 积木报表 (JiMu Report) AI 自动生成器
 
-将自然语言的报表需求描述转换为积木报表配置，并通过 API 在 JeecgBoot 系统中自动创建/编辑报表。
+自然语言描述报表需求或提供截图，自动生成积木报表配置，并通过 API 在 JeecgBoot 系统中自动创建/编辑报表。支持数据报表、打印报表、分组报表、循环报表、数据填报等全类型。
 
-> **重要：本 skill 处理「积木报表」（全类型报表设计器，支持数据报表、打印报表、分组报表、循环报表、数据填报等），不涉及「Online 报表」（SQL 驱动的 cgreport）或「Online 表单」（cgform）。**
-
-## 支持的报表类型
-
-| 报表类型 | 说明 | 典型场景 |
-|---------|------|---------|
-| 数据报表 | 普通列表/明细报表，支持排序、合计 | 员工花名册、销售明细表 |
-| 打印报表 | 精细打印控制（纸张/边距/方向） | 票据、证书、处方、合同 |
-| 分组报表 | 横向/纵向分组，支持分组小计 | 部门分组统计、区域汇总 |
-| 循环报表 | loopBlock 明细循环，主子表迭代 | 订单明细、多记录逐条展示 |
-| 数据填报 | 用户可直接在报表中录入和提交数据（submitForm=1） | 数据采集、信息登记 |
+> **重要：本 skill 处理「积木报表」（可视化 Excel 风格报表设计器），不涉及「Online 报表」（SQL 驱动的 cgreport）或「Online 表单」（cgform）。**
 
 ## 与 Online 报表的区别
 
 | 特性 | 积木报表 (jimureport) | Online 报表 (cgreport) |
 |------|----------------------|----------------------|
 | 设计方式 | 可视化 Excel 设计器 | 配置式（字段列表） |
-| 报表类型 | 数据报表、打印报表、分组报表、循环报表、数据填报 | 数据列表报表 |
 | 布局能力 | 自由布局、合并单元格、多sheet | 固定表格列 |
 | 数据绑定 | `#{数据集编码.字段名}` | 自动列映射 |
 | 填报功能 | 支持（submitForm=1） | 不支持 |
@@ -47,7 +36,7 @@ description: Use when user asks to create/edit JiMu reports (积木报表), visu
 
 **需要签名的接口：** `queryFieldBySql`、`executeSelectApi`、`loadTableData`、`testConnection`、`download/image`、`dictCodeSearch`、`getDataSourceByPage`、`getDataSourceById`
 
-**不需要签名的接口：** `save`、`saveDb`、`get/{id}`、`field/tree/{reportId}`、`loadDbData/{dbId}`
+**不需要签名的接口：** `save`、`saveDb`、`get/{id}`、`field/tree/{reportId}`、`loadDbData/{dbId}`、`source/getJmReportSharedDbPageList`、`source/linkJmReportShareDb`、`source/delShareDbByDbId`
 
 ### 签名算法
 
@@ -64,13 +53,80 @@ description: Use when user asks to create/edit JiMu reports (积木报表), visu
 > 可通过 `jeecg.signatureSecret` 配置覆盖。
 > **时间戳有效期：5 分钟。**
 
-详细文档见 `references/signature.md`。
+详细文档见 `references/api-dataset.md` 签名机制章节。
 
-更多参考文档：
-- `references/template-analysis.md` - 模板报表分析（46个模板结构、displayConfig条码、循环报表）
-- `references/components.md` - 组件配置（图表、图片、条码、二维码）
-- `references/chart-templates.md` - 图表模板与ECharts配置
-- `references/chart-config.md` - 图表配置详解
+参考文档（3个合并文件，覆盖所有配置）：
+- `references/report-design.md` - 报表设计核心（单元格属性、数据绑定、分组合计、查询配置、循环块、displayConfig）
+- `references/chart-binddata.md` - 图表与组件（30+图表类型、ECharts配置模板、图片/条码/二维码组件、Virtual Cell占位）
+- `references/api-dataset.md` - API接口与数据集（签名机制、数据源管理、SQL/API/JSON/JavaBean数据集CRUD）
+- `references/query-controls.md` - 查询控件完整参考（8种控件类型、默认值、时间控件、下拉树、范围查询、报表参数配置及约束规则）
+- `references/print-config.md` - 打印配置完整参考（纸张大小、布局方向、边距、页码显示/位置/起始范围、页眉页脚、水印文本/字号/颜色/角度、表尾固定底部、常用配置模板）
+- `references/background-config.md` - 背景图配置参考（background对象结构、repeat可选值、上传接口/jmreport/upload返回message加/jmreport/img/前缀、无背景时为false）
+- `references/taodan-config.md` - 套打配置完整参考（imgList背景图数组、virtual虚拟单元格标记、layer_id关联机制、printConfig.isBackend=true、上传接口message直接用无前缀、Python构建示例）
+- `references/report-drilling.md` - 报表钻取与联动（linkType=0报表钻取/1网络链接/2图表联动/4主子表联动，单元格linkIds字符串+display:link，图表linkIds放extData内部，联动linkChartId配置，参数映射4种语法）
+- `references/db-connection.md` - 数据库连接动态获取（从服务 application-*.yml 读取数据库配置、解析 JDBC URL、环境变量占位符处理、pymysql 连接，用于建表/插数据/数据探查）
+- `references/save-api.md` - /jmreport/save 完整请求体结构（designerObj格式、根级sheet字段、chartList/imgList位置、rows写法、最小新建示例）
+- `references/cell-format.md` - 单元格格式化完整参考（所有 format key：normal/number/percent/rmb/usd/eur/year/month/yearMonth/date/date2/time/datetime/img/barcode/qrcode，及 AI 选择规则）
+
+示例文档（含完整 JSON）：
+- `examples/param-query.md` - 报表参数查询示例（SQL+API+JavaBean数据集、paramList/fieldList查询配置、searchMode值映射、extJson参数配置、JS三级联动、下拉树、字段查询全类型）
+- `examples/master-sub-table.md` - 主子表示例（SQL+API+JavaBean三种主子表、联动配置link/saveAndEdit、子表参数searchFlag:0、${}单值+#{}列表绑定）
+- `examples/multi-source-table.md` - 多源报表示例（多数据集同行#{}列表绑定、JSON数据集主子关系、linkType=4联动配置、getLinkData查询接口、与主子表报表的区别）
+- `examples/master-sub-loopblock.md` - 主子循环块示例（loopBlockList配置、每个单元格loopBlock:1、间隔行间距、循环块vs普通主子表选择）
+- `examples/horizontal-group.md` - 横向分组示例（groupRight+dynamic 纯横向、customGroup 自定义横向）
+- `examples/multi-level-header.md` - 多级循环表头示例（二级横向表头+斜线表头、纵横组合、纯横向多级）
+- `examples/zone-edition.md` - 分版报表示例（zonedEditionList多表格并排、单元格zonedEdition标记、标题空行间距、分版vs分栏对比）
+- `examples/column-split.md` - 分栏报表示例（loopBlockList+loopTime横向重复、间隔列、标题空行间距、分栏vs分版对比）
+- `examples/fixed-head-tail.md` - 固定表头表尾示例（fixedPrintHeadRows/TailRows配置、fixedHead/fixedTail单元格标记、打印每页重复）
+- `examples/report-drilling.md` - 钻取示例（报表钻取报表+图表钻取报表+网络钻取三合一、linkIds字符串格式+display:link、图表linkIds放extData内部、paramValue专用值name/value/seriesName）
+- `examples/object-dataset.md` - 对象数据集示例（逮捕证，isList:"0"+isPage:"0"、${}单值绑定、套打/证件/单据场景、与主子表结合）
+- `examples/chart-linkage.md` - 联动示例（表格联动图表+图表联动图表、linkType=2统一、extData必须有chartId/id、图表位置计算避免重叠、目标数据集参数需默认值、area=False自动滚动）
+- `examples/shared-dataset.md` - 共享数据集示例（izSharedSource=1、jimuReportId空、linkJmReportShareDb关联、saveDb返回完整对象需提取result['id']、完整4步流程）
+- `examples/elasticsearch-datasource.md` - ES数据源示例（dbType="es"、SQL需es.前缀、addDataSource+getDataSourceByPage获取ID、ES 9.x Calcite兼容问题需手动构建fieldList）
+- `examples/custom-group-sort.md` - 自定义分组排序示例（textOrders属性、多级分组各自排序、适用于纵向group/横向groupRight/customGroup、JSON数据集两级分组合计）
+- `examples/follow-exten-multi-summary.md` - 跟随分组扩展示例（rightFollowExten:"follow"、二级横向分组year+month、分组下方多行汇总SUM/MAX/MIN、第2行起需设置rightFollowExten）
+
+## 可用脚本
+
+> 以下脚本均已在训练环境验证可用，直接调用或修改参数后执行。
+> **所有脚本统一使用 `session.trust_env = False` 绕过系统代理**（`proxies=None` 不够）。
+
+| 脚本 | 功能 | 关键函数 |
+|------|------|---------|
+| `scripts/dict_manager.py` | 字典和字典项的增删改查（先查后建）| `get_or_create_dict()`, `batch_add_items()` |
+| `scripts/add_chart.py` | 向已有报表追加任意图表组件 | `add_chart(base_url, token, report_id, chart_type, echarts_config, ...)` |
+| `scripts/jimureport_creator.py` | 从零创建完整报表（含数据集/绑定） | 参见脚本内注释 |
+
+### add_chart.py 调用示例
+
+```python
+from add_chart import add_chart
+
+add_chart(
+    base_url="http://192.168.1.6:8085/jmreport",
+    token="<X-Access-Token>",
+    report_id="<报表雪花ID>",
+    chart_type="bar.background",   # extData 中记录的类型，不影响渲染
+    echarts_config={ ... },        # 完整 ECharts option dict，见 chart-binddata.md 第8节
+    row=1, col=0,                  # 图表左上角（0-based）
+    row_end=10, col_end=6,         # virtual cell 占位范围右下角
+    width="650", height="350",
+)
+```
+
+### dict_manager.py 调用示例
+
+```python
+from dict_manager import get_or_create_dict, batch_add_items
+
+dict_id = get_or_create_dict("学历", "edu_level", "学历级别")
+batch_add_items(dict_id, [
+    {"itemText": "大专", "itemValue": "1", "sortOrder": 1},
+    {"itemText": "本科", "itemValue": "2", "sortOrder": 2},
+])
+```
+
+---
 
 ## 交互流程
 
@@ -80,15 +136,122 @@ description: Use when user asks to create/edit JiMu reports (积木报表), visu
 |---------------|---------|
 | 创建/新建/做一个积木报表 | **新增报表** → Step 1 |
 | 修改积木报表/改字段/加数据集/加查询条件 | **编辑报表** → 需要报表ID，走编辑流程 |
+| 创建/新建/修改/删除共享数据集 | **共享数据集管理** → 走共享数据集流程 |
+| 查询共享数据集 | **查询共享数据集** → 调用 `getJmReportSharedDbPageList` |
 
 **编辑报表流程：**
-1. `GET /jmreport/field/tree/{reportId}` → 获取所有数据集的 `dbCode` 和 `dbId`
-2. `GET /jmreport/loadDbData/{dbId}?reportId={reportId}` → 获取数据集详情（含 fieldList）
-3. `POST /jmreport/saveDb`（**传 id = 更新**，不传 id = 新增）→ 更新 SQL / 参数
-4. `GET /jmreport/get/{reportId}` → 获取当前 jsonStr
-5. 修改 jsonStr 内容后，`POST /jmreport/save` → 保存报表设计
 
-详见 `references/dataset-skills.md` 中的"查询已有数据集"章节。
+#### 增删字段/参数流程
+
+> **核心原则：修改 SQL → 重新解析 → 保存数据集。fieldList 用解析接口返回的，paramList 在解析结果基础上补充查询配置。**
+
+```
+1. field/tree/{reportId}         → 获取数据集列表，通过编码或名称匹配目标数据集，拿到 dbId
+2. loadDbData/{dbId}             → 获取数据集详情（SQL、fieldList、paramList）
+3. 修改 SQL（增删字段/参数）       → 在 select 中增删字段，在 FreeMarker 条件中增删参数
+4. queryFieldBySql（修改后的SQL） → 重新解析，获取最新的 fieldList 和 paramList
+5. saveDb（传 id = 更新）         → 用解析后的 fieldList + 补充后的 paramList 保存数据集
+```
+
+> **fieldList 直接用解析接口返回的结果。**
+>
+> **paramList 注意：** `queryFieldBySql` **无法识别 FreeMarker `<#if>` 条件中的 `${}` 参数**，paramList 可能返回空。因此参数需要手动构建或从已有数据集的 paramList 中保留，再补充 searchMode、dictCode、searchFormat 等查询配置。
+
+**Python 实现示例（增加字段+参数）：**
+```python
+# Step 1-2: 查找数据集
+tree = api_request(f'/jmreport/field/tree/{report_id}')
+for group in tree['result']:
+    info = group[0] if isinstance(group, list) else group
+    if info.get('code') == 'users':  # 按编码或名称匹配
+        db_id = info['dbId']
+
+detail = api_request(f'/jmreport/loadDbData/{db_id}?reportId={report_id}')['result']
+report_db = detail['reportDb']
+old_sql = report_db['dbDynSql']
+
+# Step 3: 修改 SQL（增加字段 + 增加参数条件）
+new_sql = old_sql.replace('select username,', 'select id, username,')
+# 如需增加参数，同时在 SQL 中添加 FreeMarker 条件
+
+# Step 4: 重新解析 → fieldList 用解析结果
+parse_result = api_request('/jmreport/queryFieldBySql', {
+    "sql": new_sql, "dbSource": report_db.get('dbSource', ''), "type": "0"
+})
+new_fields = parse_result['result']['fieldList']
+
+# paramList: queryFieldBySql 无法识别 FreeMarker <#if> 中的 ${} 参数
+# 需从已有数据集保留，或手动构建。增删参数时在已有 paramList 基础上操作
+existing_params = detail['paramList']
+# 如需新增参数: existing_params.append({...})
+# 如需删除参数: existing_params = [p for p in existing_params if p['paramName'] != 'xxx']
+
+# Step 5: 保存数据集（传 id = 更新）
+save_db_data = {
+    "id": db_id,
+    "jimuReportId": report_id,
+    "dbCode": report_db['dbCode'],
+    "dbChName": report_db['dbChName'],
+    "dbType": report_db['dbType'],
+    "dbSource": report_db.get('dbSource', ''),
+    "dbDynSql": new_sql,
+    "isList": report_db.get('isList', '1'),
+    "isPage": report_db.get('isPage', '1'),
+    "fieldList": new_fields,       # 解析接口返回的
+    "paramList": existing_params   # 从已有数据集保留
+}
+api_request('/jmreport/saveDb', save_db_data)
+```
+
+> **注意：** `field/tree` 返回结构为 `result: [[{code, dbId, children}, ...]]`，嵌套两层数组。数据集字段名是 `code`（不是 `dbCode`）和 `dbId`（不是 `id`）。`loadDbData` 返回的 SQL 在 `result.reportDb.dbDynSql` 中。
+
+#### 修改报表设计（jsonStr）流程
+
+如果还需要同步修改报表表头/数据行（如新增列），在数据集保存后继续：
+
+```
+6. get/{reportId}                → 获取当前 jsonStr
+7. 修改 rows/cols/merges          → 增删列、调整合并范围
+8. save                          → 保存报表设计
+```
+
+详见 `references/api-dataset.md` 中的"查询已有数据集"章节。
+
+#### 共享数据集流程
+
+共享数据集的增删改与普通数据集完全一致，区别仅在于 `izSharedSource: 1`，且 `jimuReportId` 为空。
+
+```
+1. 查询共享数据集列表:  GET /jmreport/source/getJmReportSharedDbPageList?pageSize=10&pageNo=1&name=
+2. 创建共享数据集:     POST /jmreport/saveDb（izSharedSource=1, jimuReportId=""）
+3. 修改共享数据集:     POST /jmreport/saveDb（传 id = 更新, izSharedSource=1）
+4. 删除共享数据集:     POST /jmreport/source/delShareDbByDbId，请求体: {"id": "共享数据集ID"}
+5. 报表引用共享数据集: POST /jmreport/source/linkJmReportShareDb
+   请求体: {"jimuReportId": "报表ID", "jimuSharedSourceId": "共享数据集ID"}
+```
+
+> **注意：** `getJmReportSharedDbPageList`、`linkJmReportShareDb`、`delShareDbByDbId` 均不需要签名。
+> 详见 `references/api-dataset.md` 第11节"共享数据集"。
+
+### Step 0.1: 判断报表类型
+
+| 用户描述关键词 | 报表类型 | 构建方式 |
+|--------------|---------|---------|
+| 明细表/列表/简单报表 | 普通列表 | 表头行 + 数据绑定行 `#{db.field}` |
+| 证件/单据/合同/逮捕证/套打单条记录 | 对象数据集报表 | `isList:"0"` + `isPage:"0"` + `${db.field}` 单值绑定，见 `examples/object-dataset.md` |
+| 循环块/卡片/套打/信息表 | 循环块报表 | `loopBlockList` + `loopBlock:1` 单元格，见 `references/report-design.md` 5.2 |
+| 分组/合计/小计 | 纵向分组 | `group()` + `subtotal`/`funcname`，见 `references/report-design.md` 4 |
+| 横向分组/交叉表/多级表头/动态列 | 横向动态分组 | `groupRight()` + `dynamic()`，见下方决策 |
+| 横向统计/每条记录展开一列 | 自定义横向分组 | `customGroup()` + `direction:"right"` |
+| 多源/多数据集/订单+明细列表 | 多源报表 | 主子表都用 `#{}` 列表绑定 + `linkType=4` 联动，见 `examples/multi-source-table.md` |
+
+**横向分组决策（当用户需要横向展开时）：**
+
+| 场景 | 推荐方式 | 示例文件 |
+|------|---------|---------|
+| 1-3行表头 + 下方有数值动态填充 | **groupRight + dynamic** | `examples/multi-level-header.md` |
+| 行列交叉（行头纵向+列头横向+值） | **group + groupRight + dynamic** | `examples/multi-level-header.md` 示例2 |
+| 每条记录横向展开，每行一个字段 | **customGroup** | `examples/horizontal-group.md` 示例2 |
 
 ### Step 1: 解析需求
 
@@ -99,8 +262,28 @@ description: Use when user asks to create/edit JiMu reports (积木报表), visu
 | 报表名称 (name) | 用户指定 | "销售统计报表" |
 | SQL 语句 | 从需求推导或用户提供 | `SELECT ... FROM ...` |
 | 数据源 (dbSource) | 空（默认数据源） | `second_db` |
-| 是否分页 (isPage) | "1" | "0"=不分页 |
+| 是否集合 (isList) | "1" | "0"=对象数据集（单条记录，用 `${}` 绑定） |
+| 是否分页 (isPage) | "1" | "0"=不分页（对象数据集必须为"0"） |
 | 是否填报 (submitForm) | 0 | 1=填报模式 |
+| 查询条件 | **默认不生成** | 只有用户明确指定时才添加 |
+
+> **数据源规则：**
+> - 用户指定了数据源时使用指定的 dbSource；如没有指定任何数据源，则默认读取当前服务环境（dbSource 传空字符串），不需要额外配置。
+> - **关键：`dbSource` 必须传数据源的 ID（如 `"1199218436288897024"`），不能传名称（如 `"mongodb"`）。** 传名称不会报错但无法正确关联，设计器中数据源下拉框不会显示。必须先通过 `getDataSourceByPage` 查询数据源列表，按 name 匹配拿到 ID。
+>
+> **MongoDB 专用规则（详见 `references/datasource-api.md`）：**
+> - SQL 必须加 `mongo.` 前缀：`select * from mongo.集合名`，用户不提供时自动拼接
+> - 字段名含 `-` 的必须从 fieldList 中过滤掉（FreeMarker 会把 `-` 当减号导致报错）
+> - 以 `_` 开头的字段也应过滤（如 `_record_is_locked_`）
+
+> **重要：查询条件默认不生成。** 只有用户明确指定时才添加。有两种配置方式：
+>
+> **1. 报表参数（paramList）— 优先使用：** SQL 中有 `${param}` 参数时，在 `paramList` 中添加对应条目，fieldList 不设置 searchFlag。
+> **2. 报表字段查询（fieldList searchFlag）：** 用户明确说"用字段作为查询条件"时才使用。
+>
+> **查询模式规则（详见 `references/query-controls.md`）：**
+> - **报表参数**：日期/数值类型 → searchMode=1（输入框）；字典字段 → searchMode=4（下拉单选）或 3（下拉多选）；字符串 → searchMode=1
+> - **报表字段查询**：日期/数值类型 → searchMode=1（输入框）或 2（范围查询）；字符串 → searchMode=1 或 5（模糊查询）；字典字段 → searchMode=4 或 3
 
 ### Step 2: 调用 SQL 解析接口获取字段
 
@@ -163,9 +346,12 @@ description: Use when user asks to create/edit JiMu reports (积木报表), visu
 | `dbChName` | 数据集中文名称 | `"销售数据"` |
 | `dbType` | 数据源类型："0"=SQL, "1"=API, "2"=JavaBean, "3"=JSON, "4"=共享, "5"=多文件, "6"=单文件 | `"0"` |
 | `dbSource` | 数据源标识，空=默认 | `""` |
+| `jsonData` | **JSON数据集专用**（dbType="3"）：必须用 `{"data": [...]}` 格式包裹，**禁止**直接传数组 `[...]`，否则 fastjson 解析报错 | `'{"data":[{"name":"张三"}]}'` |
 | `isList` | "1"=列表数据 | `"1"` |
 | `isPage` | "1"=分页 | `"1"` |
-| `dbDynSql` | SQL语句 | `"select * from demo"` |
+| `dbDynSql` | SQL语句（SQL数据集）；API地址（API数据集，后端拉取数据用） | `"select * from demo"` |
+| `apiUrl` | **API数据集专用**（dbType="1"）：API 地址，设计器 UI「Api地址」读取此字段。**必须与 `dbDynSql` 同时设置** | `"http://api.example.com/list"` |
+| `apiMethod` | **API数据集专用**（dbType="1"）：请求方式，`"0"`=GET, `"1"`=POST。设计器 UI「请求方式」读取此字段 | `"0"` |
 
 **fieldList 每个字段的结构：**
 ```json
@@ -183,6 +369,109 @@ description: Use when user asks to create/edit JiMu reports (积木报表), visu
 ### Step 4: 构造报表 jsonStr
 
 `jsonStr` 是积木报表的核心设计数据，定义了 Excel 风格的布局。
+
+**根据报表类型选择构建方式：**
+
+| 报表类型 | rows 构建方式 | 标题后空行 | 额外配置 |
+|---------|-------------|----------|---------|
+| 普通列表 | 标题行 + 表头行 + 数据行 `#{db.field}` | **不加** | — |
+| 纵向分组合计 | 标题行 + 表头行 + 数据行含 `group()`/`funcname` | **不加** | `isGroup`, `groupField` |
+| 循环块（卡片式） | 标题行 + 空行 + 多行标签-值对 + 间隔行（`loopBlock:1`） | 加(15px) | `loopBlockList` |
+| 分版报表 | 标题行 + 空行 + 多表格并排 | 加(15px) | `zonedEditionList` |
+| 分栏报表 | 标题行 + 空行 + 循环块横向重复 | 加(15px) | `loopBlockList` + `loopTime` |
+| 多级循环表头 | 标题行 + groupRight表头行(1-3行) + 数据行含 `group()`+`dynamic()` | **不加** | `isGroup`, `groupField`，参见下方 |
+| 自定义横向分组 | 标题行 + 每行一个 `customGroup()` + `direction:"right"` | **不加** | — |
+
+> **标题空行规则：** 普通列表、纵向分组、横向分组等表格类报表，标题直接接表头，**不加空行**；循环块、分版、分栏等复杂布局，标题和内容之间加一行空行 `{"cells": {}, "height": 15}`。
+
+**多级循环表头 rows 构建模板：**
+
+```
+Row 0: 标题（合并多列）
+Row 1: [斜线表头(可选)] + #{db.groupRight(一级字段)}  ← aggregate:"group", direction:"right"
+Row 2:                   + #{db.groupRight(二级字段)}  ← aggregate:"group", direction:"right"
+Row 3: #{db.group(纵向字段1)} + #{db.group(纵向字段2)} + #{db.dynamic(值字段)}  ← aggregate:"dynamic"
+Row 4: 总计（合并） + =SUM(D4)
+```
+
+注意事项：
+- groupRight 列头用蓝底白字表头样式（如 style 8）
+- dynamic 值行用普通数据样式（如 style 14），不要用表头样式
+- **所有边框颜色保持一致**（统一用 `#d8d8d8` 浅灰，不要混用 `#000`）
+- 需要 `isGroup: true` 和 `groupField: "db.纵向分组字段"` 顶层配置
+- 完整示例见 `examples/multi-level-header.md`
+- **含斜线表头的交叉报表/多级循环表头报表，数据集默认不分页**（`isPage: "0"`），否则分组合并和横向展开可能不完整
+- **斜线表头样式禁止 `align`/`valign`**：斜线表头的 style 只能包含 `{border, bgcolor, color}`，**不能有 `align` 或 `valign`**，否则三个标签的定位会错乱（只显示第一个词）。必须为斜线表头单独创建样式，不要复用普通表头样式。
+
+**斜线表头配置模板：**
+
+```json
+{
+    "rendered": "",
+    "lineStart": "lefttop",
+    "merge": [1, 1],
+    "style": 斜线专用样式索引,
+    "text": "左下标签|中间标签|右上标签"
+}
+```
+
+> - `text` 用 `|` 分隔，最多3个标签（左下、中间、右上）
+> - `lineStart: "lefttop"` — 从左上角画斜线
+> - `rendered: ""` — 必须设置
+> - 斜线专用样式示例：`{"border": {...}, "bgcolor": "#5b9cd6", "color": "#ffffff"}`（无 align/valign）
+
+**横向小计列（compute 表达式）：**
+
+交叉表中每个横向分组需要小计列时，使用 `compute` 表达式：
+
+```
+#{dbCode.compute(field1+field2)}
+```
+
+> **重要：compute 前缀必须是数据集编码（dbCode），不是 `jm`。** 例如数据集编码为 `qyxs`，则写 `#{qyxs.compute(sales_1+gift_1)}`，不能写 `#{jm.compute(...)}`。
+
+- 支持 `+` `-` `*` `/` 四则运算
+- 小计列会跟随 groupRight 横向分组自动循环展开
+- groupRight 的 `merge` 需要包含小计列，如有3列（销售额+捐赠+小计），则 `merge: [0, 2]`
+- 小计列同样支持 `subtotal: "-1"`, `funcname: "SUM"` 纵向汇总
+
+**交叉表完整布局模板（含横向小计）：**
+
+```
+Row 1: 标题（合并所有列）
+Row 2: 区域(merge↓2行) | 省份(merge↓2行) | #{db.groupRight(month)} merge→3列(销售+捐赠+小计)
+Row 3:                                   | 销售额 | 捐赠 | 小计  ← 二级表头
+Row 4: #{db.group(region)} | #{db.group(province)} | #{db.dynamic(sales)} | #{db.dynamic(gift)} | #{db.compute(sales+gift)}
+Row 5: 总计(合并2列) | =SUM(C5) | =SUM(D5) | =SUM(E5)
+Row 6: 最大值(合并2列) | =MAX(C5) | =MAX(D5) | =MAX(E5)  ← 需要 rightFollowExten
+```
+
+**跟随分组扩展（rightFollowExten）：**
+
+当横向分组（groupRight）下方存在**多行**表达式时（如总计行+最大值行），分组展开时只有第一行（数据绑定行）会自动跟随扩展，第二行及之后的行不会自动扩展。需要在这些行的单元格上设置 `rightFollowExten: "follow"`。
+
+**适用场景：** 横向分组、横向纵向组合分组、交叉报表中，分组下方有多行汇总（如总计+最大值+平均值等）。
+
+**配置规则：**
+1. 分组下方**第二行起**的单元格需要设置 `rightFollowExten: "follow"`
+2. **最后一列不需要设置**（如小计列/compute列）
+3. 第一行（数据绑定行或第一个汇总行）不需要设置
+
+**示例（上方布局模板的 Row 6）：**
+```json
+// Row 6: 最大值行 — 分组下方第二个汇总行
+"6": {
+    "cells": {
+        "1": {"text": "最大值", "merge": [0, 1]},
+        "3": {"text": "=MAX(C5)", "rightFollowExten": "follow"},  // 需要
+        "4": {"text": "=MAX(D5)", "rightFollowExten": "follow"},  // 需要
+        "5": {"text": "=MAX(E5)"}                                  // 最后一列不需要
+    }
+}
+```
+
+> **参考文档：** https://help.jimureport.com/group/followExten
+> 完整示例见 `examples/custom-group-sort.md` 中的跟随扩展章节。
 
 #### 4.1 jsonStr 完整结构
 
@@ -256,7 +545,23 @@ description: Use when user asks to create/edit JiMu reports (积木报表), visu
 
 #### 4.2 行列数据 (rows)
 
-行和列的索引从 **1** 开始（0行通常为空）。
+> **所有报表左侧必须留一列空白作为边距。** col 0（A列）为空列，宽度设为较小值（如 20~30px），数据从 col 1（B列）开始。这是通用设计规则，适用于所有报表类型。
+>
+> ```python
+> cols_data = {
+>     "0": {"width": 25},  # A列 左边距（空列）
+>     "1": {"width": 120}, # B列 第一个数据列
+>     ...
+> }
+> ```
+>
+> 标题、表头、数据行的 cell 均从 col 1 开始，col 0 不放内容。分栏报表中 col 0 不加入循环块（`sci` 从 1 开始）。
+
+**行和列索引规则（重要）：**
+
+- `rows["0"]` = 设计器第1行（UI第1行）；`rows["1"]` = 第2行，以此类推（**0-indexed**）
+- `cells["0"]` = A列（第1列）；`cells["5"]` = F列（第6列）；`cells["6"]` = G列（第7列），以此类推（**0-indexed**）
+- 通常 A列（cells["0"]）用作左边距空列，内容从 cells["1"] 开始；但当用户说"第N列"时，直接用 cells[str(N-1)]
 
 ```json
 "rows": {
@@ -289,8 +594,48 @@ description: Use when user asks to create/edit JiMu reports (积木报表), visu
 | 语法 | 说明 | 示例 |
 |------|------|------|
 | `#{dbCode.fieldName}` | 普通字段绑定 | `#{sales.amount}` |
+| `#{dbCode.group(fieldName)}` | 分组字段绑定 | `#{sales.group(customer_name)}` |
 | `=SUM(#{dbCode.fieldName})` | 聚合函数 | `=SUM(#{sales.amount})` |
 | `=COUNT(#{dbCode.fieldName})` | 计数 | `=COUNT(#{sales.id})` |
+
+#### 4.3.1 分组合计配置
+
+当报表需要按某字段分组并在每组末尾显示合计行时，需要配置分组字段和聚合字段。详见 `references/report-design.md` 分组合计章节。
+
+**分组字段（必须全部设置）：**
+```json
+{
+    "text": "#{sales.group(customer_name)}",
+    "style": 2,
+    "aggregate": "group",
+    "subtotal": "groupField",
+    "funcname": "-1",
+    "subtotalText": "合计"
+}
+```
+
+**聚合字段（数值字段，必须全部设置）：**
+```json
+{
+    "text": "#{sales.total_amount}",
+    "style": 2,
+    "subtotal": "-1",
+    "funcname": "SUM",
+    "decimalPlaces": "2"
+}
+```
+
+**jsonStr 顶层需添加：**
+```json
+{
+    "isGroup": true,
+    "groupField": "数据集编码.分组字段名"
+}
+```
+
+**funcname 可选值：** `"SUM"`, `"AVERAGE"`, `"COUNT"`, `"MAX"`, `"MIN"`, `"COUNTNZ"`
+
+> **易错点：** 聚合字段的 `subtotal` 必须是 `"-1"`，不能设为 `"groupField"`。`"groupField"` 只用于分组依据字段（text 包含 `group()` 语法的字段）。否则合计行数值无法回填。
 
 #### 4.4 样式 (styles)
 
@@ -322,6 +667,14 @@ description: Use when user asks to create/edit JiMu reports (积木报表), visu
         "valign": "middle",
         "bgcolor": "#01b0f1",
         "color": "#ffffff"
+    },
+    {
+        "border": { "bottom": ["thin","#000"], "top": ["thin","#000"], "left": ["thin","#000"], "right": ["thin","#000"] },
+        "align": "center",
+        "valign": "middle",
+        "font": { "bold": true, "size": 14 },
+        "bgcolor": "#E6F2FF",
+        "color": "#0066CC"
     }
 ]
 ```
@@ -335,15 +688,44 @@ description: Use when user asks to create/edit JiMu reports (积木报表), visu
 | 2 | 边框+居中+垂直居中 | 数据行 |
 | 3 | 边框+居中+垂直居中+蓝底 | 表头（无白字） |
 | 4 | 边框+居中+垂直居中+蓝底白字 | 表头（推荐） |
+| 5 | 边框+居中+垂直居中+加粗14号+淡蓝底深蓝字 | 一级标题（推荐） |
+
+**推荐配色方案（标题与表头区分）：**
+
+| 层级 | bgcolor | color | font | 视觉效果 |
+|------|---------|-------|------|---------|
+| 一级标题 | `#E6F2FF`（淡蓝） | `#0066CC`（深蓝） | bold, size 14 | 清新淡雅，突出标题 |
+| 二级表头 | `#01b0f1`（天蓝） | `#ffffff`（白色） | — | 醒目对比，标识列头 |
+| 数据行 | 无 | 默认黑色 | — | 清晰易读 |
 
 #### 4.5 单元格合并 (merges)
 
+> **重要：合并单元格必须同时设置两处，缺一不可！**
+
+**1. 单元格的 `merge` 属性** — 在起始 cell 上设置 `"merge": [rowSpan, colSpan]`，表示向下合并几行、向右合并几列：
 ```json
-"merges": [
-    "B1:F1"
-]
+"cells": {
+    "0": {"text": "标题文字", "style": 5, "merge": [0, 7], "height": 50}
+}
 ```
-格式为 Excel 风格的范围表示，如 `B1:F1` 表示合并 B1 到 F1。
+> `[0, 7]` = 不向下合并，向右合并7列（共8列 A~H）。只需定义起始 cell，其他被合并的 cell 不需要定义。
+
+**2. 顶层 `merges` 数组** — Excel 风格范围表示：
+```json
+"merges": ["A2:H2"]
+```
+> 行号为 UI 行号（= 代码行号 + 1）。如代码 row "1" 对应 merge 行号 2。
+
+**标题行示例（从 B 列开始合并，与数据列对齐）：**
+```python
+# 标题 cell：放在 col 1 (B列)，和表头/数据行一样从 B 列开始
+# merge 向右合并 data_col_count - 1 列（如3个数据列 B~D，merge=[0, 2]）
+cells = {"1": {"text": "报表标题", "style": 5, "merge": [0, data_col_count - 1], "height": 50}}
+rows[str(current_row)] = {"cells": cells, "height": 50}
+# merges 数组 - 从 B 列开始
+merges.append(f"B{current_row + 1}:{end_col_letter}{current_row + 1}")
+```
+> **注意：** 标题必须从 col 1（B列）开始，不要从 col 0（A列）。A列是左边距空列，标题应与表头、数据列对齐。
 
 #### 4.6 打印配置 (printConfig)
 
@@ -609,8 +991,10 @@ db_result = api_request('/jmreport/saveDb', db_data)
 print('数据集保存结果:', json.dumps(db_result, ensure_ascii=False, indent=2))
 
 # ====== Step 3: 构造请求体并保存报表 ======
-# 关键: designerObj 是字符串, 所有 jsonStr 字段也是字符串
-# 后端逻辑: json.remove("designerObj") 后, 剩余的顶层字段就是 jsonStr
+# ⚠️ 关键：只有 designerObj 用 json.dumps 转字符串，其余所有字段保持原始 Python 对象！
+# 后端逻辑: json.remove("designerObj") 后, 剩余的顶层字段直接作为 jsonStr 存入数据库。
+# 若对 rows/cols/styles/printConfig 等也 json.dumps，前端读取时会得到字符串而非对象，
+# 导致设计器显示空白 + "配置有误，请检查数据JSON配置项！"。
 
 designer_obj = {
     "id": report_id, "name": "报表名称", "type": "0",
@@ -632,42 +1016,42 @@ styles_list = [
     {"border": {"bottom": ["thin", "#000"], "top": ["thin", "#000"], "left": ["thin", "#000"], "right": ["thin", "#000"]}, "align": "center", "valign": "middle", "bgcolor": "#01b0f1", "color": "#ffffff"}
 ]
 
-# 所有对象/数组字段用 json.dumps 转为字符串
+# 正确写法：只有 designerObj 是 json.dumps 字符串，其余全部为原始对象/数组/布尔值
 save_data = {
-    "designerObj": json.dumps(designer_obj, ensure_ascii=False),
+    "designerObj": json.dumps(designer_obj, ensure_ascii=False),  # ← 唯一需要 json.dumps 的字段
     "name": "sheet1",
     "freeze": "A1",
     "freezeLineColor": "rgb(185, 185, 185)",
-    "rows": json.dumps(rows_data, ensure_ascii=False),
-    "cols": json.dumps({"len": 100}, ensure_ascii=False),
-    "styles": json.dumps(styles_list, ensure_ascii=False),
-    "merges": json.dumps([], ensure_ascii=False),
-    "validations": "[]",
-    "autofilter": "{}",
-    "dbexps": "[]",
-    "dicts": "[]",
-    "loopBlockList": "[]",
-    "zonedEditionList": "[]",
-    "fixedPrintHeadRows": "[]",
-    "fixedPrintTailRows": "[]",
-    "hiddenCells": "[]",
-    "submitHandlers": "[]",
-    "rpbar": json.dumps({"show": True, "pageSize": "", "btnList": []}, ensure_ascii=False),
-    "fillFormToolbar": json.dumps({"show": True, "btnList": ["save", "subTable_add", "verify", "subTable_del", "print", "close", "first", "prev", "next", "paging", "total", "last", "exportPDF", "exportExcel", "exportWord"]}, ensure_ascii=False),
-    "hidden": json.dumps({"rows": [], "cols": [], "conditions": {"rows": {}, "cols": {}}}, ensure_ascii=False),
-    "fillFormInfo": json.dumps({"layout": {"direction": "horizontal", "width": 200, "height": 45}}, ensure_ascii=False),
-    "recordSubTableOrCollection": json.dumps({"group": [], "record": [], "range": []}, ensure_ascii=False),
-    "displayConfig": "{}",
-    "printConfig": json.dumps({"paper": "A4", "width": 210, "height": 297, "definition": 1, "isBackend": False, "marginX": 10, "marginY": 10, "layout": "portrait", "printCallBackUrl": ""}, ensure_ascii=False),
-    "querySetting": json.dumps({"izOpenQueryBar": False, "izDefaultQuery": True}, ensure_ascii=False),
-    "queryFormSetting": json.dumps({"useQueryForm": False, "dbKey": "", "idField": ""}, ensure_ascii=False),
-    "area": json.dumps({"sri": 0, "sci": 0, "eri": 0, "eci": 0, "width": 100, "height": 25}, ensure_ascii=False),
-    "chartList": "[]",
-    "background": "false",
-    "dataRectWidth": "700",
+    "rows": rows_data,           # dict，不要 json.dumps
+    "cols": {"len": 100},        # dict
+    "styles": styles_list,       # list
+    "merges": [],                # list
+    "validations": [],
+    "autofilter": {},
+    "dbexps": [],
+    "dicts": [],
+    "loopBlockList": [],
+    "zonedEditionList": [],
+    "fixedPrintHeadRows": [],    # list，不要 json.dumps
+    "fixedPrintTailRows": [],
+    "hiddenCells": [],
+    "submitHandlers": [],
+    "rpbar": {"show": True, "pageSize": "", "btnList": []},
+    "fillFormToolbar": {"show": True, "btnList": ["save", "subTable_add", "verify", "subTable_del", "print", "close", "first", "prev", "next", "paging", "total", "last", "exportPDF", "exportExcel", "exportWord"]},
+    "hidden": {"rows": [], "cols": [], "conditions": {"rows": {}, "cols": {}}},
+    "fillFormInfo": {"layout": {"direction": "horizontal", "width": 200, "height": 45}},
+    "recordSubTableOrCollection": {"group": [], "record": [], "range": []},
+    "displayConfig": {},
+    "printConfig": {"paper": "A4", "width": 210, "height": 297, "isBackend": False, "marginX": 10, "marginY": 10, "layout": "portrait", "printCallBackUrl": ""},  # dict，不要 json.dumps
+    "querySetting": {"izOpenQueryBar": False, "izDefaultQuery": True},
+    "queryFormSetting": {"useQueryForm": False, "dbKey": "", "idField": ""},
+    "area": {"sri": 0, "sci": 0, "eri": 0, "eci": 0, "width": 100, "height": 25},
+    "chartList": [],
+    "background": False,         # 布尔值，不是字符串 "false"
+    "dataRectWidth": 700,        # 数字，不是字符串 "700"
     "excel_config_id": report_id,
-    "pyGroupEngine": "false",
-    "isViewContentHorizontalCenter": "false",
+    "pyGroupEngine": False,
+    "isViewContentHorizontalCenter": False,
     "fillFormStyle": "default",
     "sheetId": "default",
     "sheetName": "默认Sheet",
@@ -691,6 +1075,124 @@ print('报表保存结果:', json.dumps(save_result, ensure_ascii=False, indent=
 - Step 4 的 `save` 请求体格式：`designerObj`（元数据）+ jsonStr 内容（rows/cols/styles 等）放在**同一层级**
 - 禁止将 jsonStr 嵌套在 `designerObj.jsonStr` 字符串中，否则后端会清空 rows 数据
 - `designerObj.type` 默认值为 `"0"`，不要传分类名称字符串（如 "demo"）
+
+> **防重复创建规则（重要）：**
+> - **报表：** 脚本中 report_id 只生成一次，后续所有步骤（包括失败重试）都使用同一 report_id。save 接口传同一 id 即为更新，不会重复创建。
+> - **数据源：** 创建前先通过 `getDataSourceByPage` 按 name 查询是否已存在。已存在则取其 id 走编辑模式（addDataSource 传 id），不存在才新增（id 为空）。
+> - **数据集：** saveDb 同理，传 id 为更新，不传为新增。重试前先通过 `field/tree/{reportId}` 检查数据集是否已创建。
+> - **禁止**每次重试都生成新 id 或不传 id，否则会产生大量重复的报表、数据源、数据集记录。
+
+## 已知踩坑记录
+
+> 实际调试中遇到的问题，避免重复踩坑。
+
+---
+
+### ❌ 坑1：save 请求体中对 rows/cols/styles 等字段 json.dumps → 设计器空白
+
+**现象**：`/jmreport/save` 返回 code=200，但打开设计器显示空白，提示 "配置有误，请检查数据JSON配置项！"
+
+**原因**：将 `rows`、`cols`、`styles`、`merges`、`printConfig`、`fixedPrintHeadRows`、`fixedPrintTailRows` 等字段用 `json.dumps` 转为字符串后传入，后端把字符串原样存入 jsonStr。前端读取 jsonStr 后直接使用这些字段，拿到的是字符串而不是对象，无法渲染。
+
+**正确做法**：**只有 `designerObj` 用 `json.dumps`**，其余所有字段（包括 `rows`、`cols`、`styles`、`merges`、`printConfig`、`fixedPrintHeadRows`、`fixedPrintTailRows`、`querySetting`、`rpbar`、`hidden` 等）全部保持原始 Python dict/list/bool/int，直接放入请求体。`background`、`pyGroupEngine`、`isViewContentHorizontalCenter` 用布尔值 `False`，`dataRectWidth` 用数字。
+
+```python
+# ✅ 正确
+save_data = {
+    "designerObj": json.dumps(designer_obj, ensure_ascii=False),  # 唯一字符串
+    "rows": rows_data,        # dict
+    "cols": cols_data,        # dict
+    "styles": styles_list,    # list
+    "merges": merges_list,    # list
+    "printConfig": print_config,  # dict
+    "fixedPrintHeadRows": [...],  # list
+    "background": False,      # bool
+    "dataRectWidth": 700,     # int
+    ...
+}
+
+# ❌ 错误（会导致设计器空白）
+save_data = {
+    "rows": json.dumps(rows_data),        # ← 错
+    "printConfig": json.dumps(print_config),  # ← 错
+    "background": "false",                # ← 错
+    "dataRectWidth": "700",               # ← 错
+}
+```
+
+---
+
+### ❌ 坑2：读取报表后二次 save 时对已有字段再次 json.dumps → 双重序列化
+
+**现象**：通过 `GET /jmreport/get/{id}` 拿到 jsonStr，解析后修改某字段（如 `printCallBackUrl`），再 save 时对所有字段都调用 `json.dumps` → 字段变成双重序列化的字符串 → 设计器崩坏。
+
+**原因**：从 API 读回的字段已经是正确格式（dict/list），再 `json.dumps` 会加一层多余的序列化。
+
+**正确做法**：读取 jsonStr 后，字段直接原样传回 save，不再 json.dumps（除 designerObj）。如果要修改 `printConfig` 等对象字段，先处理（dict操作），再原样传入。
+
+```python
+# 正确的"读取→修改→保存"流程
+r = api_request(f'/jmreport/get/{report_id}')
+obj = json.loads(r['result']['jsonStr'])
+
+# 修改某字段
+pc = obj['printConfig']  # 已经是 dict
+pc['printCallBackUrl'] = 'new_url'
+
+# 构造 save_data 时直接用原始对象，不再 json.dumps
+save_data = {
+    "designerObj": json.dumps(designer_obj, ensure_ascii=False),
+    "rows": obj['rows'],           # 直接用，不 json.dumps
+    "cols": obj['cols'],
+    "printConfig": pc,             # 直接用修改后的 dict
+    ...
+}
+```
+
+---
+
+### ❌ 坑3：行列索引混淆 — UI第N行/列 ≠ rows["N"] / cells["N"]
+
+**现象**：用户说"第1行第6列"，代码写 `rows["1"]["cells"]["6"]`，结果内容跑到 UI 第2行第7列。
+
+**原因**：`rows` 和 `cells` 的 key 均从 **0** 开始，与 UI 显示的行列编号差1：
+
+| UI 显示 | rows key | cells key |
+|---------|----------|-----------|
+| 第1行 | `"0"` | — |
+| 第2行 | `"1"` | — |
+| 第N行 | `str(N-1)` | — |
+| A列（第1列） | — | `"0"` |
+| F列（第6列） | — | `"5"` |
+| G列（第7列） | — | `"6"` |
+| 第N列 | — | `str(N-1)` |
+
+**正确做法**：用户说"第R行第C列"，映射到 `rows[str(R-1)]["cells"][str(C-1)]`。
+
+```python
+# 用户要求：第1行第6列(F列)插入"JEECG"
+rows["0"]["cells"]["5"] = {"text": "JEECG"}   # ✅ R=1→"0", C=6→"5"
+rows["1"]["cells"]["6"] = {"text": "JEECG"}   # ❌ 实际是第2行第7列
+```
+
+---
+
+### ℹ️ 注：printFootorFixBottom UI 显示 bug
+
+**现象**：打印设置弹窗中"表尾固定底部"开关始终显示为关闭，即使数据库存储的是 `true`。
+
+**原因**：前端打印设置组件的 `resetForm` 方法未读取 `printFootorFixBottom` 字段，导致每次打开弹窗时该值重置为默认 `false`。
+
+**影响**：数据库中的 `printFootorFixBottom` 值是正确的，不影响实际打印行为。但若用户打开打印设置弹窗后点击确认，会将该值覆盖为 `false`。
+
+**修复**：需要在前端组件的 `resetForm` 方法中补充：
+```javascript
+if (param.printFootorFixBottom !== undefined) {
+    this.printFootorFixBottom = param.printFootorFixBottom;
+}
+```
+
+---
 
 ## 智能字段配置
 
@@ -743,13 +1245,118 @@ select * from demo where sex in(${DaoFormat.in('${sex}')})
 select * from demo where age in(${DaoFormat.inNumber('${age}')})
 ```
 
+### 参数默认值与 SQL 解析顺序
+
+> **通用规则（适用于所有数据源类型：SQL、存储过程、API、JavaBean、FreeMarker 条件等）：**
+> 当用户提供了参数默认值时，必须先将默认值拼接到 SQL/API URL/JavaBean 表达式中，再调用对应的解析接口获取字段。解析完成后，保存数据集时恢复原始 `${}` 占位符。
+
+**原因：** 解析接口（`queryFieldBySql`/`executeSelectApi`）会实际执行 SQL 或调用 API 来获取字段元数据。带 `${}` 占位符无法执行，导致解析失败或返回空字段。
+
+**流程：**
+
+```
+1. 用户提供 SQL/API/JavaBean + 参数默认值（可选）
+2. 有默认值时：将 ${参数名} 替换为默认值 → 生成解析用表达式
+   无默认值时：直接去掉 ${} 参数条件（FreeMarker <#if> 整块去掉，普通 SQL 中去掉 where 条件）
+3. 调用解析接口（解析用表达式）→ 获取 fieldList
+4. saveDb 时：
+   - dbDynSql/apiUrl = 原始表达式（保留 ${} 占位符）
+   - fieldList = 解析接口返回的字段
+   - paramList = 手动构建（见下方 paramValue 规则）
+```
+
+> **paramValue 传递规则（SQL/API/JavaBean 通用）：**
+> - **有默认值** → paramList 条目中设置 `"paramValue": "默认值"`
+> - **无默认值** → paramList 条目中 **不传 paramValue 字段**（不要传空字符串）
+>
+> ```python
+> # 有默认值的参数
+> {"paramName": "name", "paramTxt": "姓名", "paramValue": "张三", ...}
+> # 无默认值的参数 — 不包含 paramValue
+> {"paramName": "status", "paramTxt": "状态", ...}  # 没有 paramValue 字段
+> ```
+
+**示例1 — SQL 数据集（存储过程）：**
+
+```python
+# 原始 SQL: call jmdemo('${nameStr}')，默认值: 小王
+parse_sql = "call jmdemo('小王')"  # 拼接默认值
+parse_result = api_request('/jmreport/queryFieldBySql', {
+    "sql": parse_sql, "dbSource": "", "type": "0"
+})
+# saveDb 时 dbDynSql 保留: "call jmdemo('${nameStr}')"
+```
+
+**示例2 — SQL 数据集（普通查询）：**
+
+```python
+# 原始 SQL: select * from demo where name like '%${name}%'，默认值: 张三
+parse_sql = "select * from demo where name like '%张三%'"  # 拼接默认值
+parse_result = api_request('/jmreport/queryFieldBySql', {
+    "sql": parse_sql, "dbSource": "", "type": "0"
+})
+# saveDb 时 dbDynSql 保留: "select * from demo where name like '%${name}%'"
+```
+
+**示例3 — SQL 数据集（FreeMarker 条件，有默认值）：**
+
+```python
+# 原始 SQL: select * from demo where 1=1 <#if isNotEmpty(age)> and age = '${age}'</#if>
+# 参数 age 有默认值 25 → 去掉 FreeMarker 条件，拼接默认值
+parse_sql = "select * from demo where 1=1 and age = '25'"
+parse_result = api_request('/jmreport/queryFieldBySql', {
+    "sql": parse_sql, "dbSource": "", "type": "0"
+})
+# saveDb 时 dbDynSql 保留原始 FreeMarker SQL
+# paramList 中 paramValue 设为 "25"
+```
+
+**示例3b — SQL 数据集（FreeMarker 条件，无默认值）：**
+
+```python
+# 原始 SQL: select * from demo where 1=1 <#if isNotEmpty(age)> and age = '${age}'</#if>
+# 参数 age 无默认值 → 直接去掉整个 FreeMarker 条件块，不拼接任何值
+parse_sql = "select * from demo where 1=1"  # 只保留基础 SQL
+parse_result = api_request('/jmreport/queryFieldBySql', {
+    "sql": parse_sql, "dbSource": "", "type": "0"
+})
+# saveDb 时 dbDynSql 保留原始 FreeMarker SQL
+# paramList 中不传 paramValue
+```
+
+**示例4 — API 数据集：**
+
+```python
+# 原始 API: http://api.example.com/users?name=${nameStr}，默认值: 张三
+parse_url = "http://api.example.com/users?name=张三"  # 拼接默认值
+parse_result = api_request('/jmreport/executeSelectApi', {
+    "apiUrl": parse_url, "apiMethod": "0", "dbSource": ""
+})
+# saveDb 时 dbDynSql 和 apiUrl 保留: "http://api.example.com/users?name=${nameStr}"
+```
+
+**示例5 — JavaBean 数据集：**
+
+```python
+# 原始 JavaBean: com.example.UserService?name=${nameStr}，默认值: 张三
+parse_bean = "com.example.UserService?name=张三"  # 拼接默认值
+parse_result = api_request('/jmreport/queryFieldBySql', {
+    "sql": parse_bean, "dbSource": "", "type": "2"  # type=2 为 JavaBean
+})
+# saveDb 时 dbDynSql 保留: "com.example.UserService?name=${nameStr}"
+```
+
+> **注意：** 如果参数无默认值，需要引导用户提供一个示例值用于解析。
+
 ### 查询配置
 
-报表支持丰富的查询控件（文本、下拉单选/多选、范围、模糊、下拉树），详见 `references/query-config.md`。
+报表支持8种查询控件类型，完整参考见 `references/query-controls.md`。
 
 关键配置点：
 - **querySetting**：`izOpenQueryBar`(展开查询栏) / `izDefaultQuery`(自动查询)
-- **控件默认值**：静态值 / `=dateStr('yyyy-MM-dd')` / `#{sysUserCode}`
+- **控件类型约束**：模糊查询仅字符串类型；范围查询仅日期/数值类型；下拉单选/多选必须配置数据字典
+- **报表参数 vs 报表字段查询**：报表参数不支持范围查询和模糊查询
+- **控件默认值**：静态值 / `=dateStr('yyyy-MM-dd')` / `#{sysUserCode}` / 范围用`|`分隔
 - **JS增强**：级联下拉 `updateSelectOptions()` / 监听变化 `onSearchFormChange()`
 - **参数优先级**：查询条件值 > URL参数 > 默认值
 
@@ -797,6 +1404,10 @@ save_data = {
 | `subtotal` | `"groupField"` | 启用小计/合计行 |
 | `funcname` | `"-1"` / `"SUM"` / `"COUNT"` / `"AVG"` | 聚合函数，`"-1"`=不计算 |
 | `subtotalText` | `"合计"` / `"小计"` | 小计行显示的文本 |
+| `textOrders` | `"值1\|值2\|值3"` | 自定义分组排序，多个值用 `\|` 分隔，适用于任何分组（纵向/横向） |
+| `rightFollowExten` | `"follow"` | 跟随分组扩展，横向分组下方第二行起的单元格需设置（最后一列除外） |
+
+> **自定义分组排序：** 当分组字段的默认排序（按数据顺序或字母序）不符合需求时，在分组单元格上添加 `textOrders` 属性指定排序顺序。例如区域按"华北→华南→华东"排序：`"textOrders": "华北|华南|华东"`。完整示例见 `examples/custom-group-sort.md`。
 
 #### 多级分组
 
@@ -865,9 +1476,10 @@ save_data = {
 
 #### 数据探查
 
-`queryFieldBySql` 只返回字段元数据，不返回实际数据行。当需要了解数据内容以判断分组字段时：
-- 优先通过 **pymysql 连接本地数据库**查看实际数据（`SELECT DISTINCT`、`GROUP BY` 等）
-- 本地数据库名通常为 `jeecgboot3`（可通过 `SHOW DATABASES LIKE '%jeecg%'` 确认）
+`queryFieldBySql` 只返回字段元数据，不返回实际数据行。当需要了解数据内容以判断分组字段，或需要建表/插数据时：
+- **必须先从服务配置动态读取数据库连接参数**，详见 `references/db-connection.md`
+- 通过 **pymysql 连接数据库**查看实际数据（`SELECT DISTINCT`、`GROUP BY` 等）
+- **禁止硬编码数据库连接信息**，每次都从 `application-*.yml` 中读取
 - 查看数据后再确定哪些字段适合作为分组依据
 
 ### CSS/JS/Python 增强
@@ -992,9 +1604,15 @@ ui_row = 1 + 1  # = 2
 merges.append(f"C{ui_row}:H{ui_row}")  # "C2:H2"
 ```
 
-### 预览地址带 Token
+### 报表访问地址
 
-报表预览地址需要携带 token 参数：
+| 页面 | 地址 |
+|------|------|
+| 设计器 | `/jmreport/index/{report_id}` |
+| 预览 | `/jmreport/view/{report_id}` |
+| 报表列表 | `/jmreport/list` |
+
+预览地址需要携带 token 参数：
 
 ```
 https://api3.boot.jeecg.com/jmreport/view/{report_id}?token={X-Access-Token}

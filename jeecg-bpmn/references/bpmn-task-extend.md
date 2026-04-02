@@ -10,7 +10,7 @@ taskExtendJson 控制审批节点的行为，以 JSON 字符串存储在 extensi
 
 | 字段 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| `sameMode` | int | `0` | 相同处理人模式：0=不跳过，1=跳过，2=草稿节点（首节点自动提交） |
+| `sameMode` | int | `0` | 相同处理人模式：0=默认（发起人对自己审批不跳过），**2=审批人与发起人为同一人时自动跳过**，4=转交给部门负责人审批。草稿节点（draft=true）固定用 0，配合 AutoSubmitListener 自动提交。**注意：原文档中"1=跳过"有误，实测正确值为 2** |
 | `isSkipAssigneeEmpty` | bool | `false` | 审批人为空时是否自动跳过 |
 | `isSkipAssigneeOnePersion` | bool | `false` | 只有一人时是否自动跳过（常用于发起人=审批人场景） |
 | `isSkipApproval` | bool | `false` | 是否跳过审批（自动通过） |
