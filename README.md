@@ -21,14 +21,22 @@
 
 ⚠️ 勉强可用。这是无法访问官方模型的无奈选择，能力差距较大，部分 skills 功能会缺失或体验不佳。
 
+> **前提条件**：需要MiniMax AI 开放平台账号， [立刻订阅](https://platform.minimaxi.com/docs/api-reference/text-anthropic-api)
+> 
+**方案三：Claude Code + 智谱 GLM-5**
+
+🟡 勉强可用。这是无法访问官方模型的无奈选择，能力差距较大，部分 skills 功能会缺失或体验不佳。
+
+> **前提条件**：需要智谱 AI 开放平台账号，[立刻订阅](https://www.bigmodel.cn/glm-coding?ic=ST5KVGQO9K)
+
 **结论**
 
-优先使用方案一，方案二仅为国内无法访问官方时的无奈选择。
+优先使用方案一，方案二和方案三为国内无法访问官方时的备选。
 
 **相关文档：**
 - [Claude Code 下载与安装](https://code.claude.com/docs/zh-CN/quickstart)
 - [MiniMax API 配置（方案二）](https://platform.minimaxi.com/docs/api-reference/text-anthropic-api)
-
+- [在 Claude Code 中使用 智普GLM（方案三）](https://docs.bigmodel.cn/cn/coding-plan/tool/claude)
 
 
 ## 功能清单
