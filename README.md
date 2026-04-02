@@ -7,6 +7,30 @@
 - **视频教程：** [Skills+JeecgBoot自然语言编程实战](https://www.bilibili.com/video/BV1KKwTzJEbX/)
 - **在线文档：** [Skills使用文档](https://help.jeecg.com/java/ai/skills/skill-comparison)
 
+
+---
+
+## Jeecg Skills 落地 AI开发工具推荐
+
+**方案一：Claude Code + 官方会员**
+
+✅ 最佳选择。能力完整，所有 skills 功能都能正常使用。
+
+> **前提条件**：需要解决 Claude 官方账号注册、会员订阅及网络访问问题。
+
+**方案二：Claude Code + MiniMax 2.7**
+
+⚠️ 勉强可用。这是无法访问官方模型的无奈选择，能力差距较大，部分 skills 功能会缺失或体验不佳。
+
+**结论**
+
+优先使用方案一，方案二仅为国内无法访问官方时的无奈选择。
+
+**相关文档：**
+- [Claude Code 下载与安装](https://code.claude.com/docs/zh-CN/quickstart)
+- [MiniMax API 配置（方案二）](https://platform.minimaxi.com/docs/api-reference/text-anthropic-api)
+
+
 ---
 
 ## 安装方法
