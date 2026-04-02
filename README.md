@@ -8,7 +8,6 @@
 - **在线文档：** [Skills使用文档](https://help.jeecg.com/java/ai/skills/skill-comparison)
 
 
----
 
 ## Jeecg Skills 落地 AI开发工具推荐
 
@@ -31,7 +30,6 @@
 - [MiniMax API 配置（方案二）](https://platform.minimaxi.com/docs/api-reference/text-anthropic-api)
 
 
----
 
 ## 功能清单
 
@@ -54,9 +52,6 @@
 | 8 | **jimubi-dashboard** | 仪表盘生成器 — 自然语言描述看板需求，自动生成数据仪表盘 | 创建仪表盘、数据看板、创建看板、统计看板、运营看板 | Drag Page 仪表盘配置 |
 | 9 | **jimureport** | 积木报表生成器 — 自然语言描述报表需求或提供截图，自动生成积木报表（全类型支持） | 积木报表、jmreport、Excel报表、数据填报、可视化报表、打印报表、按照截图生成报表 | 积木报表配置 |
 
----
-
----
 
 
 ## 安装 Skills 技能
@@ -92,7 +87,6 @@ xcopy jimureport %USERPROFILE%\.claude\skills\jimureport\ /E /I
 
 **使用文档**：[skill-usage-guide.md](jeecg-codegen/docs/skill-usage-guide.md)
 
----
 
 ### 2. jeecg-onlform — Online 表单生成器
 
@@ -106,7 +100,6 @@ xcopy jimureport %USERPROFILE%\.claude\skills\jimureport\ /E /I
 - 增量字段修改（加/删/改字段，无需重新创建）
 - 自动同步数据库 + 生成菜单 SQL
 
----
 
 ### 3. jeecg-onlreport — Online 报表生成器
 
@@ -134,7 +127,6 @@ xcopy jimureport %USERPROFILE%\.claude\skills\jimureport\ /E /I
 - 关联记录 + 他表字段、公式计算
 - 支持表单编辑和删除
 
----
 
 ### 5. jeecg-onlchart — Online 图表生成器
 
@@ -148,7 +140,6 @@ xcopy jimureport %USERPROFILE%\.claude\skills\jimureport\ /E /I
 - 组合图表（折线+柱状同时展示）
 - SQL 参数化查询、动态数据源
 
----
 
 ### 6. jeecg-bpmn — BPM 流程生成器
 
@@ -161,7 +152,6 @@ xcopy jimureport %USERPROFILE%\.claude\skills\jimureport\ /E /I
 - 条件表达式自动生成：金额判断、天数判断、状态判断
 - 同一会话内可连续修改流程
 
----
 
 ### 7. jimubi-bigscreen — 大屏生成器
 
@@ -176,7 +166,6 @@ xcopy jimureport %USERPROFILE%\.claude\skills\jimureport\ /E /I
 
 > 注意：大屏与仪表盘使用完全不同的布局和样式体系，仪表盘请使用 `jimubi-dashboard`。
 
----
 
 ### 8. jimubi-dashboard — 仪表盘生成器
 
@@ -191,7 +180,6 @@ xcopy jimureport %USERPROFILE%\.claude\skills\jimureport\ /E /I
 
 > 注意：仪表盘与大屏使用完全不同的布局和样式体系，大屏请使用 `jimubi-bigscreen`。
 
----
 
 ### 9. jimureport — 积木报表生成器
 
@@ -207,7 +195,6 @@ xcopy jimureport %USERPROFILE%\.claude\skills\jimureport\ /E /I
 - CSS/JS/Python 增强能力
 - 与 Online 报表（cgreport）互补：积木报表侧重复杂布局与多样化报表类型，Online 报表侧重快速配置
 
----
 
 ## 使用方式
 
