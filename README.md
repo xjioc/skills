@@ -21,8 +21,8 @@
 
 ⚠️ 勉强可用。这是无法访问官方模型的无奈选择，能力差距较大，部分 skills 功能会缺失或体验不佳。
 
-> **前提条件**：需要MiniMax AI 开放平台账号， [立刻订阅](https://platform.minimaxi.com/docs/api-reference/text-anthropic-api)
-> 
+> **前提条件**：需要MiniMax AI 开放平台账号， [立刻订阅](https://platform.minimaxi.com/subscribe/token-plan?code=4sOp1aM1Qh&source=link)
+
 **方案三：Claude Code + 智谱 GLM-5**
 
 🟡 勉强可用。这是无法访问官方模型的无奈选择，能力差距较大，部分 skills 功能会缺失或体验不佳。
